@@ -1,0 +1,517 @@
+<!-- このファイルは tools/build-site.mjs が src/status.html から作る。直接直さない -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>luce 講師ページ</title>
+    <style>
+      :root {
+        --ground: #f7f7f4;
+        --surface: #ffffff;
+        --ink: #212726;
+        --muted: #64716e;
+        --rule: #e3e6e1;
+        --accent: #0e9ea6;
+        --accent-soft: #e2f3f4;
+        --warn: #b3436d;
+        --warn-soft: #f6e7ee;
+        --caution: #a3620a;
+        --caution-soft: #f8efdd;
+        --ok: #2f8a3a;
+        --ok-soft: #e4f2e6;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--ground);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+        font-size: 16px;
+        line-height: 1.65;
+      }
+      .wrap { max-width: 560px; margin: 0 auto; padding: 16px 14px 48px; }
+      header { padding: 6px 2px 12px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+      h1 { font-size: 19px; margin: 0; }
+      h1 small { font-size: 13px; color: var(--muted); font-weight: 400; margin-left: 6px; }
+      .who { color: var(--muted); font-size: 12.5px; }
+      .nav a { color: var(--accent); font-size: 13px; text-decoration: none; }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin-bottom: 12px;
+      }
+      .card h2 { font-size: 16px; margin: 0 0 6px; }
+      .card h2 small { color: var(--muted); font-size: 12.5px; font-weight: 400; margin-left: 6px; }
+      .meta { color: var(--muted); font-size: 13.5px; }
+      .meta b { color: var(--ink); font-weight: 600; }
+      .meta a { color: var(--accent); }
+
+      .banner { border-radius: 10px; padding: 10px 12px; font-size: 14px; margin-bottom: 12px; white-space: pre-wrap; }
+      .banner.err { background: var(--warn-soft); color: var(--warn); }
+      .banner.info { background: var(--caution-soft); color: var(--caution); }
+
+      .big { display: flex; align-items: baseline; gap: 8px; margin: 4px 0 8px; }
+      .big .yen { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
+      .big .lbl { color: var(--muted); font-size: 13px; }
+
+      .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+      .chip {
+        font-size: 13px; background: var(--ground); border: 1px solid var(--rule);
+        border-radius: 8px; padding: 2px 9px; white-space: nowrap;
+      }
+      .chip b { font-size: 15px; font-variant-numeric: tabular-nums; }
+      .chip.err { background: var(--warn-soft); border-color: transparent; color: var(--warn); }
+      .chip.warn { background: var(--caution-soft); border-color: transparent; color: var(--caution); }
+      .chip.ok { background: var(--ok-soft); border-color: transparent; color: var(--ok); }
+
+      .done-list { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; font-size: 14px; margin-top: 4px; }
+      .done-list .st { font-size: 12.5px; padding: 0 8px; border-radius: 999px; text-align: center; }
+      .st.ok { background: var(--ok-soft); color: var(--ok); }
+      .st.no { background: var(--caution-soft); color: var(--caution); }
+      .st.none { background: var(--ground); color: var(--muted); }
+
+      .filter { display: flex; gap: 6px; margin: 4px 0 10px; }
+      .filter button {
+        font-size: 12.5px; padding: 4px 10px; border-radius: 999px; font-family: inherit;
+        border: 1px solid var(--rule); background: var(--surface); color: var(--muted);
+      }
+      .filter button.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+      .issue { border-left: 3px solid var(--caution); padding: 6px 10px; margin-bottom: 8px; background: #fbfbf9; border-radius: 0 8px 8px 0; }
+      .issue.err { border-left-color: var(--warn); }
+      .issue .where { font-size: 12px; color: var(--muted); }
+      .issue .where b { color: var(--ink); font-weight: 600; }
+      .issue .sev { font-size: 11.5px; padding: 0 6px; border-radius: 999px; margin-right: 6px; }
+      .issue.err .sev { background: var(--warn-soft); color: var(--warn); }
+      .issue.warn .sev { background: var(--caution-soft); color: var(--caution); }
+      .issue .msg { font-size: 14px; white-space: pre-wrap; }
+      .issue.hidden { display: none; }
+      .empty { color: var(--ok); font-size: 14px; }
+
+      .tbl { overflow-x: auto; margin-top: 6px; }
+      table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+      td, th { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--rule); white-space: nowrap; vertical-align: top; }
+      th { color: var(--muted); font-weight: 600; font-size: 12.5px; }
+      td.r, th.r { text-align: right; }
+      td.c, th.c { text-align: center; }
+      tr.total td { font-weight: 700; border-top: 2px solid var(--ink); }
+      tr.sub td { color: var(--muted); }
+      .mark { display: inline-block; width: 18px; text-align: center; }
+      .mark.on { color: var(--accent); font-weight: 700; }
+      .mark.off { color: #c9cec8; }
+      td.name { white-space: normal; min-width: 96px; }
+      td.name small { color: var(--muted); font-size: 11.5px; display: block; line-height: 1.3; }
+
+      details { margin-top: 6px; font-size: 14px; }
+      details summary { color: var(--accent); cursor: pointer; }
+      .hint { color: var(--muted); font-size: 12.5px; margin: 4px 0 0; white-space: pre-wrap; }
+
+      select {
+        font: inherit; font-size: 14px; padding: 6px 10px; border-radius: 8px;
+        border: 1.5px solid var(--rule); background: var(--surface); color: var(--ink); max-width: 100%;
+      }
+      .reload {
+        margin-top: 4px; width: 100%; padding: 11px 0; font-size: 15px; font-family: inherit;
+        border: 1.5px solid var(--rule); border-radius: 10px; background: var(--surface); color: var(--accent);
+      }
+      .center { text-align: center; color: var(--muted); padding: 42px 12px; white-space: pre-wrap; }
+      .center b { color: var(--ink); }
+      .foot { color: var(--muted); font-size: 11.5px; text-align: center; margin-top: 26px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div>
+          <h1>今月の状況<small>luce 講師ページ</small></h1>
+          <div class="who" id="who"></div>
+        </div>
+        <div class="nav"><a href="events.html" data-keep-token="1">イベント →</a></div>
+      </header>
+      <div id="admin"></div>
+      <div id="main"><div class="center">読み込み中…</div></div>
+      <div class="foot" id="foot"></div>
+    </div>
+
+    <script>
+/*
+ * luce 講師ページ（静的版）の橋渡し。tools/build-site.mjs が各ページの先頭に埋め込む。
+ *
+ * GAS の画面では google.script.run でサーバーの関数を呼ぶ。静的ページには google.script が無いので、
+ * 同じ形のものをここで作り、中では GAS の JSON API（40_Api.js）を fetch で呼ぶ。
+ * 別ドメインからの fetch には Google の Cookie が付かない（credentials: 'omit'）ので、
+ * ブラウザがどのアカウントにログインしていても関係なく動く。
+ *
+ * https://script.google.com/macros/s/AKfycbxDM30NCEgTMLrWZ1Z3muR9gg2JWF3_mK1AVsKL-nW5gyFKnY0x2fmrvEK6FIBxtcfQ/exec はビルド時に 00_Config.js の WEBAPP_URL に置き換わる。
+ * 画面のコード（status.html / events.html）は GAS 版と同じものをそのまま使う。
+ */
+(function (w) {
+  var API_URL = 'https://script.google.com/macros/s/AKfycbxDM30NCEgTMLrWZ1Z3muR9gg2JWF3_mK1AVsKL-nW5gyFKnY0x2fmrvEK6FIBxtcfQ/exec';
+
+  function parseQuery(search) {
+    var out = {};
+    String(search || '').replace(/^\?/, '').split('&').forEach(function (kv) {
+      if (!kv) return;
+      var i = kv.indexOf('=');
+      var k = i < 0 ? kv : kv.slice(0, i);
+      var v = i < 0 ? '' : kv.slice(i + 1);
+      try { k = decodeURIComponent(k.replace(/\+/g, ' ')); } catch (err) { /* そのまま */ }
+      try { v = decodeURIComponent(v.replace(/\+/g, ' ')); } catch (err) { /* そのまま */ }
+      if (k) out[k] = v;
+    });
+    return out;
+  }
+
+  function toQuery(params) {
+    var p = params || {};
+    return Object.keys(p).filter(function (k) { return p[k] !== undefined && p[k] !== null && p[k] !== ''; })
+      .map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(String(p[k])); })
+      .join('&');
+  }
+
+  var q = parseQuery(w.location && w.location.search);
+  w.__luce = { token: q.t || '', no: q.no || '', apiUrl: API_URL, parseQuery: parseQuery, toQuery: toQuery };
+
+  function finish(promise, ok, ng) {
+    promise
+      .then(function (res) { return res.json(); })
+      .then(function (body) {
+        if (body && body.ok) ok(body.data);
+        else ng(new Error((body && body.error) || '応答が読めませんでした'));
+      }, function (err) {
+        var why = err && err.message ? err.message : String(err);
+        ng(new Error('通信に失敗しました。電波の良いところでもう一度お試しください（' + why + '）'));
+      });
+  }
+
+  function get(params, ok, ng) {
+    finish(w.fetch(API_URL + '?' + toQuery(params), { method: 'GET', credentials: 'omit', cache: 'no-store' }), ok, ng);
+  }
+
+  function post(body, ok, ng) {
+    // Content-Type を text/plain にすると preflight（OPTIONS）が飛ばない。GAS は OPTIONS に答えられない
+    finish(w.fetch(API_URL, {
+      method: 'POST', credentials: 'omit',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body)
+    }), ok, ng);
+  }
+
+  /** google.script.run と同じ形。呼ぶたびに新しいものを返す（ハンドラが次の呼び出しに残らない） */
+  function runner() {
+    var ok = function () {};
+    var ng = function (err) { if (w.console && w.console.error) w.console.error(err); };
+    var r = {
+      withSuccessHandler: function (f) { ok = f; return r; },
+      withFailureHandler: function (f) { ng = f; return r; },
+      withUserObject: function () { return r; },
+      getStatusPage: function (p) { get({ api: 'status', t: p && p.t, no: p && p.no }, ok, ng); },
+      getEventPage: function (p) { get({ api: 'events', t: p && p.t }, ok, ng); },
+      saveEventAnswer: function (eventId, answer, comment, p) {
+        post({ api: 'saveEventAnswer', t: p && p.t, eventId: eventId, answer: answer, comment: comment }, ok, ng);
+      },
+      saveStudentAnswers: function (eventId, rows, noStudents, p) {
+        post({ api: 'saveStudentAnswers', t: p && p.t, eventId: eventId, rows: rows || [], noStudents: !!noStudents }, ok, ng);
+      }
+    };
+    return r;
+  }
+
+  function replaceUrl(mode, state, params, hash) {
+    try {
+      w.history[mode](state || null, '', '?' + toQuery(params) + (hash ? '#' + hash : ''));
+    } catch (err) { /* 古いブラウザ */ }
+  }
+
+  var script = {
+    url: {
+      getLocation: function (cb) {
+        cb({ parameter: parseQuery(w.location && w.location.search), parameters: {}, hash: '' });
+      }
+    },
+    history: {
+      replace: function (state, params, hash) { replaceUrl('replaceState', state, params, hash); },
+      push: function (state, params, hash) { replaceUrl('pushState', state, params, hash); },
+      setChangeHandler: function () {}
+    }
+  };
+  Object.defineProperty(script, 'run', { get: runner });
+  w.google = { script: script };
+
+  /** ページの中のリンク（「イベント →」など）に合言葉を引き継ぐ */
+  function keepToken() {
+    if (!w.document || !w.document.querySelectorAll) return;
+    var as = w.document.querySelectorAll('a[data-keep-token]');
+    for (var i = 0; i < as.length; i++) {
+      var href = as[i].getAttribute('href') || '';
+      as[i].setAttribute('href', href.replace(/[?#].*$/, '') + '?' + toQuery({ t: w.__luce.token }));
+    }
+  }
+  if (w.document && w.document.addEventListener) w.document.addEventListener('DOMContentLoaded', keepToken);
+  w.__luce.keepToken = keepToken;
+})(window);
+
+    </script>
+    <script>
+      var STATE = {};
+      var FILTER = 'all';
+      var esc = function (s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+      };
+      var yen = function (n) { return (Number(n) || 0).toLocaleString('ja-JP') + '円'; };
+
+      // 合言葉はサーバー側（doGet）が埋め込む。GAS は中身を iframe で出すので、
+      // 画面の JavaScript から元の URL（?t=…）は見えない
+      var TOKEN = window.__luce.token;
+      var WANT_NO = window.__luce.no;
+
+      function start() {
+        try {
+          google.script.url.getLocation(function (loc) {
+            var no = (loc && loc.parameter && loc.parameter.no) || WANT_NO || '';
+            load(no);
+          });
+        } catch (err) { load(WANT_NO || ''); }
+      }
+      window.onerror = function (msg) {
+        var main = document.getElementById('main');
+        if (main && /読み込み中|まだ読んでいます/.test(main.textContent)) renderCenter('画面でエラーが起きました。\n' + msg);
+      };
+
+      var TIMERS = [];
+      function clearTimers() { TIMERS.forEach(function (t) { clearTimeout(t); }); TIMERS = []; }
+
+      function load(no) {
+        clearTimers();
+        STATE.teacherNo = no || STATE.teacherNo || '';
+        renderCenter('読み込み中…\n（シートを読むので少し時間がかかります）');
+        try {
+          if (!window.google || !google.script || !google.script.run) {
+            throw new Error('google.script.run が使えません。GASのウェブアプリとして開いてください');
+          }
+          if (typeof google.script.run.getStatusPage !== 'function') {
+            throw new Error('サーバー側に getStatusPage がありません。30_Status.gs が貼られていないか、'
+              + '貼った後に「デプロイを管理 → 新バージョン → デプロイ」をしていない可能性があります');
+          }
+          TIMERS.push(setTimeout(function () {
+            renderCenter('まだ読んでいます…\n初めて開くときや、講師ファイルが多いときは1分ほどかかることがあります');
+          }, 25000));
+          TIMERS.push(setTimeout(function () {
+            document.getElementById('main').innerHTML = '<div class="center">2分たっても返ってきません。\n'
+              + '通信が切れたか、読み込みに失敗した可能性があります。</div>'
+              + '<button class="reload" onclick="load(STATE.teacherNo)">もう一度読み込む</button>'
+              + '<p class="hint">何度も続くときは、日置までお知らせください（GASの「実行数」で getStatusPage の結果を見ると原因が分かります）。</p>';
+          }, 120000));
+          google.script.run
+            .withSuccessHandler(function (data) { clearTimers(); render(data); })
+            .withFailureHandler(function (err) { clearTimers(); renderCenter('読み込めませんでした。\n' + err.message); })
+            .getStatusPage({ no: no || '', t: TOKEN });
+        } catch (err) {
+          clearTimers();
+          renderCenter('読み込めませんでした。\n' + err.message);
+        }
+      }
+
+      function renderCenter(msg) {
+        document.getElementById('main').innerHTML = '<div class="center">' + esc(msg) + '</div>';
+      }
+
+      function render(data) {
+        STATE = data || {};
+        document.getElementById('who').textContent = data.email
+          ? 'ログイン中: ' + data.email
+          : (data.teacherName ? data.teacherName + ' 先生' : '');
+        document.getElementById('foot').textContent = data.version || '';
+        renderAdmin(data);
+        if (data.error) {
+          document.getElementById('main').innerHTML = '<div class="banner err">' + esc(data.error) + '</div>'
+            + '<button class="reload" onclick="load(STATE.teacherNo || \'\')">もう一度読み込む</button>';
+          return;
+        }
+        var st = data.status || {};
+        var html = '';
+        if (data.notice) html += '<div class="banner info">' + esc(data.notice) + '</div>';
+        html += summaryHtml(data, st);
+        html += doneHtml(st);
+        html += issuesHtml(st);
+        html += invoiceHtml(st);
+        html += transportHtml(st);
+        html += tuitionHtml(st);
+        html += lessonsHtml(st);
+        html += '<button class="reload" onclick="load(STATE.teacherNo || \'\')">最新の状態に読み直す</button>';
+        document.getElementById('main').innerHTML = html;
+      }
+
+      function renderAdmin(data) {
+        var box = document.getElementById('admin');
+        if (!data.admin || !(data.teachers || []).length) { box.innerHTML = ''; return; }
+        var opts = data.teachers.map(function (t) {
+          var sel = t.no === data.teacherNo ? ' selected' : '';
+          return '<option value="' + esc(t.no) + '"' + sel + '>' + esc(t.no + ' ' + t.name) + '（' + esc(t.yyyymm) + '）</option>';
+        }).join('');
+        box.innerHTML = '<div class="card"><div class="meta">管理者: 講師を選ぶ</div>'
+          + '<select onchange="pickTeacher(this.value)">' + opts + '</select></div>';
+      }
+
+      function pickTeacher(no) {
+        // 合言葉を落とさないこと（replace は URL のパラメータを丸ごと入れ替える）
+        var p = TOKEN ? { no: no, t: TOKEN } : { no: no };
+        try { google.script.history.replace(null, p, null); } catch (err) {}
+        load(no);
+      }
+
+      function summaryHtml(data, st) {
+        var c = st.counts || { errors: 0, warnings: 0 };
+        var done = st.done || [];
+        var doneCount = done.filter(function (d) { return d.done === '入力完了'; }).length;
+        var chips = '';
+        chips += '<span class="chip ' + (c.errors ? 'err' : 'ok') + '">エラー <b>' + c.errors + '</b></span>';
+        chips += '<span class="chip ' + (c.warnings ? 'warn' : 'ok') + '">警告 <b>' + c.warnings + '</b></span>';
+        chips += '<span class="chip ' + (st.allDone ? 'ok' : '') + '">入力完了 <b>' + doneCount + '</b>/' + done.length + '</span>';
+        var title = (st.year ? st.year + '年' : '') + (st.month ? st.month + '月分' : '');
+        return '<div class="card">'
+          + '<h2>' + esc(data.teacherName || '') + ' さん<small>' + esc(data.teacherNo || '') + '</small></h2>'
+          + '<div class="meta">' + esc(title) + '　<a href="' + esc(st.fileUrl || '#') + '" target="_blank" rel="noopener">ファイルを開く</a></div>'
+          + '<div class="big"><span class="yen">' + esc(yen(st.grandTotal)) + '</span><span class="lbl">請求書の総計（振込額）</span></div>'
+          + '<div class="chips">' + chips + '</div>'
+          + '<p class="hint">金額は請求書シートの数式の結果です。入力を直すと、読み直したときに変わります。</p>'
+          + '</div>';
+      }
+
+      function doneHtml(st) {
+        var done = st.done || [];
+        if (!done.length) return '';
+        var rows = done.map(function (d) {
+          var cls = d.done === '入力完了' ? 'ok' : (d.done ? 'no' : 'none');
+          return '<div>' + esc(d.sheet) + '</div><div class="st ' + cls + '">' + esc(d.done || '（フラグなし）') + '</div>';
+        }).join('');
+        return '<div class="card"><h2>入力完了</h2><div class="done-list">' + rows + '</div>'
+          + '<p class="hint">各シートの「入力完了」セル（曜日シート BE2・月謝明細 BE2・交通費 D2）の状態です。</p></div>';
+      }
+
+      function issuesHtml(st) {
+        var issues = st.issues || [];
+        var html = '<div class="card"><h2>確認してほしいこと<small>' + issues.length + '件</small></h2>';
+        if (!issues.length) {
+          html += '<div class="empty">いまのところ気になる点はありません。</div></div>';
+          return html;
+        }
+        html += '<div class="filter">'
+          + ['all', 'err', 'warn'].map(function (f) {
+            var lbl = { all: 'すべて', err: 'エラー', warn: '警告' }[f];
+            return '<button class="' + (FILTER === f ? 'on' : '') + '" onclick="setFilter(\'' + f + '\')">' + lbl + '</button>';
+          }).join('') + '</div>';
+        html += '<div id="issues">' + issues.map(issueHtml).join('') + '</div>';
+        html += '<p class="hint">エラー … このままだと請求されない・二重になるなど、金額に響くもの\n警告 … 見ておいてほしいもの（理由があればそのままで構いません）</p>';
+        return html + '</div>';
+      }
+
+      function issueHtml(i) {
+        var isErr = i.severity === 'エラー';
+        var hidden = (FILTER === 'err' && !isErr) || (FILTER === 'warn' && isErr);
+        var where = esc(i.sheet || '') + (i.row ? ' ' + esc(i.row) + '行目' : '') + (i.subject ? '　<b>' + esc(i.subject) + '</b>' : '');
+        return '<div class="issue ' + (isErr ? 'err' : 'warn') + (hidden ? ' hidden' : '') + '">'
+          + '<div class="where"><span class="sev">' + esc(i.severity) + '</span>' + where + '</div>'
+          + '<div class="msg">' + esc(i.message) + '</div></div>';
+      }
+
+      function setFilter(f) {
+        FILTER = f;
+        var box = document.getElementById('issues');
+        if (box) box.innerHTML = (STATE.status.issues || []).map(issueHtml).join('');
+        var btns = document.querySelectorAll('.filter button');
+        for (var k = 0; k < btns.length; k++) {
+          btns[k].className = (['all', 'err', 'warn'][k] === f) ? 'on' : '';
+        }
+      }
+
+      function invoiceHtml(st) {
+        var invs = st.invoices || [];
+        if (!invs.length) return '<div class="card"><h2>請求書</h2><div class="meta">請求書シートが見つかりません</div></div>';
+        return invs.map(function (inv) {
+          var rows = (inv.rows || []).map(function (r) {
+            return '<tr><td class="name">' + esc(r.category || '（区分なし）') + '</td>'
+              + '<td class="r">' + esc(r.qty) + '</td><td class="r">' + esc(yen(r.unit)) + '</td><td class="r">' + esc(yen(r.amount)) + '</td></tr>';
+          }).join('');
+          var totals = [
+            ['小計', inv.subtotal], ['交通費', inv.transport], ['消費税', inv.tax],
+            ['源泉徴収', inv.withholding ? -inv.withholding : 0], ['立替経費', inv.expenses]
+          ].filter(function (t) { return t[1]; }).map(function (t) {
+            return '<tr class="sub"><td colspan="3">' + esc(t[0]) + '</td><td class="r">' + esc(yen(t[1])) + '</td></tr>';
+          }).join('');
+          return '<div class="card"><h2>' + esc(inv.sheet) + '</h2><div class="tbl"><table>'
+            + '<tr><th>請求区分</th><th class="r">数量</th><th class="r">単価</th><th class="r">金額</th></tr>'
+            + (rows || '<tr><td colspan="4" class="meta">明細に金額がありません</td></tr>')
+            + totals
+            + '<tr class="total"><td colspan="3">総計（振込額）</td><td class="r">' + esc(yen(inv.grandTotal)) + '</td></tr>'
+            + '</table></div></div>';
+        }).join('');
+      }
+
+      function transportHtml(st) {
+        var t = st.transport;
+        if (!t) return '';
+        var rows = (t.campuses || []).map(function (c) {
+          return '<tr><td>' + esc(c.name || '（校舎名なし）') + '</td><td class="r">' + esc(c.count) + ' 回</td></tr>';
+        }).join('');
+        return '<div class="card"><h2>交通費<small>' + esc(t.done || '') + '</small></h2><div class="tbl"><table>'
+          + '<tr><th>校舎</th><th class="r">出勤回数</th></tr>'
+          + (rows || '<tr><td colspan="2" class="meta">出勤回数が入っていません</td></tr>')
+          + '<tr class="sub"><td>交通費合計（税込）</td><td class="r">' + esc(yen(t.total)) + '</td></tr>'
+          + (t.expense ? '<tr class="sub"><td>立替経費（E13）</td><td class="r">' + esc(yen(t.expense)) + '</td></tr>' : '')
+          + '</table></div></div>';
+      }
+
+      function tuitionHtml(st) {
+        var ts = st.tuitions || [];
+        return ts.map(function (t) {
+          var s = t.summary || {};
+          var chips = '<span class="chip">在籍 <b>' + (s.active || 0) + '</b></span>'
+            + '<span class="chip">休会 <b>' + (s.suspended || 0) + '</b></span>'
+            + '<span class="chip">体験 <b>' + (s.trial || 0) + '</b></span>'
+            + (s.quit ? '<span class="chip warn">退会 <b>' + s.quit + '</b></span>' : '')
+            + '<span class="chip">現金徴収 <b>' + esc(yen(t.cashTotal)) + '</b></span>'
+            + (s.cashPending ? '<span class="chip warn">現金 未チェック <b>' + s.cashPending + '</b>人</span>' : '');
+          var rows = (t.rows || []).map(function (r) {
+            var amt = [['月謝', r.tuition], ['管理費', r.admin], ['入会金', r.enroll], ['その他', r.other]]
+              .filter(function (a) { return a[1]; })
+              .map(function (a) { return a[0] + ' ' + yen(a[1]); }).join(' / ');
+            return '<tr><td class="name">' + esc(r.name) + '<small>' + esc([r.status, r.method].filter(Boolean).join('・')) + '</small></td>'
+              + '<td class="c">' + (r.method && /現金/.test(r.method) ? (r.cashCheck ? '<span class="mark on">✓</span>' : '<span class="mark off">−</span>') : '') + '</td>'
+              + '<td class="name">' + esc(amt || '—') + (r.note ? '<small>' + esc(r.note) + '</small>' : '') + '</td></tr>';
+          }).join('');
+          return '<div class="card"><h2>' + esc(t.sheet) + '<small>' + esc(t.done || '') + '</small></h2>'
+            + '<div class="chips">' + chips + '</div>'
+            + '<details><summary>生徒ごとの内訳（' + (t.rows || []).length + '名）</summary><div class="tbl"><table>'
+            + '<tr><th>生徒</th><th class="c">現金済</th><th>金額</th></tr>' + rows + '</table></div></details></div>';
+        }).join('');
+      }
+
+      function lessonsHtml(st) {
+        var ls = st.lessons || [];
+        if (!ls.length) return '';
+        return '<div class="card"><h2>出欠</h2>' + ls.map(function (l) {
+          var dates = (l.dates || []).map(function (d, i) { return '<th class="c">' + (d ? esc(d) : '①②③④⑤'.charAt(i)) + '</th>'; }).join('');
+          var rows = (l.rows || []).map(function (r) {
+            var marks = (r.attend || []).map(function (a) {
+              return '<td class="c"><span class="mark ' + (a ? 'on' : 'off') + '">' + (a ? '○' : '·') + '</span></td>';
+            }).join('');
+            return '<tr><td class="name">' + esc(r.name) + '<small>' + esc(r.category || '（請求区分なし）') + '</small></td>'
+              + marks + '<td class="r">' + esc(r.total) + (r.other ? '<small>（他' + esc(r.other) + '）</small>' : '') + '</td></tr>';
+          }).join('');
+          return '<details><summary>' + esc(l.sheet) + '　' + (l.rows || []).length + '名'
+            + (l.done ? '（' + esc(l.done) + '）' : '') + '</summary><div class="tbl"><table>'
+            + '<tr><th>生徒</th>' + dates + '<th class="r">回数</th></tr>' + rows + '</table></div></details>';
+        }).join('') + '</div>';
+      }
+
+      start();
+    </script>
+  </body>
+</html>
