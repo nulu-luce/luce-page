@@ -207,7 +207,11 @@
       },
       saveStudentAnswers: function (eventId, rows, noStudents, p) {
         post({ api: 'saveStudentAnswers', t: p && p.t, eventId: eventId, rows: rows || [], noStudents: !!noStudents }, ok, ng);
-      }
+      },
+      // w7: ホーム
+      getHomePage: function (p) { get({ api: 'home', t: p && p.t, no: p && p.no }, ok, ng); },
+      markTaskDone: function (taskId, p) { post({ api: 'markTaskDone', t: p && p.t, no: p && p.no, taskId: taskId }, ok, ng); },
+      askQuestion: function (text, p) { post({ api: 'askQuestion', t: p && p.t, no: p && p.no, text: text }, ok, ng); }
     };
     return r;
   }
