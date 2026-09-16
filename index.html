@@ -156,6 +156,33 @@
       .sent { font-size: 13px; color: var(--ok); margin-top: 6px; }
       .faq details { margin-top: 4px; }
       .faq .a { font-size: 14px; white-space: pre-wrap; color: var(--ink); padding: 4px 0 6px 10px; border-left: 3px solid var(--accent-soft); }
+
+      /* w10 部屋の空き */
+      .rchips { display: flex; gap: 6px; flex-wrap: wrap; margin: 2px 0 8px; }
+      .rchips button { font: inherit; font-size: 13px; padding: 4px 11px; border-radius: 999px; border: 1px solid var(--rule); background: var(--surface); color: var(--muted); }
+      .rchips button.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+      .rbtn { font: inherit; font-size: 14px; padding: 8px 14px; border-radius: 8px; border: 1.5px solid var(--accent); background: var(--surface); color: var(--accent); margin-top: 6px; }
+      .rbtn:disabled { opacity: .6; }
+      .rticks { position: relative; height: 14px; margin-left: 4.4em; font-size: 10.5px; color: var(--muted); }
+      .rticks span { position: absolute; transform: translateX(-50%); }
+      .rday { border-top: 1px solid var(--rule); padding: 8px 0 2px; }
+      .rday:first-child { border-top: 0; padding-top: 2px; }
+      .rdate { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+      .rdate.today { color: var(--accent); }
+      .rroom { display: grid; grid-template-columns: 4.4em 1fr; gap: 1px 6px; align-items: center; margin-bottom: 7px; }
+      .rname { font-size: 13.5px; font-weight: 600; cursor: pointer; }
+      .rbar { position: relative; height: 18px; background: var(--ok-soft); border-radius: 4px; overflow: hidden; }
+      .seg { position: absolute; top: 0; bottom: 0; font-size: 10.5px; line-height: 18px; padding: 0 4px; overflow: hidden; white-space: nowrap; color: #fff; }
+      .seg.lesson { background: var(--accent); }
+      .seg.rental { background: var(--caution); }
+      .seg.other { background: var(--muted); }
+      .rfree { grid-column: 2; font-size: 12.5px; }
+      .rfree b { color: var(--ok); font-weight: 600; }
+      .rfree.none { color: var(--muted); }
+      .rfree.err { color: var(--warn); }
+      .rlist { grid-column: 2; font-size: 12.5px; color: var(--muted); }
+      .rlegend { font-size: 12px; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; margin: 6px 0 2px; }
+      .rlegend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 3px; }
     </style>
   </head>
   <body>
@@ -256,7 +283,9 @@
       // w7: ホーム
       getHomePage: function (p) { get({ api: 'home', t: p && p.t, no: p && p.no }, ok, ng); },
       markTaskDone: function (taskId, p) { post({ api: 'markTaskDone', t: p && p.t, no: p && p.no, taskId: taskId }, ok, ng); },
-      askQuestion: function (text, p) { post({ api: 'askQuestion', t: p && p.t, no: p && p.no, text: text }, ok, ng); }
+      askQuestion: function (text, p) { post({ api: 'askQuestion', t: p && p.t, no: p && p.no, text: text }, ok, ng); },
+      // w10: 部屋の空き
+      getRoomsPage: function (p) { get({ api: 'rooms', t: p && p.t, no: p && p.no, campus: p && p.campus }, ok, ng); }
     };
     return r;
   }
@@ -385,7 +414,7 @@
           box.innerHTML = '<div class="card"><div class="banner err">' + esc(data.error) + '</div></div>';
           return;
         }
-        box.innerHTML = todayHtml(data) + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
+        box.innerHTML = todayHtml(data) + roomsCardHtml() + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
       }
 
       function kindBadge(k) {
@@ -496,6 +525,92 @@
           })
           .withFailureHandler(function (err) { btn.disabled = false; alert('送れませんでした。' + err.message); })
           .askQuestion(text, { t: TOKEN, no: STATE.teacherNo || '' });
+      }
+
+      /* ---- w10 部屋の空き: 押したときだけカレンダーを読む（ホームの読み込みを遅くしない） ---- */
+      var ROOMS = { campus: '', data: null, loading: false, error: '' };
+      try { ROOMS.campus = localStorage.getItem('luce-rooms-campus') || ''; } catch (err) {}
+
+      function roomsCardHtml() {
+        return '<div class="card" id="roomsCard"><h2>部屋の空き<small>今日から2週間</small></h2><div id="rooms">' + roomsInnerHtml() + '</div></div>';
+      }
+
+      function roomsInnerHtml() {
+        if (ROOMS.loading) return '<div class="meta">読み込み中…（カレンダーを読むので数秒かかります）</div>';
+        if (ROOMS.data) return roomsBodyHtml(ROOMS.data);
+        if (ROOMS.error) return '<div class="banner err">' + esc(ROOMS.error) + '</div><button class="rbtn" onclick="loadRooms(ROOMS.campus)">もう一度</button>';
+        return '<div class="meta">校舎ごとに、部屋のレッスン・レンタルの予定と空き時間を出します。振替の相談の前に見てください。</div>'
+          + '<button class="rbtn" onclick="loadRooms(ROOMS.campus)">部屋の空きを見る</button>';
+      }
+
+      function rerenderRooms() {
+        var el = document.getElementById('rooms');
+        if (el) el.innerHTML = roomsInnerHtml();
+      }
+
+      function loadRooms(campus) {
+        ROOMS.loading = true; ROOMS.error = ''; ROOMS.campus = campus || '';
+        rerenderRooms();
+        try {
+          if (!window.google || !google.script || !google.script.run || typeof google.script.run.getRoomsPage !== 'function') {
+            throw new Error('サーバー側に getRoomsPage がありません（貼り替えのあと「新バージョン」でデプロイしてください）');
+          }
+          google.script.run
+            .withSuccessHandler(function (data) {
+              ROOMS.loading = false;
+              if (!data || data.error) { ROOMS.error = (data && data.error) || '読めませんでした'; ROOMS.data = null; }
+              else { ROOMS.data = data; ROOMS.campus = data.campus; try { localStorage.setItem('luce-rooms-campus', data.campus); } catch (err) {} }
+              rerenderRooms();
+            })
+            .withFailureHandler(function (err) { ROOMS.loading = false; ROOMS.error = err.message; rerenderRooms(); })
+            .getRoomsPage({ t: TOKEN, no: STATE.teacherNo || '', campus: ROOMS.campus });
+        } catch (err) {
+          ROOMS.loading = false; ROOMS.error = err.message; rerenderRooms();
+        }
+      }
+
+      function roomsBodyHtml(data) {
+        var frame = data.frame || { START: 480, END: 1320 };
+        var span = frame.END - frame.START;
+        var pct = function (min) { return Math.max(0, Math.min(100, (min - frame.START) / span * 100)); };
+        var html = '<div class="rchips">' + (data.campuses || []).map(function (c) {
+          return '<button class="' + (c === data.campus ? 'on' : '') + '" onclick="loadRooms(\'' + esc(c) + '\')">' + esc(c) + '</button>';
+        }).join('') + '</div>';
+        var ticks = '';
+        for (var h = Math.ceil(frame.START / 60); h * 60 <= frame.END; h += 3) ticks += '<span style="left:' + pct(h * 60) + '%">' + h + '時</span>';
+        var days = data.days || [];
+        var dayHtml = function (d) {
+          var rooms = (d.rooms || []).map(function (r) {
+            var segs = (r.busy || []).map(function (b) {
+              var w = pct(b.e) - pct(b.s);
+              var text = b.kind === 'lesson' ? b.label : (b.kind === 'rental' ? 'レンタル' : b.label);
+              return '<span class="seg ' + esc(b.kind) + '" style="left:' + pct(b.s) + '%;width:' + w + '%" title="' + esc(text + ' ' + b.text) + '">' + (w >= 9 ? esc(text) : '') + '</span>';
+            }).join('');
+            var free = r.error
+              ? '<div class="rfree err">' + esc(r.error) + '</div>'
+              : ((r.free || []).length
+                ? '<div class="rfree"><b>空き</b> ' + r.free.map(function (f) { return esc(f.text); }).join(' ／ ') + '</div>'
+                : '<div class="rfree none">空きなし</div>');
+            var list = (r.busy || []).map(function (b) { return esc(b.text) + ' ' + esc(b.kind === 'lesson' ? 'レッスン ' + b.label : (b.kind === 'rental' ? 'レンタル' : b.label)); }).join('<br>');
+            return '<div class="rroom"><div class="rname" onclick="toggleRoomList(this)" title="予定の一覧を出す">' + esc(r.room) + '</div>'
+              + '<div class="rbar">' + segs + '</div>' + free
+              + (list ? '<div class="rlist" hidden>' + list + '</div>' : '') + '</div>';
+          }).join('');
+          return '<div class="rday"><div class="rdate' + (d.ymd === data.today ? ' today' : '') + '">' + esc(d.label) + (d.ymd === data.today ? '（今日）' : '') + '</div>'
+            + '<div class="rticks">' + ticks + '</div>' + rooms + '</div>';
+        };
+        var first = days.slice(0, 3), rest = days.slice(3);
+        html += first.map(dayHtml).join('');
+        if (rest.length) html += '<details><summary>' + esc(rest[0].label) + ' 以降（' + rest.length + '日）</summary>' + rest.map(dayHtml).join('') + '</details>';
+        html += '<div class="rlegend"><span><i style="background:var(--accent)"></i>レッスン（前後の余白込み）</span><span><i style="background:var(--caution)"></i>レンタル</span><span><i style="background:var(--muted)"></i>その他の予定</span><span><i style="background:var(--ok-soft)"></i>空き</span></div>';
+        html += '<p class="hint">' + esc(data.at ? data.at + ' 時点。' : '') + '部屋の名前を押すと予定の一覧が出ます。空いていても、使う前に日置へ一言ください。</p>';
+        return html;
+      }
+
+      function toggleRoomList(el) {
+        var row = el.parentNode;
+        var list = row ? row.querySelector('.rlist') : null;
+        if (list) list.hidden = !list.hidden;
       }
 
       function renderCenter(msg) {
