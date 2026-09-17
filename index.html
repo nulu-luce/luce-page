@@ -6,6 +6,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>luce 講師ページ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Maru+Gothic:wght@500;700&display=swap" />
     <style>
       :root {
         --ground: #f7f7f4;
@@ -245,7 +247,9 @@
       .hocc.empty { padding: 5px 10px; }
       .hocc.empty .hacts { margin-top: 2px; }
       .hcourse { font-size: 11.5px; padding: 0 7px; border-radius: 999px; background: var(--ok-soft); color: var(--ok); white-space: nowrap; }
-      .hhead { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+      .hhead { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 14px; }
+      .hhead .ht { white-space: nowrap; }
+      .hhead .meta { flex-basis: 100%; font-size: 12px; }
       .ht { font-weight: 600; font-variant-numeric: tabular-nums; }
       .hcnt { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
       .hcnt.full { color: var(--warn); font-weight: 600; }
@@ -262,17 +266,100 @@
       .hb.no { border-color: var(--warn); color: var(--warn); }
       .hacts { display: flex; gap: 6px; margin-top: 6px; }
       .hadd select, .hadd input { font: inherit; font-size: 13px; padding: 4px 6px; border: 1.5px solid var(--rule); border-radius: 8px; background: var(--surface); color: var(--ink); max-width: 100%; margin: 2px 4px 2px 0; }
+
+      /* ---- w20 luce らしい見た目（色・書体・イラスト）。動きは変えない。絵は luce-page の img/ ---- */
+      :root {
+        --ground: #fbf8f5; --surface: #ffffff; --ink: #2b2a28; --muted: #7a7670; --rule: #ece7e1;
+        --accent: #0e9ea6; --accent-soft: #e2f3f4; --warn: #bf2a82; --warn-soft: #f7e3ee;
+        --caution: #b5652b; --caution-soft: #fbe9e0; --ok: #308639; --ok-soft: #e4f2e6;
+        --pink: #ffd7dd; --pink-ink: #8a4a58; --pu: #833cd5; --pu-soft: #eee6f8; --co: #e08256; --ye: #e2cf3a;
+        --shadow: 0 1px 2px rgba(60,40,30,.05), 0 10px 26px -18px rgba(60,40,30,.35);
+      }
+      body { font-family: "Zen Maru Gothic", -apple-system, "Hiragino Maru Gothic ProN", "Hiragino Sans", "Noto Sans JP", sans-serif; background: var(--ground); }
+      .wrap { padding: 0 12px 40px; }
+      header.hdr { position: relative; display: flex; align-items: flex-end; gap: 12px; margin: 0 -12px; padding: 44px 16px 14px; min-height: 156px; overflow: hidden;
+        background: var(--pink) url(https://nulu-luce.github.io/luce-page/img/header.webp) right -200px top 32% / 520px auto no-repeat; }
+      header.hdr::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+        background: linear-gradient(90deg, var(--pink) 0%, var(--pink) 40%, rgba(255,215,221,.45) 100%), linear-gradient(180deg, rgba(255,215,221,0) 50%, var(--pink) 100%); }
+      header.hdr > * { position: relative; z-index: 1; }
+      .hdr .logo { width: 68px; height: 68px; border-radius: 50%; background: #fff; display: grid; place-items: center; flex: none; box-shadow: 0 2px 8px rgba(120,60,70,.18); }
+      .hdr .logo img { width: 62px; height: 62px; display: block; }
+      .hdr .hello { color: var(--pink-ink); padding-right: 92px; min-width: 0; }
+      .hdr .hello .name { font-family: "Shippori Mincho", "Hiragino Mincho ProN", serif; font-weight: 600; font-size: 20px; line-height: 1.3; }
+      .hdr .hello .name .g { display: block; font-size: 15px; font-weight: 500; }
+      .hdr .hello .name .n { white-space: nowrap; }
+      .hdr .hello .who:empty { display: none; }
+      .hdr .hello .date { font-size: 13px; opacity: .85; }
+      .hdr .hello .who { font-size: 11px; opacity: .75; color: var(--pink-ink); }
+      .hdr .ev { position: absolute; top: 8px; right: 12px; z-index: 2; font-size: 12.5px; color: var(--pink-ink); text-decoration: none; background: rgba(255,255,255,.65); padding: 2px 11px; border-radius: 999px; }
+      .hdr .comp { position: absolute; right: 10px; bottom: 18px; height: 102px; width: auto; z-index: 1; filter: drop-shadow(0 2px 2px rgba(0,0,0,.08)); }
+      .hdr .compname { position: absolute; right: 12px; bottom: 2px; z-index: 1; font-size: 10.5px; color: var(--pink-ink); opacity: .8; }
+      .confetti { height: 14px; margin: 0 -12px 14px; background: url(https://nulu-luce.github.io/luce-page/img/confetti.webp) center / 420px auto repeat-x; opacity: .55; }
+      .card { border: 0; border-radius: 18px; box-shadow: var(--shadow); padding: 14px 16px; position: relative; margin-bottom: 14px; }
+      .card.today { border: 0; }
+      .card.pending { background: #fff7f3; }
+      .card h2 { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 16px; }
+      .card h2::before { content: ""; width: 7px; height: 20px; border-radius: 3px; transform: rotate(-12deg); background: var(--accent); flex: none; }
+      #home .card:nth-child(5n+2) h2::before, #main .card:nth-child(5n+2) h2::before { background: var(--warn); }
+      #home .card:nth-child(5n+3) h2::before, #main .card:nth-child(5n+3) h2::before { background: var(--ok); }
+      #home .card:nth-child(5n+4) h2::before, #main .card:nth-child(5n+4) h2::before { background: var(--pu); }
+      #home .card:nth-child(5n+5) h2::before, #main .card:nth-child(5n+5) h2::before { background: var(--co); }
+      #hokeCard h2::before { background: var(--pu); }
+      /* カードごとの子ども（右上からのぞく） */
+      .card.today::after, #roomsCard::after, #reqCard::after, .card.notices::after, .card.tasks::after, .card.faq::after, .card.issues::after, #pendCard::after, #pendQCard::after, #hokeCard::after {
+        content: ""; position: absolute; right: 10px; top: -14px; height: 78px; width: 96px; background: right top / contain no-repeat; pointer-events: none; }
+      .card.today::after { background-image: url(https://nulu-luce.github.io/luce-page/img/chara10.webp); width: 122px; height: 70px; top: -6px; }
+      #hokeCard::after { background-image: url(https://nulu-luce.github.io/luce-page/img/hoke01.webp); width: 100px; height: 72px; top: -6px; }
+      #roomsCard::after { background-image: url(https://nulu-luce.github.io/luce-page/img/chara02.webp); width: 92px; }
+      #reqCard::after { background-image: url(https://nulu-luce.github.io/luce-page/img/chara05.webp); }
+      .card.notices::after { background-image: url(https://nulu-luce.github.io/luce-page/img/chara04.webp); }
+      .card.tasks::after { background-image: url(https://nulu-luce.github.io/luce-page/img/chara09.webp); }
+      .card.faq::after { background-image: url(https://nulu-luce.github.io/luce-page/img/chara07.webp); }
+      .card.issues::after { background-image: url(https://nulu-luce.github.io/luce-page/img/chara06.webp); }
+      #pendCard::after { background-image: url(https://nulu-luce.github.io/luce-page/img/chara03.webp); }
+      #pendQCard::after { background-image: url(https://nulu-luce.github.io/luce-page/img/chara08.webp); }
+      .card.today > h2, #roomsCard > h2, #reqCard > h2, .card.notices > h2, .card.tasks > h2, .card.faq > h2, .card.issues > h2, #pendCard > h2, #pendQCard > h2, #hokeCard > h2 { padding-right: 100px; }
+      .card.today > h2 + *, #reqCard > h2 + *, .card.notices .notice:first-child, .card.tasks > h2 + *, .card.faq > h2 + *, .card.issues > h2 + *, #rooms > .meta:first-child, #pendCard > h2 + *, #pendQCard > h2 + *, #hokeCard .hnav { padding-right: 92px; }
+      .meta.empty-today { display: flex; align-items: center; gap: 12px; min-height: 60px; }
+      .meta.empty-today::before { content: ""; width: 54px; height: 70px; flex: none; background: url(https://nulu-luce.github.io/luce-page/img/chara07.webp) center / contain no-repeat; }
+      /* ボタン・ピル */
+      .rbtn, .reload, .rform button, .req button, .pend button, .hb, .hnav button, .rchips button, .filter button, .att button, .pills button { font-family: inherit; border-radius: 999px; }
+      .rbtn { border: 1.5px solid var(--accent); color: var(--accent); font-weight: 700; padding: 7px 14px; }
+      .reload { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+      .rform button.p, .pend button.p { background: var(--accent); color: #fff; font-weight: 700; }
+      .att button.on { font-weight: 700; }
+      .att button.on.pay0 { border-color: var(--co); color: var(--co); background: var(--caution-soft); }
+      .hb { border-color: var(--pu); color: var(--pu); }
+      .hb.p { background: var(--pu); color: #fff; }
+      .hnav button.on { border-color: var(--pu); color: var(--pu); background: var(--pu-soft); }
+      .hrights, .hpick, .hadd { border-color: var(--pu); }
+      .hrights { background: var(--pu-soft); }
+      .hdate.today { color: var(--pu); }
+      .htag.mv, .htag.ad { background: var(--pu-soft); color: var(--pu); }
+      .hocc { border-radius: 14px; }
+      .hcourse { padding: 1px 9px 1px 26px; background: var(--ok-soft) 5px center / 18px auto no-repeat; }
+      .hcourse.c-ninjin { background-image: url(https://nulu-luce.github.io/luce-page/img/veg_ninjin.webp); background-color: var(--caution-soft); color: var(--co); }
+      .hcourse.c-oimo { background-image: url(https://nulu-luce.github.io/luce-page/img/veg_oimo.webp); background-color: var(--caution-soft); color: #9a5a2a; }
+      .hcourse.c-kabocha { background-image: url(https://nulu-luce.github.io/luce-page/img/veg_kabocha.webp); background-color: #fff3d6; color: #9a6a12; }
+      .hcourse.c-negi { background-image: url(https://nulu-luce.github.io/luce-page/img/veg_negi.webp); }
+      .hcourse.c-serori { background-image: url(https://nulu-luce.github.io/luce-page/img/veg_serori.webp); }
+      .badge.move, .badge.book { background: var(--pu-soft); color: var(--pu); }
+      .issue { background: var(--ground); }
+      .foot { margin-top: 26px; }
+      .foot .poem { font-family: "Shippori Mincho", "Hiragino Mincho ProN", serif; font-size: 14px; letter-spacing: .12em; color: var(--muted); }
+      .foot .v { font-size: 11px; color: var(--muted); }
     </style>
   </head>
   <body>
     <div class="wrap">
-      <header>
-        <div>
-          <h1>今月の状況<small>luce 講師ページ</small></h1>
-          <div class="who" id="who"></div>
-        </div>
-        <div class="nav"><a href="events.html" data-keep-token="1">イベント →</a></div>
+      <header class="hdr">
+        <div class="logo"><img src="https://nulu-luce.github.io/luce-page/img/logo.webp" alt="luce"></div>
+        <div class="hello"><div class="name" id="hello">luce 講師ページ</div><div class="date" id="hdate"></div><div class="who" id="who"></div></div>
+        <a class="ev" href="events.html" data-keep-token="1">イベント →</a>
+        <img class="comp" id="comp" alt="">
+        <div class="compname" id="compname"></div>
       </header>
+      <div class="confetti"></div>
       <div id="admin"></div>
       <div id="home"></div>
       <div id="main"><div class="center">読み込み中…</div></div>
@@ -435,7 +522,25 @@
       var TOKEN = window.__luce.token;
       var WANT_NO = window.__luce.no;
 
+      var IMG_BASE = 'https://nulu-luce.github.io/luce-page/img/';
+      var COMPOSERS = [['bach', 'バッハ'], ['mozart', 'モーツァルト'], ['beethoven', 'ベートーヴェン'], ['chopin', 'ショパン'], ['liszt', 'リスト']];
+      function greet(data) {
+        var h = new Date().getHours();
+        var g = h < 5 ? 'こんばんは' : (h < 11 ? 'おはようございます' : (h < 18 ? 'こんにちは' : 'こんばんは'));
+        var name = data && data.teacherName ? String(data.teacherName).trim() + ' 先生' : '';
+        var el = document.getElementById('hello'); if (el) el.innerHTML = name ? '<span class="g">' + esc(g) + '、</span><span class="n">' + esc(name) + '</span>' : esc(g);
+        var d = document.getElementById('hdate');
+        if (d && data && data.todayLabel) d.textContent = String(data.todayLabel).replace(/^(\d+)\/(\d+)\((.)\)$/, '$1月$2日（$3）');
+        var c = COMPOSERS[Math.floor(Date.now() / 86400000) % COMPOSERS.length];
+        var im = document.getElementById('comp'); if (im && !im.getAttribute('src')) im.src = IMG_BASE + 'comp_' + c[0] + '.webp';
+        var cn = document.getElementById('compname'); if (cn) cn.textContent = '今日の作曲家: ' + c[1];
+      }
+      function footHtml(version) {
+        return '<div class="poem">luceがダメなら他はない</div><div class="v">ピアノ教室 luce 講師ページ' + (version ? '　' + esc(version) : '') + '</div>';
+      }
+
       function start() {
+        greet(null);
         try {
           google.script.url.getLocation(function (loc) {
             var no = (loc && loc.parameter && loc.parameter.no) || WANT_NO || '';
@@ -506,6 +611,8 @@
 
       function renderHome(data) {
         var box = document.getElementById('home');
+        greet(data);
+        if (!document.getElementById('foot').innerHTML) document.getElementById('foot').innerHTML = footHtml(data.version);
         if (data.error) {
           box.innerHTML = '<div class="card"><div class="banner err">' + esc(data.error) + '</div></div>';
           return;
@@ -541,7 +648,7 @@
         if (!data.hasSchedule) {
           html += '<div class="meta">予定はまだ書き出されていません（日置が luce給与の「予定シートを書き出す」を実行すると出ます）</div>';
         } else if (!today.rooms.length && !today.students.length) {
-          html += '<div class="meta">今日のレッスンはありません</div>';
+          html += '<div class="meta empty-today">今日のレッスンはありません</div>';
         } else {
           html += today.rooms.map(function (r) {
             return '<div class="room"><b>' + esc(r.room) + '</b>' + (r.campus ? '<span class="meta">' + esc(r.campus) + '</span>' : '')
@@ -632,7 +739,7 @@
       }
       function noticesHtml(data) {
         var ns = data.notices || [];
-        var html = '<div class="card"><h2>お知らせ' + (ns.length ? '<small>' + ns.length + '件</small>' : '') + '</h2>';
+        var html = '<div class="card notices"><h2>お知らせ' + (ns.length ? '<small>' + ns.length + '件</small>' : '') + '</h2>';
         if (!ns.length) return html + '<div class="meta">いまのお知らせはありません</div></div>';
         return html + ns.map(function (n) {
           return '<div class="notice"><div class="dt">' + esc(n.label) + '</div><div class="tt">' + esc(n.title) + '</div>'
@@ -643,7 +750,7 @@
       function tasksHtml(data) {
         var ts = data.tasks || [];
         var open = ts.filter(function (t) { return !t.done; }).length;
-        var html = '<div class="card"><h2>提出物' + (ts.length ? '<small>未提出 ' + open + '件</small>' : '') + '</h2><div id="tasks">';
+        var html = '<div class="card tasks"><h2>提出物' + (ts.length ? '<small>未提出 ' + open + '件</small>' : '') + '</h2><div id="tasks">';
         if (!ts.length) return html + '<div class="meta">いま出してもらうものはありません</div></div></div>';
         return html + ts.map(taskHtml).join('') + '</div><p class="hint">出し終えたら「提出しました」を押してください。日置の側で確認します。</p></div>';
       }
@@ -739,6 +846,10 @@
           .withFailureHandler(function (err) { HOKE.busy = false; HOKE.loading = false; alert('できませんでした。' + err.message); rerenderHoke(); })
           [name](input, hokeP());
       }
+      function courseClass(c) {
+        var m = { 'にんじん': 'ninjin', 'おいも': 'oimo', 'かぼちゃ': 'kabocha', 'ねぎ': 'negi', 'せろり': 'serori', 'セロリ': 'serori' };
+        return m[String(c || '').trim()] ? 'c-' + m[String(c || '').trim()] : '';
+      }
       function hokeClassLabel(d, id) { var c = (d.classes || []).filter(function (x) { return x.id === id; })[0]; return c ? c.weekday + ' ' + c.hm : id; }
       function hokeInnerHtml() {
         if (HOKE.loading) return '<div class="meta">読み込み中…</div>';
@@ -764,7 +875,7 @@
         var q = "'" + o.ymd + "','" + esc(o.classId) + "'";
         var empty = !closed && !o.seats.length;
         var h = '<div class="hocc' + (closed ? ' closed' : '') + (empty ? ' empty' : '') + '"><div class="hhead"><span class="ht">' + esc(o.hm) + '〜' + esc(o.endHm) + '</span>'
-          + (o.course ? '<span class="hcourse">' + esc(o.course) + '</span>' : '')
+          + (o.course ? '<span class="hcourse ' + courseClass(o.course) + '">' + esc(o.course) + '</span>' : '')
           + (closed ? '<span class="badge trial">休講</span>' + (o.note ? '<span class="meta">' + esc(o.note) + '</span>' : '') : '<span class="hcnt' + (o.free === 0 ? ' full' : '') + '">' + o.count + ' / ' + o.cap + '</span>') + '</div>';
         if (!closed && o.seats.length) h += o.seats.map(function (s) { return hokeSeatHtml(d, o, s); }).join('');
         if (HOKE.add && HOKE.add.ymd === o.ymd && HOKE.add.classId === o.classId) h += hokeAddHtml(d, o);
@@ -803,7 +914,7 @@
         if (p.loading) h += '<div class="meta">空きを読んでいます…</div>';
         else if (!p.candidates.length) h += '<div class="meta">空きのある回がありません（8週間先まで）</div>';
         else h += p.candidates.map(function (c) {
-          return '<div class="hcand"><span>' + esc(c.label) + (c.course ? ' <span class="hcourse">' + esc(c.course) + '</span>' : '') + '</span><span class="meta">残り ' + c.free + '席</span><button class="hb p" onclick="hokeMove(\'' + esc(p.right.attId) + '\', \'' + c.ymd + '\', \'' + esc(c.classId) + '\', \'' + esc(c.label) + '\')">この回にする</button></div>';
+          return '<div class="hcand"><span>' + esc(c.label) + (c.course ? ' <span class="hcourse ' + courseClass(c.course) + '">' + esc(c.course) + '</span>' : '') + '</span><span class="meta">残り ' + c.free + '席</span><button class="hb p" onclick="hokeMove(\'' + esc(p.right.attId) + '\', \'' + c.ymd + '\', \'' + esc(c.classId) + '\', \'' + esc(c.label) + '\')">この回にする</button></div>';
         }).join('');
         return h + '<div style="margin-top:6px"><button class="hb" onclick="HOKE.pick = null; rerenderHoke()">閉じる</button></div></div>';
       }
@@ -1197,8 +1308,8 @@
         STATE = data || {};
         document.getElementById('who').textContent = data.email
           ? 'ログイン中: ' + data.email
-          : (data.teacherName ? data.teacherName + ' 先生' : '');
-        document.getElementById('foot').textContent = data.version || '';
+          : (data.admin ? '管理者として見ています' : '');
+        document.getElementById('foot').innerHTML = footHtml(data.version);
         renderAdmin(data);
         if (data.error) {
           document.getElementById('main').innerHTML = '<div class="banner err">' + esc(data.error) + '</div>'
@@ -1268,7 +1379,7 @@
 
       function issuesHtml(st) {
         var issues = st.issues || [];
-        var html = '<div class="card"><h2>確認してほしいこと<small>' + issues.length + '件</small></h2>';
+        var html = '<div class="card issues"><h2>確認してほしいこと<small>' + issues.length + '件</small></h2>';
         if (!issues.length) {
           html += '<div class="empty">いまのところ気になる点はありません。</div></div>';
           return html;
