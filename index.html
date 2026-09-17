@@ -351,7 +351,7 @@
       withSuccessHandler: function (f) { ok = f; return r; },
       withFailureHandler: function (f) { ng = f; return r; },
       withUserObject: function () { return r; },
-      getStatusPage: function (p) { get({ api: 'status', t: p && p.t, no: p && p.no }, ok, ng); },
+      getStatusPage: function (p) { get({ api: 'status', t: p && p.t, no: p && p.no, fresh: p && p.fresh ? '1' : '' }, ok, ng); },
       getEventPage: function (p) { get({ api: 'events', t: p && p.t }, ok, ng); },
       saveEventAnswer: function (eventId, answer, comment, p) {
         post({ api: 'saveEventAnswer', t: p && p.t, eventId: eventId, answer: answer, comment: comment }, ok, ng);
@@ -451,7 +451,7 @@
       var TIMERS = [];
       function clearTimers() { TIMERS.forEach(function (t) { clearTimeout(t); }); TIMERS = []; }
 
-      function load(no) {
+      function load(no, fresh) {
         clearTimers();
         STATE.teacherNo = no || STATE.teacherNo || '';
         loadHome(STATE.teacherNo);
@@ -470,13 +470,13 @@
           TIMERS.push(setTimeout(function () {
             document.getElementById('main').innerHTML = '<div class="center">2分たっても返ってきません。\n'
               + '通信が切れたか、読み込みに失敗した可能性があります。</div>'
-              + '<button class="reload" onclick="load(STATE.teacherNo)">もう一度読み込む</button>'
+              + '<button class="reload" onclick="load(STATE.teacherNo, true)">もう一度読み込む</button>'
               + '<p class="hint">何度も続くときは、日置までお知らせください（GASの「実行数」で getStatusPage の結果を見ると原因が分かります）。</p>';
           }, 120000));
           google.script.run
             .withSuccessHandler(function (data) { clearTimers(); render(data); })
             .withFailureHandler(function (err) { clearTimers(); renderCenter('読み込めませんでした。\n' + err.message); })
-            .getStatusPage({ no: no || '', t: TOKEN });
+            .getStatusPage({ no: no || '', t: TOKEN, fresh: !!fresh });
         } catch (err) {
           clearTimers();
           renderCenter('読み込めませんでした。\n' + err.message);
@@ -512,6 +512,7 @@
         }
         if (!document.getElementById('admin').innerHTML) renderAdmin(data);   // 今月の状況より先に、講師シートから出す
         if (data.hoke) {   // w17: 成瀬先生のホケホケ。今日のレッスン・部屋の空き・申請の代わりに
+          if (!HOKE.data && !HOKE.loading && data.hokeData && !data.hokeData.error) { HOKE.data = data.hokeData; HOKE.week = 0; }   // w19: ホームと一緒に来た今週のぶん
           box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + hokeCardHtml() + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
           if (!HOKE.data && !HOKE.loading) loadHoke(HOKE.week);
           return;
@@ -625,13 +626,17 @@
           .saveRecord(input, { t: TOKEN, no: STATE.teacherNo || '' });
       }
 
+      /* 文の中の URL をリンクに（お知らせの配布物など。w19）。esc したあとに置き換える */
+      function linkify(text) {
+        return esc(text).replace(/(https?:\/\/[^\s<]+)/g, function (u) { return '<a href="' + u + '" target="_blank" rel="noopener">' + u + '</a>'; });
+      }
       function noticesHtml(data) {
         var ns = data.notices || [];
         var html = '<div class="card"><h2>お知らせ' + (ns.length ? '<small>' + ns.length + '件</small>' : '') + '</h2>';
         if (!ns.length) return html + '<div class="meta">いまのお知らせはありません</div></div>';
         return html + ns.map(function (n) {
           return '<div class="notice"><div class="dt">' + esc(n.label) + '</div><div class="tt">' + esc(n.title) + '</div>'
-            + (n.body ? '<div class="bd">' + esc(n.body) + '</div>' : '') + '</div>';
+            + (n.body ? '<div class="bd">' + linkify(n.body) + '</div>' : '') + '</div>';
         }).join('') + '</div>';
       }
 
@@ -1197,7 +1202,7 @@
         renderAdmin(data);
         if (data.error) {
           document.getElementById('main').innerHTML = '<div class="banner err">' + esc(data.error) + '</div>'
-            + '<button class="reload" onclick="load(STATE.teacherNo || \'\')">もう一度読み込む</button>';
+            + '<button class="reload" onclick="load(STATE.teacherNo || \'\', true)">もう一度読み込む</button>';
           return;
         }
         var st = data.status || {};
@@ -1210,7 +1215,7 @@
         html += transportHtml(st);
         html += tuitionHtml(st);
         html += lessonsHtml(st);
-        html += '<button class="reload" onclick="load(STATE.teacherNo || \'\')">最新の状態に読み直す</button>';
+        html += '<button class="reload" onclick="load(STATE.teacherNo || \'\', true)">最新の状態に読み直す</button>';
         document.getElementById('main').innerHTML = html;
       }
 
