@@ -242,6 +242,9 @@
       .hdate.today { color: var(--accent); }
       .hocc { border: 1px solid var(--rule); border-radius: 10px; padding: 8px 10px; margin-top: 6px; }
       .hocc.closed { background: var(--ground); }
+      .hocc.empty { padding: 5px 10px; }
+      .hocc.empty .hacts { margin-top: 2px; }
+      .hcourse { font-size: 11.5px; padding: 0 7px; border-radius: 999px; background: var(--ok-soft); color: var(--ok); white-space: nowrap; }
       .hhead { display: flex; align-items: center; gap: 8px; font-size: 14px; }
       .ht { font-weight: 600; font-variant-numeric: tabular-nums; }
       .hcnt { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -754,9 +757,11 @@
       function hokeOccHtml(d, o) {
         var past = o.ymd < d.today, closed = o.status === '休講';
         var q = "'" + o.ymd + "','" + esc(o.classId) + "'";
-        var h = '<div class="hocc' + (closed ? ' closed' : '') + '"><div class="hhead"><span class="ht">' + esc(o.hm) + '〜' + esc(o.endHm) + '</span>'
+        var empty = !closed && !o.seats.length;
+        var h = '<div class="hocc' + (closed ? ' closed' : '') + (empty ? ' empty' : '') + '"><div class="hhead"><span class="ht">' + esc(o.hm) + '〜' + esc(o.endHm) + '</span>'
+          + (o.course ? '<span class="hcourse">' + esc(o.course) + '</span>' : '')
           + (closed ? '<span class="badge trial">休講</span>' + (o.note ? '<span class="meta">' + esc(o.note) + '</span>' : '') : '<span class="hcnt' + (o.free === 0 ? ' full' : '') + '">' + o.count + ' / ' + o.cap + '</span>') + '</div>';
-        if (!closed) h += o.seats.length ? o.seats.map(function (s) { return hokeSeatHtml(d, o, s); }).join('') : '<div class="meta">この回の生徒はいません</div>';
+        if (!closed && o.seats.length) h += o.seats.map(function (s) { return hokeSeatHtml(d, o, s); }).join('');
         if (HOKE.add && HOKE.add.ymd === o.ymd && HOKE.add.classId === o.classId) h += hokeAddHtml(d, o);
         var acts = [];
         if (!closed && !past) acts.push('<button class="hb" onclick="hokeAddOpen(' + q + ')">追加</button>');
@@ -789,11 +794,11 @@
       }
       function hokePickHtml() {
         var p = HOKE.pick;
-        var h = '<div class="hpick"><b>' + esc(p.right.name) + ' さんの振替先</b><span class="meta">　' + esc(p.right.label) + ' の欠席のぶん</span>';
+        var h = '<div class="hpick"><b>' + esc(p.right.name) + ' さんの振替先</b><span class="meta">　' + esc(p.right.label) + ' の欠席のぶん' + (p.right.course ? '（' + esc(p.right.course) + ' のコースだけ）' : '') + '</span>';
         if (p.loading) h += '<div class="meta">空きを読んでいます…</div>';
         else if (!p.candidates.length) h += '<div class="meta">空きのある回がありません（8週間先まで）</div>';
         else h += p.candidates.map(function (c) {
-          return '<div class="hcand"><span>' + esc(c.label) + '</span><span class="meta">残り ' + c.free + '席</span><button class="hb p" onclick="hokeMove(\'' + esc(p.right.attId) + '\', \'' + c.ymd + '\', \'' + esc(c.classId) + '\', \'' + esc(c.label) + '\')">この回にする</button></div>';
+          return '<div class="hcand"><span>' + esc(c.label) + (c.course ? ' <span class="hcourse">' + esc(c.course) + '</span>' : '') + '</span><span class="meta">残り ' + c.free + '席</span><button class="hb p" onclick="hokeMove(\'' + esc(p.right.attId) + '\', \'' + c.ymd + '\', \'' + esc(c.classId) + '\', \'' + esc(c.label) + '\')">この回にする</button></div>';
         }).join('');
         return h + '<div style="margin-top:6px"><button class="hb" onclick="HOKE.pick = null; rerenderHoke()">閉じる</button></div></div>';
       }
@@ -978,11 +983,18 @@
         };
         var isMove = REQF.kind === '振替';
         var today = data.today || '';
+        // w18: 選んだ生徒のこれからのレッスンから「元のレッスン」を選ぶ（手で日と時刻を入れる道も残す）
+        var stSel = students.filter(function (s) { return (s.id || s.name) === REQF.student; })[0];
+        var lessons = (stSel && stSel.lessons) || [];
+        var manual = !lessons.length || REQF.fromOther;
+        var fromSel = '<div><label>元のレッスン</label><select id="rq_fromsel" onchange="reqFromPick(this.value)">'
+          + lessons.map(function (l, i) { return '<option value="' + esc(l.ymd + '|' + l.hm) + '"' + (i === 0 && !REQF.fromOther ? ' selected' : '') + '>' + esc(l.label) + '</option>'; }).join('')
+          + '<option value=""' + (manual ? ' selected' : '') + '>' + (lessons.length ? 'その他の日（下に入れる）' : (stSel ? '予定に無いので下に入れる' : '生徒を選ぶと出ます')) + '</option></select></div>';
         return '<div class="rform" id="rformBody">'
           + '<div><label>種類</label>' + pills('kind', ['振替', '予約'], REQF.kind) + '</div>'
           + '<div><label>生徒</label><select id="rq_student" onchange="reqStudent(this.value)">' + stOpts + '</select>'
           + '<input id="rq_sname" placeholder="生徒の名前" style="margin-top:6px' + (REQF.student === '__other' ? '' : ';display:none') + '"></div>'
-          + (isMove ? '<div class="inline"><div><label>元の日</label><input type="date" id="rq_from" value="' + esc(today) + '"></div><div><label>元の時刻</label><select id="rq_fromhm">' + timeOptions('') + '</select></div></div>' : '')
+          + (isMove ? fromSel + '<div class="inline" id="rq_fromManual"' + (manual ? '' : ' style="display:none"') + '><div><label>元の日</label><input type="date" id="rq_from" value="' + esc(today) + '"></div><div><label>元の時刻</label><select id="rq_fromhm">' + timeOptions(stSel && /^\d{2}:\d{2}$/.test(stSel.time || '') ? stSel.time : '') + '</select></div></div>' : '')
           + '<div><label>希望の日</label><input type="date" id="rq_ymd" value="' + esc(today) + '" min="' + esc(today) + '" onchange="reqFree()"></div>'
           + '<div class="inline"><div><label>校舎</label><select id="rq_campus" onchange="reqCampus(this.value)">' + groups.map(function (x) { return '<option' + (x.campus === REQF.campus ? ' selected' : '') + '>' + esc(x.campus) + '</option>'; }).join('') + '</select></div>'
           + '<div><label>部屋</label><select id="rq_room" onchange="REQF.room=this.value;reqFree()">' + g.rooms.map(function (r) { return '<option' + (r === REQF.room ? ' selected' : '') + '>' + esc(r) + '</option>'; }).join('') + '</select></div></div>'
@@ -1001,9 +1013,17 @@
         reqRestore(keep);
       }
       function reqStudent(v) {
-        REQF.student = v;
+        REQF.student = v; REQF.fromOther = false; REQF.open = true;
+        var keep = reqValues();
+        renderHome(HOME);   // 元のレッスンの選択肢を作り直す（w18）
+        reqRestore(keep);
         var el = document.getElementById('rq_sname');
         if (el) el.style.display = v === '__other' ? '' : 'none';
+      }
+      function reqFromPick(v) {
+        REQF.fromOther = !v;
+        var m = document.getElementById('rq_fromManual');
+        if (m) m.style.display = v ? 'none' : '';
       }
       function reqCampus(v) { REQF.campus = v; REQF.room = ''; REQF.open = true; var keep = reqValues(); renderHome(HOME); reqRestore(keep); }
       function reqValues() {
@@ -1075,9 +1095,10 @@
         var g = function (id) { var el = document.getElementById(id); return el ? el.value : ''; };
         var st = g('rq_student');
         var student = (HOME.students || []).filter(function (s) { return (s.id || s.name) === st; })[0];
+        var fromPick = g('rq_fromsel') ? g('rq_fromsel').split('|') : null;   // w18: 選んだ元のレッスン（空なら手入力）
         var input = {
           kind: REQF.kind, studentId: student ? student.id : '', studentName: student ? student.name : (st === '__other' ? g('rq_sname').trim() : ''),
-          fromYmd: REQF.kind === '振替' ? g('rq_from') : '', fromHm: REQF.kind === '振替' ? g('rq_fromhm') : '',
+          fromYmd: REQF.kind === '振替' ? (fromPick ? fromPick[0] : g('rq_from')) : '', fromHm: REQF.kind === '振替' ? (fromPick ? fromPick[1] : g('rq_fromhm')) : '',
           ymd: g('rq_ymd'), hm: g('rq_hm'), min: Number(g('rq_min')) || 30, campus: REQF.campus, room: g('rq_room'), reason: REQF.reason, memo: g('rq_memo').trim()
         };
         if (!input.studentName) { alert('生徒を選んでください'); return; }
