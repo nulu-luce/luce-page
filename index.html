@@ -183,6 +183,52 @@
       .rlist { grid-column: 2; font-size: 12.5px; color: var(--muted); }
       .rlegend { font-size: 12px; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; margin: 6px 0 2px; }
       .rlegend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 3px; }
+
+      /* w11 振替・予約の申請 */
+      .badge.move, .badge.book { background: var(--accent-soft); color: var(--accent); }
+      .req { border-top: 1px solid var(--rule); padding: 8px 0; display: flex; gap: 8px; align-items: flex-start; }
+      .req:first-child { border-top: 0; padding-top: 2px; }
+      .req .body { flex: 1; font-size: 14px; }
+      .req .sub { font-size: 12.5px; color: var(--muted); }
+      .req .st { font-size: 12.5px; white-space: nowrap; }
+      .req .st.open { color: var(--caution); } .req .st.ok { color: var(--ok); } .req .st.off { color: var(--muted); }
+      .req button, .rform button, .pend button { font: inherit; font-size: 13px; padding: 6px 10px; border-radius: 8px; border: 1.5px solid var(--accent); background: var(--surface); color: var(--accent); }
+      .req button.no, .pend button.no { border-color: var(--warn); color: var(--warn); }
+      .pend button.p, .rform button.p { background: var(--accent); color: #fff; }
+      button:disabled { opacity: .6; }
+      .rform { display: grid; gap: 8px; margin-top: 8px; }
+      .rform label { font-size: 12.5px; color: var(--muted); display: block; }
+      .rform input, .rform select { font: inherit; font-size: 14px; padding: 7px 10px; border-radius: 8px; border: 1.5px solid var(--rule); background: var(--surface); color: var(--ink); width: 100%; }
+      .rform .inline { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .rform .pills button { border-radius: 999px; padding: 3px 11px; color: var(--muted); border-color: var(--rule); margin: 0 4px 4px 0; }
+      .rform .pills button.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+      .rform .freeinfo { font-size: 12.5px; min-height: 1.2em; }
+      .rform .freeinfo b { color: var(--ok); }
+      .rform .freeinfo.ng { color: var(--warn); }
+      .rform .send { justify-self: start; padding: 8px 16px; }
+      .pend { border-top: 1px solid var(--rule); padding: 8px 0; font-size: 14px; }
+      .pend:first-of-type { border-top: 0; }
+      .pend .sub { font-size: 12.5px; color: var(--muted); }
+      .pend .chk { font-size: 12.5px; margin: 2px 0; } .pend .chk.ok { color: var(--ok); } .pend .chk.ng { color: var(--warn); }
+      .pend .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+      .card.pending { border-color: var(--caution); }
+
+      /* w12 レッスン記録 */
+      .stu .rec { grid-column: 2 / 4; margin: -2px 0 6px; }
+      .att { display: flex; flex-wrap: wrap; gap: 4px; }
+      .att button { font: inherit; font-size: 12px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--rule); background: var(--surface); color: var(--muted); }
+      .att button.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+      .att button.on.pay0 { border-color: var(--caution); color: var(--caution); background: var(--caution-soft); }
+      .att button:disabled { opacity: .5; }
+      .memo { margin-top: 4px; display: flex; gap: 6px; align-items: center; }
+      .memo input { flex: 1; font: inherit; font-size: 13px; padding: 4px 8px; border-radius: 8px; border: 1.5px dashed var(--rule); background: var(--surface); color: var(--ink); min-width: 0; }
+      .memo input:focus { border-style: solid; border-color: var(--accent); outline: none; }
+      .memo .ok { font-size: 11.5px; color: var(--ok); white-space: nowrap; }
+      .tnote { font-size: 12px; color: var(--muted); margin-top: 2px; }
+      .tnote.none { color: var(--caution); }
+      .unrec { background: var(--caution-soft); color: var(--caution); border-radius: 8px; padding: 6px 10px; font-size: 13.5px; margin: 0 0 8px; }
+      .pastday { border-top: 1px solid var(--rule); padding: 8px 0 2px; }
+      .pastday .pd { font-weight: 600; font-size: 14px; }
     </style>
   </head>
   <body>
@@ -285,7 +331,15 @@
       markTaskDone: function (taskId, p) { post({ api: 'markTaskDone', t: p && p.t, no: p && p.no, taskId: taskId }, ok, ng); },
       askQuestion: function (text, p) { post({ api: 'askQuestion', t: p && p.t, no: p && p.no, text: text }, ok, ng); },
       // w10: 部屋の空き
-      getRoomsPage: function (p) { get({ api: 'rooms', t: p && p.t, no: p && p.no, campus: p && p.campus }, ok, ng); }
+      getRoomsPage: function (p) { get({ api: 'rooms', t: p && p.t, no: p && p.no, campus: p && p.campus }, ok, ng); },
+      // w11: 振替・予約の申請
+      submitRequest: function (input, p) { post({ api: 'submitRequest', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      cancelRequest: function (id, reason, p) { post({ api: 'cancelRequest', t: p && p.t, no: p && p.no, id: id, reason: reason || '' }, ok, ng); },
+      decideRequest: function (id, decision, comment, force, p) { post({ api: 'decideRequest', t: p && p.t, no: p && p.no, id: id, decision: decision, comment: comment || '', force: !!force }, ok, ng); },
+      // w12: レッスン記録
+      saveRecord: function (input, p) { post({ api: 'saveRecord', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w14: 管理者が質問に返す
+      answerQuestion: function (row, at, qno, text, p) { post({ api: 'answerQuestion', t: p && p.t, no: p && p.no, row: row, at: at, qno: qno, text: text }, ok, ng); }
     };
     return r;
   }
@@ -414,12 +468,15 @@
           box.innerHTML = '<div class="card"><div class="banner err">' + esc(data.error) + '</div></div>';
           return;
         }
-        box.innerHTML = todayHtml(data) + roomsCardHtml() + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
+        if (!document.getElementById('admin').innerHTML) renderAdmin(data);   // 今月の状況より先に、講師シートから出す
+        box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + todayHtml(data) + roomsCardHtml() + requestsHtml(data) + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
       }
 
       function kindBadge(k) {
         if (k === '体験') return '<span class="badge trial">体験</span>';
         if (k === '新規') return '<span class="badge new">新規</span>';
+        if (k === '振替') return '<span class="badge move">振替</span>';
+        if (k === '予約') return '<span class="badge book">予約</span>';
         return '';
       }
 
@@ -427,6 +484,12 @@
         var days = data.schedule || [];
         var today = days.filter(function (d) { return d.ymd === data.today; })[0] || { rooms: [], students: [], flags: [] };
         var html = '<div class="card today"><h2>今日<small>' + esc(data.todayLabel || '') + '</small></h2>';
+        var past = data.past || [];
+        var yday = past.filter(function (d) { return d.ymd === addDays(data.today, -1); })[0];
+        if (yday) {
+          var un = yday.students.filter(function (s) { var r = (data.records || {})[recKey(yday.ymd, s)]; return !(r && r.attend); }).length;
+          if (un) html += '<div class="unrec">昨日 押していない生徒が ' + un + ' 人います（下の「昨日まで」から付けられます）</div>';
+        }
         if (!data.hasSchedule) {
           html += '<div class="meta">予定はまだ書き出されていません（日置が luce給与の「予定シートを書き出す」を実行すると出ます）</div>';
         } else if (!today.rooms.length && !today.students.length) {
@@ -438,12 +501,14 @@
               + (r.note ? '<span class="badge">' + esc(r.note) + '</span>' : '') + '</div>';
           }).join('');
           if (today.students.length) {
-            html += '<div class="stu">' + today.students.map(function (s) {
-              return '<div class="t">' + esc(s.time) + '</div><div>' + esc(s.name) + kindBadge(s.kind)
-                + (s.note ? '<span class="lv"> ' + esc(s.note) + '</span>' : '') + '</div>'
-                + '<div class="lv">' + esc(s.level) + (s.min ? ' ' + esc(s.min) + '分' : '') + (today.rooms.length > 1 ? '<br>' + esc(s.room) : '') + '</div>';
-            }).join('') + '</div>';
+            html += '<div class="stu">' + today.students.map(function (s) { return studentRowHtml(data, today, s, true); }).join('') + '</div>';
           }
+        }
+        if (past.length) {
+          html += '<details><summary>昨日まで（' + past.length + '日）</summary>' + past.map(function (d) {
+            return '<div class="pastday"><div class="pd">' + esc(d.label) + '</div><div class="stu">'
+              + d.students.map(function (s) { return studentRowHtml(data, d, s, true); }).join('') + '</div></div>';
+          }).join('') + '</details>';
         }
         var rest = days.filter(function (d) { return d.ymd !== data.today && (d.rooms.length || d.students.length); });
         if (rest.length) {
@@ -453,8 +518,64 @@
             return '<div class="d"><div>' + esc(d.label) + '</div><div>' + esc(rooms || '—') + ' <span class="rest">' + d.students.length + '名</span>' + flags + '</div></div>';
           }).join('') + '</div></details>';
         }
-        html += '<p class="hint">部屋と時間はシフト表、生徒は名簿から出しています。違うときは日置までお知らせください。</p></div>';
+        html += '<p class="hint">出欠は押した瞬間に記録されます。当日欠席は報酬あり、事前キャンセルと休講は振替日に報酬です。月報の出欠は今までどおり付けてください。</p></div>';
         return html;
+      }
+
+      /* ---- w12 レッスン記録 ---- */
+      function addDays(ymd, n) {
+        var m = String(ymd || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!m) return '';
+        var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + n);
+        return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+      }
+      function recKey(ymd, s) {
+        var hm = String(s.time || '');
+        var m = hm.match(/^(\d{1,2}):(\d{2})/);
+        return ymd + '|' + (s.id || String(s.name || '').normalize('NFKC').replace(/[\s　]/g, '')) + '|' + (m ? ('0' + m[1]).slice(-2) + ':' + m[2] : '');
+      }
+      function studentRowHtml(data, day, s, withRec) {
+        var multi = (day.rooms || []).length > 1 || s.kind === '振替' || s.kind === '予約';
+        var html = '<div class="t">' + esc(s.time) + '</div><div>' + esc(s.name) + kindBadge(s.kind)
+          + (s.note ? '<span class="lv"> ' + esc(s.note) + '</span>' : '') + '</div>'
+          + '<div class="lv">' + esc(s.level) + (s.min ? ' ' + esc(s.min) + '分' : '') + (multi ? '<br>' + esc(s.room) : '') + '</div>';
+        if (!withRec) return html;
+        var key = recKey(day.ymd, s);
+        var r = (data.records || {})[key] || {};
+        var opts = data.attendOptions || ['出席', '当日欠席', '事前キャンセル', '休講'];
+        var pills = opts.map(function (a) {
+          var pay0 = a === '事前キャンセル' || a === '休講';
+          return '<button type="button" class="' + (r.attend === a ? 'on' + (pay0 ? ' pay0' : '') : '') + '" onclick="saveAttend(this, \'' + esc(day.ymd) + '\', \'' + esc(s.id || '') + '\', \'' + esc(s.name) + '\', \'' + esc(s.time) + '\', \'' + esc(s.room) + '\', \'' + esc(s.kind) + '\', \'' + esc(a) + '\')">' + esc(a) + '</button>';
+        }).join('');
+        var tnote = '';
+        if (r.attend === '事前キャンセル' || r.attend === '休講') tnote = '<div class="tnote' + (r.transfer === '未申請' ? ' none' : '') + '">振替: ' + esc(r.transfer || '未申請') + (r.transfer === '未申請' ? '（下の「振替・予約の申請」から）' : '') + '</div>';
+        return html + '<div class="rec"><div class="att">' + pills + '</div>' + tnote
+          + '<div class="memo"><input placeholder="メモ（先生の控え）" value="' + esc(r.memo || '') + '" onchange="saveMemo(this, \'' + esc(day.ymd) + '\', \'' + esc(s.id || '') + '\', \'' + esc(s.name) + '\', \'' + esc(s.time) + '\', \'' + esc(s.room) + '\', \'' + esc(s.kind) + '\')"><span class="ok"></span></div></div>';
+      }
+      function saveAttend(btn, ymd, id, name, time, room, kind, attend) {
+        var key = recKey(ymd, { id: id, name: name, time: time });
+        var cur = (HOME.records || {})[key] || {};
+        var next = cur.attend === attend ? '' : attend;   // もう一度押すと消す
+        var row = btn.parentNode.parentNode;
+        Array.prototype.forEach.call(row.querySelectorAll('.att button'), function (b) { b.disabled = true; });
+        postRecord({ ymd: ymd, studentId: id, studentName: name, hm: time, room: room, kind: kind, attend: next, memo: cur.memo || '' }, row);
+      }
+      function saveMemo(input, ymd, id, name, time, room, kind) {
+        var key = recKey(ymd, { id: id, name: name, time: time });
+        var cur = (HOME.records || {})[key] || {};
+        postRecord({ ymd: ymd, studentId: id, studentName: name, hm: time, room: room, kind: kind, attend: cur.attend || '', memo: input.value.trim() }, input.parentNode.parentNode);
+      }
+      function postRecord(input, row) {
+        google.script.run
+          .withSuccessHandler(function (res) {
+            HOME.records = (res && res.records) || HOME.records;
+            renderHome(HOME);
+          })
+          .withFailureHandler(function (err) {
+            Array.prototype.forEach.call(row.querySelectorAll('.att button'), function (b) { b.disabled = false; });
+            alert('記録できませんでした。' + err.message);
+          })
+          .saveRecord(input, { t: TOKEN, no: STATE.teacherNo || '' });
       }
 
       function noticesHtml(data) {
@@ -506,8 +627,16 @@
         html += fs.length
           ? fs.map(function (f) { return '<details><summary>' + esc(f.q) + '</summary><div class="a">' + esc(f.a) + '</div></details>'; }).join('')
           : '<div class="meta">まだありません</div>';
+        var qs = data.questions || [];
+        if (qs.length) {
+          html += '<details' + (qs.some(function (q) { return !q.answer; }) ? '' : '') + '><summary>自分の質問（' + qs.length + '件' + (qs.filter(function (q) { return !q.answer; }).length ? '・回答待ち ' + qs.filter(function (q) { return !q.answer; }).length : '') + '）</summary>'
+            + qs.map(function (q) {
+              return '<div class="notice"><div class="dt">' + esc(q.at) + '</div><div class="bd">' + esc(q.text) + '</div>'
+                + (q.answer ? '<div class="a">' + esc(q.answer) + (q.answeredAt ? '<div class="dt">' + esc(q.answeredAt) + '</div>' : '') + '</div>' : '<div class="dt">回答待ち</div>') + '</div>';
+            }).join('') + '</details>';
+        }
         html += '<details><summary>質問を送る</summary>'
-          + '<textarea id="q" placeholder="ここに書いて「送る」を押すと日置に届きます"></textarea>'
+          + '<textarea id="q" placeholder="ここに書いて「送る」を押すと日置に届きます。回答はここと、メールに届きます"></textarea>'
           + '<button class="send" id="qbtn" onclick="sendQuestion()">送る</button><div class="sent" id="qsent"></div></details></div>';
         return html;
       }
@@ -613,6 +742,198 @@
         if (list) list.hidden = !list.hidden;
       }
 
+      /* ---- w11 振替・予約の申請 ---- */
+      var REQF = { kind: '振替', reason: '生徒都合', student: '', campus: '', room: '', open: false, msg: '' };
+
+      function stLabel(q) {
+        if (q.status === '申請中') return '<span class="st open">承認待ち</span>';
+        if (q.status === '承認') return '<span class="st ok">承認済み</span>';
+        return '<span class="st off">' + esc(q.status) + '</span>';
+      }
+
+      function requestsHtml(data) {
+        var rs = data.requests || [];
+        var open = rs.filter(function (q) { return q.status === '申請中'; }).length;
+        var html = '<div class="card" id="reqCard"><h2>振替・予約の申請' + (open ? '<small>承認待ち ' + open + '件</small>' : '') + '</h2><div id="reqList">';
+        html += rs.length ? rs.map(reqHtml).join('') : '<div class="meta">いま出している申請はありません</div>';
+        html += '</div><details id="reqForm"' + (REQF.open ? ' open' : '') + '><summary>申請する</summary>' + formHtml(data) + '</details>'
+          + '<p class="hint">振替は元の日が過ぎてからでも出せます。承認されると部屋が押さえられ、当日の「今日のレッスン」に出て、メールでお知らせします。</p></div>';
+        return html;
+      }
+
+      function reqHtml(q) {
+        var when = esc(q.label) + ' ' + esc(q.hm) + (q.end ? '〜' + esc(q.end) : '') + ' ' + esc(q.room);
+        var sub = esc(q.kind) + (q.kind === '振替' && q.fromLabel ? '（' + esc(q.fromLabel) + (q.fromHm ? ' ' + esc(q.fromHm) : '') + ' から）' : '')
+          + (q.reason ? '・' + esc(q.reason) : '') + (q.comment ? '<br>日置: ' + esc(q.comment) : '') + (q.cancelReason ? '<br>取り消し: ' + esc(q.cancelReason) : '');
+        var btn = '';
+        if (q.status === '申請中') btn = '<button class="no" onclick="cancelReq(\'' + esc(q.id) + '\', \'取り下げ\')">取り下げ</button>';
+        else if (q.status === '承認') btn = '<button class="no" onclick="cancelReq(\'' + esc(q.id) + '\', \'キャンセル\')">キャンセル</button>';
+        return '<div class="req"><div class="body"><div>' + esc(q.studentName) + '　' + when + '</div><div class="sub">' + sub + '</div>' + stLabel(q) + '</div>' + btn + '</div>';
+      }
+
+      function cancelReq(id, what) {
+        var reason = prompt(what + 'の理由（任意）', '');
+        if (reason === null) return;
+        google.script.run
+          .withSuccessHandler(function (res) { HOME.requests = (res && res.requests) || HOME.requests; renderHome(HOME); })
+          .withFailureHandler(function (err) { alert(what + 'できませんでした。' + err.message); })
+          .cancelRequest(id, reason, { t: TOKEN, no: STATE.teacherNo || '' });
+      }
+
+      function timeOptions(sel) {
+        var out = '';
+        for (var m = 8 * 60; m <= 21 * 60 + 45; m += 15) {
+          var v = ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + (m % 60)).slice(-2);
+          out += '<option value="' + v + '"' + (v === sel ? ' selected' : '') + '>' + v + '</option>';
+        }
+        return out;
+      }
+
+      function formHtml(data) {
+        var groups = data.roomGroups || [];
+        if (!REQF.campus && groups.length) REQF.campus = groups[0].campus;
+        var g = groups.filter(function (x) { return x.campus === REQF.campus; })[0] || groups[0] || { rooms: [] };
+        if (g.rooms.indexOf(REQF.room) < 0) REQF.room = g.rooms[0] || '';
+        var students = data.students || [];
+        var stOpts = '<option value="">選んでください</option>' + students.map(function (s) {
+          return '<option value="' + esc(s.id || s.name) + '"' + ((s.id || s.name) === REQF.student ? ' selected' : '') + '>' + esc(s.name) + (s.time ? '（' + esc(s.time) + (s.level ? ' ' + esc(s.level) : '') + '）' : '') + '</option>';
+        }).join('') + '<option value="__other"' + (REQF.student === '__other' ? ' selected' : '') + '>一覧にない生徒</option>';
+        var pills = function (name, list, cur) {
+          return '<div class="pills">' + list.map(function (v) { return '<button type="button" class="' + (v === cur ? 'on' : '') + '" onclick="reqPick(\'' + name + '\', \'' + esc(v) + '\')">' + esc(v) + '</button>'; }).join('') + '</div>';
+        };
+        var isMove = REQF.kind === '振替';
+        var today = data.today || '';
+        return '<div class="rform" id="rformBody">'
+          + '<div><label>種類</label>' + pills('kind', ['振替', '予約'], REQF.kind) + '</div>'
+          + '<div><label>生徒</label><select id="rq_student" onchange="reqStudent(this.value)">' + stOpts + '</select>'
+          + '<input id="rq_sname" placeholder="生徒の名前" style="margin-top:6px' + (REQF.student === '__other' ? '' : ';display:none') + '"></div>'
+          + (isMove ? '<div class="inline"><div><label>元の日</label><input type="date" id="rq_from" value="' + esc(today) + '"></div><div><label>元の時刻</label><select id="rq_fromhm">' + timeOptions('') + '</select></div></div>' : '')
+          + '<div><label>希望の日</label><input type="date" id="rq_ymd" value="' + esc(today) + '" min="' + esc(today) + '" onchange="reqFree()"></div>'
+          + '<div class="inline"><div><label>校舎</label><select id="rq_campus" onchange="reqCampus(this.value)">' + groups.map(function (x) { return '<option' + (x.campus === REQF.campus ? ' selected' : '') + '>' + esc(x.campus) + '</option>'; }).join('') + '</select></div>'
+          + '<div><label>部屋</label><select id="rq_room" onchange="REQF.room=this.value;reqFree()">' + g.rooms.map(function (r) { return '<option' + (r === REQF.room ? ' selected' : '') + '>' + esc(r) + '</option>'; }).join('') + '</select></div></div>'
+          + (data.roomGroupsError ? '<div class="freeinfo ng">' + esc(data.roomGroupsError) + '</div>' : '<div class="freeinfo" id="rq_free"><button type="button" onclick="reqFree()">この日の空きを見る</button></div>')
+          + '<div class="inline"><div><label>開始</label><select id="rq_hm">' + timeOptions('') + '</select></div><div><label>長さ</label><select id="rq_min"><option value="30">30分</option><option value="45">45分</option><option value="60">60分</option></select></div></div>'
+          + '<div><label>理由</label>' + pills('reason', data.reasons || ['講師都合', '生徒都合', 'その他'], REQF.reason) + '</div>'
+          + '<div><label>メモ（日置へ）</label><textarea id="rq_memo" placeholder="例: 運動会の振替です"></textarea></div>'
+          + '<button type="button" class="p send" id="rq_send" onclick="sendReq()">申請する</button>'
+          + '<div class="sent" id="rq_msg">' + esc(REQF.msg || '') + '</div></div>';
+      }
+
+      function reqPick(name, v) {
+        REQF[name] = v; REQF.open = true;
+        var keep = reqValues();
+        renderHome(HOME);
+        reqRestore(keep);
+      }
+      function reqStudent(v) {
+        REQF.student = v;
+        var el = document.getElementById('rq_sname');
+        if (el) el.style.display = v === '__other' ? '' : 'none';
+      }
+      function reqCampus(v) { REQF.campus = v; REQF.room = ''; REQF.open = true; var keep = reqValues(); renderHome(HOME); reqRestore(keep); }
+      function reqValues() {
+        var g = function (id) { var el = document.getElementById(id); return el ? el.value : ''; };
+        return { from: g('rq_from'), fromhm: g('rq_fromhm'), ymd: g('rq_ymd'), hm: g('rq_hm'), min: g('rq_min'), memo: g('rq_memo'), sname: g('rq_sname') };
+      }
+      function reqRestore(v) {
+        var set = function (id, val) { var el = document.getElementById(id); if (el && val) el.value = val; };
+        set('rq_from', v.from); set('rq_fromhm', v.fromhm); set('rq_ymd', v.ymd); set('rq_hm', v.hm); set('rq_min', v.min); set('rq_memo', v.memo); set('rq_sname', v.sname);
+      }
+
+      function reqFree() {
+        var box = document.getElementById('rq_free');
+        var ymd = (document.getElementById('rq_ymd') || {}).value;
+        var room = (document.getElementById('rq_room') || {}).value;
+        if (!box || !ymd || !room) return;
+        box.innerHTML = '空きを読んでいます…';
+        google.script.run
+          .withSuccessHandler(function (data) {
+            if (!data || data.error) { box.className = 'freeinfo ng'; box.textContent = (data && data.error) || '読めませんでした'; return; }
+            var day = (data.days || []).filter(function (d) { return d.ymd === ymd; })[0];
+            var r = day ? (day.rooms || []).filter(function (x) { return x.room === room; })[0] : null;
+            box.className = 'freeinfo';
+            if (!day) { box.textContent = '空きが分かるのは今日から2週間ぶんです。それより先は日置に聞いてください'; return; }
+            if (!r) { box.textContent = '部屋が見つかりません'; return; }
+            if (r.error) { box.className = 'freeinfo ng'; box.textContent = r.error; return; }
+            box.innerHTML = r.free.length ? '<b>空き</b> ' + r.free.map(function (f) { return esc(f.text); }).join(' ／ ') : '<span style="color:var(--warn)">この日は空きがありません</span>';
+          })
+          .withFailureHandler(function (err) { box.className = 'freeinfo ng'; box.textContent = err.message; })
+          .getRoomsPage({ t: TOKEN, no: STATE.teacherNo || '', campus: REQF.campus });
+      }
+
+      function sendReq() {
+        var g = function (id) { var el = document.getElementById(id); return el ? el.value : ''; };
+        var st = g('rq_student');
+        var student = (HOME.students || []).filter(function (s) { return (s.id || s.name) === st; })[0];
+        var input = {
+          kind: REQF.kind, studentId: student ? student.id : '', studentName: student ? student.name : (st === '__other' ? g('rq_sname').trim() : ''),
+          fromYmd: REQF.kind === '振替' ? g('rq_from') : '', fromHm: REQF.kind === '振替' ? g('rq_fromhm') : '',
+          ymd: g('rq_ymd'), hm: g('rq_hm'), min: Number(g('rq_min')) || 30, campus: REQF.campus, room: g('rq_room'), reason: REQF.reason, memo: g('rq_memo').trim()
+        };
+        if (!input.studentName) { alert('生徒を選んでください'); return; }
+        var btn = document.getElementById('rq_send');
+        btn.disabled = true; btn.textContent = '送信中…';
+        google.script.run
+          .withSuccessHandler(function (res) {
+            HOME.requests = (res && res.requests) || HOME.requests;
+            REQF.open = false; REQF.msg = '';
+            renderHome(HOME);
+            var el = document.getElementById('reqCard'); if (el) el.scrollIntoView({ block: 'start' });
+          })
+          .withFailureHandler(function (err) { btn.disabled = false; btn.textContent = '申請する'; alert('申請できませんでした。' + err.message); })
+          .submitRequest(input, { t: TOKEN, no: STATE.teacherNo || '' });
+      }
+
+      /* 管理者: 回答待ちの質問（w14） */
+      function pendingQuestionsHtml(data) {
+        var qs = data.pendingQuestions || [];
+        if (!data.admin || !qs.length) return '';
+        return '<div class="card pending" id="pendQCard"><h2>回答待ちの質問<small>' + qs.length + '件</small></h2>' + qs.map(function (q, i) {
+          return '<div class="pend"><div><b>' + esc(q.name) + ' 先生</b><span class="sub">　' + esc(q.at) + '</span></div>'
+            + '<div class="bd" style="white-space:pre-wrap;font-size:14px">' + esc(q.text) + '</div>'
+            + '<textarea id="ans' + i + '" placeholder="返事を書いて「送る」。その場で先生のメールと講師ページに届きます"></textarea>'
+            + '<div class="btns"><button class="p" onclick="answerQ(' + i + ', ' + Number(q.row) + ', \'' + esc(q.at) + '\', \'' + esc(q.no) + '\')">送る</button></div></div>';
+        }).join('') + '</div>';
+      }
+
+      function answerQ(i, row, at, qno) {
+        var ta = document.getElementById('ans' + i);
+        var text = ta ? ta.value.trim() : '';
+        if (!text) { alert('返事を書いてください'); return; }
+        var btn = ta.parentNode.querySelector('button'); if (btn) { btn.disabled = true; btn.textContent = '送信中…'; }
+        google.script.run
+          .withSuccessHandler(function (res) {
+            HOME.pendingQuestions = (res && res.pendingQuestions) || [];
+            renderHome(HOME);
+            if (res && res.mailed === false) alert('シートには書きましたが、先生へのメールは送れませんでした（講師シートにメールが無いか、送信に失敗）。講師ページには出ています。');
+          })
+          .withFailureHandler(function (err) { if (btn) { btn.disabled = false; btn.textContent = '送る'; } alert('送れませんでした。' + err.message); })
+          .answerQuestion(row, at, qno, text, { t: TOKEN, no: STATE.teacherNo || '' });
+      }
+
+      /* 管理者: 承認待ち */
+      function pendingHtml(data) {
+        var ps = data.pending || [];
+        if (!data.admin || !ps.length) return '';
+        return '<div class="card pending" id="pendCard"><h2>承認待ち<small>' + ps.length + '件</small></h2>' + ps.map(function (q) {
+          return '<div class="pend"><div><b>' + esc(q.name) + ' 先生</b>　' + esc(q.line) + '</div>'
+            + '<div class="sub">' + esc(q.reason || '') + (q.memo ? ' ／ ' + esc(q.memo) : '') + '　（' + esc(q.at) + ' 申請）</div>'
+            + '<div class="chk ' + (q.roomOk ? 'ok' : 'ng') + '">部屋: ' + esc(q.roomText) + '</div>'
+            + '<div class="btns"><button class="p" onclick="decide(\'' + esc(q.id) + '\', \'ok\', false)">承認</button>'
+            + (q.roomOk ? '' : '<button onclick="decide(\'' + esc(q.id) + '\', \'ok\', true)">重なっていても承認</button>')
+            + '<button class="no" onclick="decide(\'' + esc(q.id) + '\', \'ng\', false)">却下</button></div></div>';
+        }).join('') + '<p class="hint">承認すると部屋（とレンタル）にブロックが入り、先生にメールが届きます。</p></div>';
+      }
+
+      function decide(id, decision, force) {
+        var comment = prompt(decision === 'ok' ? '先生への一言（任意）' : '却下の理由（先生に届きます）', '');
+        if (comment === null) return;
+        google.script.run
+          .withSuccessHandler(function (res) { HOME.pending = (res && res.pending) || []; renderHome(HOME); })
+          .withFailureHandler(function (err) { alert('できませんでした。' + err.message); })
+          .decideRequest(id, decision, comment, !!force, { t: TOKEN, no: STATE.teacherNo || '' });
+      }
+
       function renderCenter(msg) {
         document.getElementById('main').innerHTML = '<div class="center">' + esc(msg) + '</div>';
       }
@@ -645,10 +966,10 @@
 
       function renderAdmin(data) {
         var box = document.getElementById('admin');
-        if (!data.admin || !(data.teachers || []).length) { box.innerHTML = ''; return; }
+        if (!data.admin || !(data.teachers || []).length) return;   // 読めなかったときは前の選択肢を残す
         var opts = data.teachers.map(function (t) {
           var sel = t.no === data.teacherNo ? ' selected' : '';
-          return '<option value="' + esc(t.no) + '"' + sel + '>' + esc(t.no + ' ' + t.name) + '（' + esc(t.yyyymm) + '）</option>';
+          return '<option value="' + esc(t.no) + '"' + sel + '>' + esc(t.no + ' ' + t.name) + (t.yyyymm ? '（' + esc(t.yyyymm) + '）' : '') + '</option>';
         }).join('');
         box.innerHTML = '<div class="card"><div class="meta">管理者: 講師を選ぶ</div>'
           + '<select onchange="pickTeacher(this.value)">' + opts + '</select></div>';
