@@ -229,6 +229,36 @@
       .unrec { background: var(--caution-soft); color: var(--caution); border-radius: 8px; padding: 6px 10px; font-size: 13.5px; margin: 0 0 8px; }
       .pastday { border-top: 1px solid var(--rule); padding: 8px 0 2px; }
       .pastday .pd { font-weight: 600; font-size: 14px; }
+      /* w17 ホケホケ */
+      .hnav { display: flex; gap: 6px; margin-bottom: 8px; }
+      .hnav button { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1.5px solid var(--rule); background: var(--surface); color: var(--muted); }
+      .hnav button.on { border-color: var(--accent); color: var(--accent); }
+      .hrights { background: var(--accent-soft); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; font-size: 14px; }
+      .hrights .hr { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-top: 4px; }
+      .hpick, .hadd { border: 1.5px solid var(--accent); border-radius: 10px; padding: 8px 10px; margin: 6px 0 8px; font-size: 14px; }
+      .hcand { display: flex; justify-content: space-between; align-items: center; gap: 6px; border-top: 1px solid var(--rule); padding: 5px 0; }
+      .hday { margin-top: 10px; }
+      .hdate { font-weight: 600; font-size: 14px; color: var(--muted); }
+      .hdate.today { color: var(--accent); }
+      .hocc { border: 1px solid var(--rule); border-radius: 10px; padding: 8px 10px; margin-top: 6px; }
+      .hocc.closed { background: var(--ground); }
+      .hhead { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+      .ht { font-weight: 600; font-variant-numeric: tabular-nums; }
+      .hcnt { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+      .hcnt.full { color: var(--warn); font-weight: 600; }
+      .hseat { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 3px 0; font-size: 14px; border-top: 1px dashed var(--rule); }
+      .hseat.off .hn { color: var(--muted); text-decoration: line-through; }
+      .htag { font-size: 11px; padding: 0 6px; border-radius: 999px; margin-left: 4px; background: var(--ground); color: var(--muted); white-space: nowrap; }
+      .htag.mv, .htag.ad { background: var(--accent-soft); color: var(--accent); }
+      .htag.tr { background: var(--warn-soft); color: var(--warn); }
+      .htag.cash { background: var(--caution-soft); color: var(--caution); }
+      .htag.ok { background: var(--ok-soft); color: var(--ok); }
+      .htag.ng { background: var(--warn-soft); color: var(--warn); }
+      .hb { font: inherit; font-size: 12.5px; padding: 3px 9px; border-radius: 8px; border: 1.5px solid var(--accent); background: var(--surface); color: var(--accent); white-space: nowrap; }
+      .hb.p { background: var(--accent); color: #fff; }
+      .hb.no { border-color: var(--warn); color: var(--warn); }
+      .hacts { display: flex; gap: 6px; margin-top: 6px; }
+      .hadd select, .hadd input { font: inherit; font-size: 13px; padding: 4px 6px; border: 1.5px solid var(--rule); border-radius: 8px; background: var(--surface); color: var(--ink); max-width: 100%; margin: 2px 4px 2px 0; }
     </style>
   </head>
   <body>
@@ -339,7 +369,15 @@
       // w12: レッスン記録
       saveRecord: function (input, p) { post({ api: 'saveRecord', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w14: 管理者が質問に返す
-      answerQuestion: function (row, at, qno, text, p) { post({ api: 'answerQuestion', t: p && p.t, no: p && p.no, row: row, at: at, qno: qno, text: text }, ok, ng); }
+      answerQuestion: function (row, at, qno, text, p) { post({ api: 'answerQuestion', t: p && p.t, no: p && p.no, row: row, at: at, qno: qno, text: text }, ok, ng); },
+      // w17: ホケホケ
+      getHokePage: function (p) { get({ api: 'hoke', t: p && p.t, no: p && p.no, week: p && p.week }, ok, ng); },
+      hokeCandidates: function (rightId, p) { get({ api: 'hokeCandidates', t: p && p.t, no: p && p.no, rightId: rightId }, ok, ng); },
+      hokeSetState: function (input, p) { post({ api: 'hokeSetState', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      hokeMove: function (input, p) { post({ api: 'hokeMove', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      hokeAdd: function (input, p) { post({ api: 'hokeAdd', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      hokeCancel: function (input, p) { post({ api: 'hokeCancel', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      hokeClose: function (input, p) { post({ api: 'hokeClose', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); }
     };
     return r;
   }
@@ -447,6 +485,7 @@
       function loadHome(no) {
         var box = document.getElementById('home');
         if (!box) return;
+        if (window.HOKE) { HOKE.data = null; HOKE.error = ''; HOKE.pick = null; HOKE.add = null; }   // w17: 先生を切り替えたら読み直す
         if (!box.innerHTML) box.innerHTML = '<div class="card today"><div class="meta">今日の予定を読み込み中…</div></div>';
         try {
           if (!window.google || !google.script || !google.script.run || typeof google.script.run.getHomePage !== 'function') {
@@ -469,6 +508,11 @@
           return;
         }
         if (!document.getElementById('admin').innerHTML) renderAdmin(data);   // 今月の状況より先に、講師シートから出す
+        if (data.hoke) {   // w17: 成瀬先生のホケホケ。今日のレッスン・部屋の空き・申請の代わりに
+          box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + hokeCardHtml() + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
+          if (!HOKE.data && !HOKE.loading) loadHoke(HOKE.week);
+          return;
+        }
         box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + todayHtml(data) + roomsCardHtml() + requestsHtml(data) + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
       }
 
@@ -656,6 +700,137 @@
           .askQuestion(text, { t: TOKEN, no: STATE.teacherNo || '' });
       }
 
+      /* ---- w17 ホケホケ（成瀬先生と管理者だけ。ホームの hoke が true のとき、今日のレッスン・部屋の空き・申請の代わりに出す） ---- */
+      var HOKE = { week: 0, data: null, loading: false, error: '', pick: null, add: null, busy: false };
+      function hokeCardHtml() {
+        return '<div class="card today" id="hokeCard"><h2>ホケホケ<small id="hokeWeek">' + (HOKE.data ? esc(HOKE.data.week.label) : '') + '</small></h2><div id="hoke">' + hokeInnerHtml() + '</div></div>';
+      }
+      function rerenderHoke() {
+        var el = document.getElementById('hoke'); if (el) el.innerHTML = hokeInnerHtml();
+        var w = document.getElementById('hokeWeek'); if (w) w.textContent = HOKE.data ? HOKE.data.week.label : '';
+      }
+      function hokeP() { return { t: TOKEN, no: STATE.teacherNo || '' }; }
+      function loadHoke(week) {
+        HOKE.week = Number(week) || 0; HOKE.loading = true; HOKE.error = ''; HOKE.pick = null; HOKE.add = null;
+        rerenderHoke();
+        try {
+          if (!window.google || !google.script || !google.script.run || typeof google.script.run.getHokePage !== 'function') {
+            throw new Error('サーバー側に getHokePage がありません（貼り替えのあと「新バージョン」でデプロイしてください）');
+          }
+          google.script.run
+            .withSuccessHandler(function (data) { HOKE.loading = false; if (!data || data.error) { HOKE.error = (data && data.error) || '読めませんでした'; } else { HOKE.data = data; } rerenderHoke(); })
+            .withFailureHandler(function (err) { HOKE.loading = false; HOKE.error = err.message; rerenderHoke(); })
+            .getHokePage({ t: TOKEN, no: STATE.teacherNo || '', week: HOKE.week });
+        } catch (err) { HOKE.loading = false; HOKE.error = err.message; rerenderHoke(); }
+      }
+      function hokeSend(name, input) {
+        if (HOKE.busy) return;
+        HOKE.busy = true; HOKE.loading = true; input.week = HOKE.week; rerenderHoke();
+        google.script.run
+          .withSuccessHandler(function (res) { HOKE.busy = false; HOKE.loading = false; if (res && !res.error) HOKE.data = res; rerenderHoke(); })
+          .withFailureHandler(function (err) { HOKE.busy = false; HOKE.loading = false; alert('できませんでした。' + err.message); rerenderHoke(); })
+          [name](input, hokeP());
+      }
+      function hokeClassLabel(d, id) { var c = (d.classes || []).filter(function (x) { return x.id === id; })[0]; return c ? c.weekday + ' ' + c.hm : id; }
+      function hokeInnerHtml() {
+        if (HOKE.loading) return '<div class="meta">読み込み中…</div>';
+        if (HOKE.error) return '<div class="banner err">' + esc(HOKE.error) + '</div><button class="rbtn" onclick="loadHoke(HOKE.week)">もう一度</button>';
+        var d = HOKE.data; if (!d) return '';
+        var html = '<div class="hnav"><button onclick="loadHoke(HOKE.week - 1)">‹ 前の週</button><button' + (HOKE.week === 0 ? ' class="on"' : '') + ' onclick="loadHoke(0)">今週</button><button onclick="loadHoke(HOKE.week + 1)">次の週 ›</button></div>';
+        if (d.noClass && d.noClass.length) html += '<div class="banner info">名簿に曜日か時刻が無い生徒: ' + esc(d.noClass.join('、')) + '（名簿を直すと次の時間に反映）</div>';
+        if (d.rights && d.rights.length) {
+          html += '<div class="hrights"><b>振替の権利</b>（' + d.rights.length + '）' + d.rights.map(function (r) {
+            return '<div class="hr"><span>' + esc(r.name) + '<span class="meta">　' + esc(r.label) + ' の欠席</span></span><button class="hb" onclick="hokePick(\'' + esc(r.attId) + '\')">振替先を選ぶ</button></div>';
+          }).join('') + '</div>';
+        }
+        if (HOKE.pick) html += hokePickHtml();
+        if (!d.week.days.length) html += '<div class="meta">この週のクラスはありません</div>';
+        d.week.days.forEach(function (day) {
+          html += '<div class="hday"><div class="hdate' + (day.ymd === d.today ? ' today' : '') + '">' + esc(day.label) + (day.ymd === d.today ? '（今日）' : '') + '</div>' + day.occs.map(function (o) { return hokeOccHtml(d, o); }).join('') + '</div>';
+        });
+        html += '<p class="hint">人数 ＝ 基本 − 欠席連絡 ＋ 振替 ＋ 追加 ＋ 体験。定員 ' + d.cap + '。欠席の連絡は前日まで（振替の権利1回）。当日は「当日欠席」。</p>';
+        return html;
+      }
+      function hokeOccHtml(d, o) {
+        var past = o.ymd < d.today, closed = o.status === '休講';
+        var q = "'" + o.ymd + "','" + esc(o.classId) + "'";
+        var h = '<div class="hocc' + (closed ? ' closed' : '') + '"><div class="hhead"><span class="ht">' + esc(o.hm) + '〜' + esc(o.endHm) + '</span>'
+          + (closed ? '<span class="badge trial">休講</span>' + (o.note ? '<span class="meta">' + esc(o.note) + '</span>' : '') : '<span class="hcnt' + (o.free === 0 ? ' full' : '') + '">' + o.count + ' / ' + o.cap + '</span>') + '</div>';
+        if (!closed) h += o.seats.length ? o.seats.map(function (s) { return hokeSeatHtml(d, o, s); }).join('') : '<div class="meta">この回の生徒はいません</div>';
+        if (HOKE.add && HOKE.add.ymd === o.ymd && HOKE.add.classId === o.classId) h += hokeAddHtml(d, o);
+        var acts = [];
+        if (!closed && !past) acts.push('<button class="hb" onclick="hokeAddOpen(' + q + ')">追加</button>');
+        if (!past) acts.push(closed ? '<button class="hb" onclick="hokeClose(' + q + ', false)">開講に戻す</button>' : '<button class="hb no" onclick="hokeClose(' + q + ', true)">休講にする</button>');
+        if (acts.length) h += '<div class="hacts">' + acts.join('') + '</div>';
+        return h + '</div>';
+      }
+      function hokeSeatHtml(d, o, s) {
+        var future = o.ymd > d.today, st = s.state;
+        var tags = '';
+        if (s.kind !== '基本') tags += '<span class="htag ' + (s.kind === '振替' ? 'mv' : (s.kind === '体験' ? 'tr' : 'ad')) + '">' + esc(s.kind) + '</span>';
+        if (/現金/.test(s.pay || '')) tags += '<span class="htag cash">現金</span>';
+        if (st !== '予定') tags += '<span class="htag ' + (st === '出席' ? 'ok' : (st === '当日欠席' ? 'ng' : '')) + '">' + esc(st) + '</span>';
+        var q = "'" + o.ymd + "','" + esc(o.classId) + "','" + esc(s.studentId) + "','" + esc(s.attId) + "'";
+        var btns = '';
+        if (future) {
+          if (s.kind === '基本') {
+            if (st === '予定') btns = '<button class="hb" onclick="hokeState(' + q + ', \'欠席連絡\')">欠席</button>';
+            else if (st === '欠席連絡' || st === '休講') btns = '<button class="hb" onclick="hokeState(' + q + ', \'予定\')">取り消す</button>';
+          } else if (st === '予定' && s.attId) {   // 名簿の体験の子（行が無い）は稼働表の体験日で動くので、ここでは取りやめない
+            btns = '<button class="hb" onclick="hokeCancel(\'' + esc(s.attId) + '\')">取りやめ</button>';
+          }
+        } else if (st !== '欠席連絡' && st !== '振替済み' && st !== '休講') {
+          btns = '<span class="att">' + ['出席', '当日欠席'].map(function (a) {
+            return '<button class="' + (st === a ? 'on' : '') + '" onclick="hokeState(' + q + ', \'' + (st === a ? '予定' : a) + '\')">' + a + '</button>';
+          }).join('') + '</span>';
+        }
+        var off = st === '欠席連絡' || st === '振替済み' || st === '休講';
+        return '<div class="hseat' + (off ? ' off' : '') + '"><span class="hn">' + esc(s.name) + tags + '</span>' + btns + '</div>';
+      }
+      function hokePickHtml() {
+        var p = HOKE.pick;
+        var h = '<div class="hpick"><b>' + esc(p.right.name) + ' さんの振替先</b><span class="meta">　' + esc(p.right.label) + ' の欠席のぶん</span>';
+        if (p.loading) h += '<div class="meta">空きを読んでいます…</div>';
+        else if (!p.candidates.length) h += '<div class="meta">空きのある回がありません（8週間先まで）</div>';
+        else h += p.candidates.map(function (c) {
+          return '<div class="hcand"><span>' + esc(c.label) + '</span><span class="meta">残り ' + c.free + '席</span><button class="hb p" onclick="hokeMove(\'' + esc(p.right.attId) + '\', \'' + c.ymd + '\', \'' + esc(c.classId) + '\', \'' + esc(c.label) + '\')">この回にする</button></div>';
+        }).join('');
+        return h + '<div style="margin-top:6px"><button class="hb" onclick="HOKE.pick = null; rerenderHoke()">閉じる</button></div></div>';
+      }
+      function hokeAddHtml(d, o) {
+        var seated = {};
+        o.seats.forEach(function (s) { if (s.state !== '欠席連絡' && s.state !== '振替済み' && s.state !== '休講') seated[s.studentId] = true; });
+        var opts = (d.students || []).filter(function (s) { return !seated[s.id]; }).map(function (s) { return '<option value="' + esc(s.id) + '">' + esc(s.name) + (s.classId ? '（' + esc(hokeClassLabel(d, s.classId)) + '）' : '') + '</option>'; }).join('')
+          + (d.trials || []).filter(function (s) { return !seated[s.id]; }).map(function (s) { return '<option value="' + esc(s.id) + '">' + esc(s.name) + '（体験' + (s.trialYmd ? ' ' + esc(s.trialYmd) : '') + '）</option>'; }).join('');
+        return '<div class="hadd"><div class="meta">この回に1回だけ入れる（振替ではなく追加。体験の子もここから）</div><select id="hokeAddSel"><option value="">生徒を選ぶ</option>' + opts + '</select> または <input id="hokeAddName" placeholder="一覧にない子の名前"><div style="margin-top:4px"><button class="hb p" onclick="hokeAddSend(\'' + o.ymd + '\', \'' + esc(o.classId) + '\')">入れる</button> <button class="hb" onclick="HOKE.add = null; rerenderHoke()">やめる</button></div></div>';
+      }
+      function hokeState(ymd, classId, studentId, attId, state) {
+        if (state === '欠席連絡' && !confirm('欠席にしますか？（前日までの連絡なので、振替の権利が1回付きます）')) return;
+        hokeSend('hokeSetState', { ymd: ymd, classId: classId, studentId: studentId, attId: attId, state: state });
+      }
+      function hokeCancel(attId) { if (!confirm('この席を取りやめますか？')) return; hokeSend('hokeCancel', { attId: attId }); }
+      function hokeClose(ymd, classId, closed) {
+        if (!confirm(closed ? 'この回を休講にしますか？（基本の生徒全員に振替の権利が1回付き、振替・追加の席は取りやめになります）' : '開講に戻しますか？（まだ使っていない権利は消えます）')) return;
+        hokeSend('hokeClose', { ymd: ymd, classId: classId, closed: !!closed });
+      }
+      function hokeMove(rightId, ymd, classId, label) { if (!confirm(label + ' に振替えますか？')) return; HOKE.pick = null; hokeSend('hokeMove', { rightId: rightId, ymd: ymd, classId: classId }); }
+      function hokeAddOpen(ymd, classId) { HOKE.add = { ymd: ymd, classId: classId }; HOKE.pick = null; rerenderHoke(); }
+      function hokeAddSend(ymd, classId) {
+        var sel = document.getElementById('hokeAddSel'), nm = document.getElementById('hokeAddName');
+        var sid = sel ? sel.value : '', name = nm ? nm.value.trim() : '';
+        if (!sid && !name) { alert('生徒を選ぶか、名前を入れてください'); return; }
+        HOKE.add = null;
+        hokeSend('hokeAdd', { ymd: ymd, classId: classId, studentId: sid, name: name });
+      }
+      function hokePick(attId) {
+        var r = ((HOKE.data || {}).rights || []).filter(function (x) { return x.attId === attId; })[0] || { attId: attId, name: '', label: '' };
+        HOKE.pick = { right: r, candidates: [], loading: true }; HOKE.add = null; rerenderHoke();
+        google.script.run
+          .withSuccessHandler(function (res) { HOKE.pick = { right: res.right, candidates: res.candidates || [], loading: false }; rerenderHoke(); })
+          .withFailureHandler(function (err) { HOKE.pick = null; alert(err.message); rerenderHoke(); })
+          .hokeCandidates(attId, hokeP());
+      }
+
       /* ---- w10 部屋の空き: 押したときだけカレンダーを読む（ホームの読み込みを遅くしない） ---- */
       var ROOMS = { campus: '', data: null, loading: false, error: '' };
       try { ROOMS.campus = localStorage.getItem('luce-rooms-campus') || ''; } catch (err) {}
@@ -840,6 +1015,37 @@
         set('rq_from', v.from); set('rq_fromhm', v.fromhm); set('rq_ymd', v.ymd); set('rq_hm', v.hm); set('rq_min', v.min); set('rq_memo', v.memo); set('rq_sname', v.sname);
       }
 
+      /* w16: 空きの計算（テストが切り出す）ここから */
+      /* 名前の鍵（サーバーの nameKey_ と同じ: 全角・半角の空白を落とす） */
+      function nk(v) { return String(v || '').normalize('NFKC').replace(/[\s\u3000]/g, ''); }
+      /* 分 → 'H:mm' */
+      function mmText(m) { m = Math.max(0, Math.round(Number(m) || 0)); return Math.floor(m / 60) + ':' + ('0' + (m % 60)).slice(-2); }
+      /* 'H:mm' → 分。時刻でなければ -1（「予約制」など） */
+      function hmMinC(v) { var m = String(v || '').match(/^(\d{1,2}):(\d{2})$/); return m ? Number(m[1]) * 60 + Number(m[2]) : -1; }
+      /*
+       * 申請フォームの「この日の空き」。部屋の予定（busy: [{s, e, kind, label}]）から自分のレッスン帯（luce給与のブロック。前後の余白込み）を外し、
+       * 代わりに自分のその日の生徒（mine: [{s, e}]）を入れて、minFree 分以上の隙間を返す。先生は自分の帯の中の隙間と前後に振替を入れるため。
+       * 返り値 [{s, e, text}]
+       */
+      function reqFreeCalc(busy, mine, frame, minFree, teacherName) {
+        var me = nk(teacherName);
+        var list = (busy || []).filter(function (b) { return !(b.kind === 'lesson' && me && nk(b.label) === me); })
+          .concat(mine || [])
+          .map(function (b) { return { s: Math.max(frame.START, b.s), e: Math.min(frame.END, b.e) }; })
+          .filter(function (b) { return b.e > b.s; })
+          .sort(function (a, b) { return a.s - b.s || a.e - b.e; });
+        var out = [], cur = frame.START;
+        list.forEach(function (b) { if (b.s > cur && b.s - cur >= minFree) out.push({ s: cur, e: b.s }); if (b.e > cur) cur = b.e; });
+        if (frame.END > cur && frame.END - cur >= minFree) out.push({ s: cur, e: frame.END });
+        return out.map(function (f) { f.text = mmText(f.s) + '〜' + mmText(f.e); return f; });
+      }
+      /* その日の自分の生徒（承認済みの振替・予約も含む）。[{s, e, name}]。時刻の無いもの（予約制）は外す */
+      function myLessonsOn(schedule, ymd) {
+        var day = (schedule || []).filter(function (d) { return d.ymd === ymd; })[0];
+        return day ? day.students.map(function (s) { var m = hmMinC(s.time); return m < 0 ? null : { s: m, e: m + (Number(s.min) || 30), name: s.name, id: s.id || '' }; }).filter(Boolean) : [];
+      }
+      /* ここまで */
+
       function reqFree() {
         var box = document.getElementById('rq_free');
         var ymd = (document.getElementById('rq_ymd') || {}).value;
@@ -855,7 +1061,11 @@
             if (!day) { box.textContent = '空きが分かるのは今日から2週間ぶんです。それより先は日置に聞いてください'; return; }
             if (!r) { box.textContent = '部屋が見つかりません'; return; }
             if (r.error) { box.className = 'freeinfo ng'; box.textContent = r.error; return; }
-            box.innerHTML = r.free.length ? '<b>空き</b> ' + r.free.map(function (f) { return esc(f.text); }).join(' ／ ') : '<span style="color:var(--warn)">この日は空きがありません</span>';
+            var mine = myLessonsOn(HOME.schedule, ymd);
+            var own = (r.busy || []).some(function (b) { return b.kind === 'lesson' && nk(b.label) === nk(HOME.teacherName); });
+            var free = reqFreeCalc(r.busy, mine, data.frame || { START: 480, END: 1320 }, 30, HOME.teacherName);
+            box.innerHTML = (free.length ? '<b>空き</b> ' + free.map(function (f) { return esc(f.text); }).join(' ／ ') : '<span style="color:var(--warn)">この日は空きがありません</span>')
+              + (own ? '<div class="sub">この日はご自分のレッスンの部屋なので、生徒の間の隙間と前後が空きです</div>' : '');
           })
           .withFailureHandler(function (err) { box.className = 'freeinfo ng'; box.textContent = err.message; })
           .getRoomsPage({ t: TOKEN, no: STATE.teacherNo || '', campus: REQF.campus });
@@ -871,6 +1081,12 @@
           ymd: g('rq_ymd'), hm: g('rq_hm'), min: Number(g('rq_min')) || 30, campus: REQF.campus, room: g('rq_room'), reason: REQF.reason, memo: g('rq_memo').trim()
         };
         if (!input.studentName) { alert('生徒を選んでください'); return; }
+        // w16: 自分の生徒と重なるときは確かめる（グループレッスンなど、重ねてよい場合もあるので止めはしない）
+        var s0 = hmMinC(input.hm), e0 = s0 + input.min;
+        var hit = s0 < 0 ? [] : myLessonsOn(HOME.schedule, input.ymd).filter(function (l) {
+          return l.s < e0 && l.e > s0 && !((input.studentId && l.id === input.studentId) || nk(l.name) === nk(input.studentName));
+        });
+        if (hit.length && !confirm('その時間は ' + hit.map(function (l) { return l.name + ' さん（' + mmText(l.s) + '〜' + mmText(l.e) + '）'; }).join('、') + ' のレッスンと重なります。このまま申請しますか？')) return;
         var btn = document.getElementById('rq_send');
         btn.disabled = true; btn.textContent = '送信中…';
         google.script.run
@@ -887,16 +1103,24 @@
       /* 管理者: 回答待ちの質問（w14） */
       function pendingQuestionsHtml(data) {
         var qs = data.pendingQuestions || [];
-        if (!data.admin || !qs.length) return '';
-        return '<div class="card pending" id="pendQCard"><h2>回答待ちの質問<small>' + qs.length + '件</small></h2>' + qs.map(function (q, i) {
+        var un = data.unsentAnswers || [];   // w15: 回答したがメールを送れていない
+        if (!data.admin || (!qs.length && !un.length)) return '';
+        var html = '<div class="card pending" id="pendQCard"><h2>回答待ちの質問<small>' + qs.length + '件</small></h2>';
+        if (un.length) {
+          html += '<div class="chk ng">メールを送れていない回答が ' + un.length + ' 件（'
+            + un.map(function (u) { return esc(u.name) + ' 先生 ' + esc(u.no); }).join('、')
+            + '）。講師運営ブックの「講師」シートにその先生のメールを入れると、5分以内に自動で届きます。講師ページには出ています。</div>';
+        }
+        html += qs.map(function (q, i) {
           return '<div class="pend"><div><b>' + esc(q.name) + ' 先生</b><span class="sub">　' + esc(q.at) + '</span></div>'
             + '<div class="bd" style="white-space:pre-wrap;font-size:14px">' + esc(q.text) + '</div>'
             + '<textarea id="ans' + i + '" placeholder="返事を書いて「送る」。その場で先生のメールと講師ページに届きます"></textarea>'
-            + '<div class="btns"><button class="p" onclick="answerQ(' + i + ', ' + Number(q.row) + ', \'' + esc(q.at) + '\', \'' + esc(q.no) + '\')">送る</button></div></div>';
+            + '<div class="btns"><button class="p" onclick="answerQ(' + i + ', ' + Number(q.row) + ', \'' + esc(q.at) + '\', \'' + esc(q.no) + '\', \'' + esc(q.name) + '\')">送る</button></div></div>';
         }).join('') + '</div>';
+        return html;
       }
 
-      function answerQ(i, row, at, qno) {
+      function answerQ(i, row, at, qno, name) {
         var ta = document.getElementById('ans' + i);
         var text = ta ? ta.value.trim() : '';
         if (!text) { alert('返事を書いてください'); return; }
@@ -904,8 +1128,13 @@
         google.script.run
           .withSuccessHandler(function (res) {
             HOME.pendingQuestions = (res && res.pendingQuestions) || [];
+            HOME.unsentAnswers = (res && res.unsentAnswers) || [];
             renderHome(HOME);
-            if (res && res.mailed === false) alert('シートには書きましたが、先生へのメールは送れませんでした（講師シートにメールが無いか、送信に失敗）。講師ページには出ています。');
+            if (res && res.mailed === false) {
+              alert(res.reason === 'nomail'
+                ? 'シートには書きましたが、講師運営ブックの「講師」シートに ' + name + ' 先生（' + qno + '）のメールが無いので、メールはまだ送れていません。講師シートにメールを入れると5分以内に自動で届きます。講師ページには出ています。'
+                : 'シートには書きましたが、メールの送信に失敗しました。5分ごとに送り直します。講師ページには出ています。');
+            }
           })
           .withFailureHandler(function (err) { if (btn) { btn.disabled = false; btn.textContent = '送る'; } alert('送れませんでした。' + err.message); })
           .answerQuestion(row, at, qno, text, { t: TOKEN, no: STATE.teacherNo || '' });
