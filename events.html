@@ -6,6 +6,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>luce 講師ページ</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="https://nulu-luce.github.io/luce-page/img/icon-180.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="https://nulu-luce.github.io/luce-page/img/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="https://nulu-luce.github.io/luce-page/img/icon-512.png" />
+    <meta name="apple-mobile-web-app-title" content="luce" />
     <style>
       :root {
         --ground: #f7f7f4;
@@ -165,7 +169,8 @@
   }
 
   var q = parseQuery(w.location && w.location.search);
-  w.__luce = { token: q.t || '', no: q.no || '', apiUrl: API_URL, parseQuery: parseQuery, toQuery: toQuery };
+  // token は先生の合言葉（?t=）、s は生徒ページ（ホケホケ）の家庭の合言葉（?s=。w21）
+  w.__luce = { token: q.t || '', no: q.no || '', s: q.s || '', apiUrl: API_URL, parseQuery: parseQuery, toQuery: toQuery };
 
   function finish(promise, ok, ng) {
     promise
@@ -200,7 +205,7 @@
       withSuccessHandler: function (f) { ok = f; return r; },
       withFailureHandler: function (f) { ng = f; return r; },
       withUserObject: function () { return r; },
-      getStatusPage: function (p) { get({ api: 'status', t: p && p.t, no: p && p.no }, ok, ng); },
+      getStatusPage: function (p) { get({ api: 'status', t: p && p.t, no: p && p.no, fresh: p && p.fresh ? '1' : '' }, ok, ng); },
       getEventPage: function (p) { get({ api: 'events', t: p && p.t }, ok, ng); },
       saveEventAnswer: function (eventId, answer, comment, p) {
         post({ api: 'saveEventAnswer', t: p && p.t, eventId: eventId, answer: answer, comment: comment }, ok, ng);
@@ -211,7 +216,32 @@
       // w7: ホーム
       getHomePage: function (p) { get({ api: 'home', t: p && p.t, no: p && p.no }, ok, ng); },
       markTaskDone: function (taskId, p) { post({ api: 'markTaskDone', t: p && p.t, no: p && p.no, taskId: taskId }, ok, ng); },
-      askQuestion: function (text, p) { post({ api: 'askQuestion', t: p && p.t, no: p && p.no, text: text }, ok, ng); }
+      askQuestion: function (text, p) { post({ api: 'askQuestion', t: p && p.t, no: p && p.no, text: text }, ok, ng); },
+      // w10: 部屋の空き
+      getRoomsPage: function (p) { get({ api: 'rooms', t: p && p.t, no: p && p.no, campus: p && p.campus }, ok, ng); },
+      // w11: 振替・予約の申請
+      submitRequest: function (input, p) { post({ api: 'submitRequest', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      cancelRequest: function (id, reason, p) { post({ api: 'cancelRequest', t: p && p.t, no: p && p.no, id: id, reason: reason || '' }, ok, ng); },
+      decideRequest: function (id, decision, comment, force, p) { post({ api: 'decideRequest', t: p && p.t, no: p && p.no, id: id, decision: decision, comment: comment || '', force: !!force }, ok, ng); },
+      // w12: レッスン記録
+      saveRecord: function (input, p) { post({ api: 'saveRecord', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w14: 管理者が質問に返す
+      answerQuestion: function (row, at, qno, text, p) { post({ api: 'answerQuestion', t: p && p.t, no: p && p.no, row: row, at: at, qno: qno, text: text }, ok, ng); },
+      // w17: ホケホケ
+      getHokePage: function (p) { get({ api: 'hoke', t: p && p.t, no: p && p.no, week: p && p.week }, ok, ng); },
+      hokeCandidates: function (rightId, p) { get({ api: 'hokeCandidates', t: p && p.t, no: p && p.no, rightId: rightId, past: p && p.past ? '1' : '' }, ok, ng); },
+      hokeSetState: function (input, p) { post({ api: 'hokeSetState', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      hokeMove: function (input, p) { post({ api: 'hokeMove', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      hokeAdd: function (input, p) { post({ api: 'hokeAdd', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      hokeCancel: function (input, p) { post({ api: 'hokeCancel', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      hokeClose: function (input, p) { post({ api: 'hokeClose', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w21: ホケホケの生徒ページ（家庭の合言葉 s）
+      getHokeParentPage: function (p) { get({ api: 'hokeParent', s: p && p.s }, ok, ng); },
+      hokeParentCandidates: function (rightId, p) { get({ api: 'hokeParentCandidates', s: p && p.s, rightId: rightId }, ok, ng); },
+      hokeParentAbsent: function (input, p) { post({ api: 'hokeParentAbsent', s: p && p.s, input: input || {} }, ok, ng); },
+      hokeParentUndo: function (input, p) { post({ api: 'hokeParentUndo', s: p && p.s, input: input || {} }, ok, ng); },
+      hokeParentMove: function (input, p) { post({ api: 'hokeParentMove', s: p && p.s, input: input || {} }, ok, ng); },
+      hokeParentCancel: function (input, p) { post({ api: 'hokeParentCancel', s: p && p.s, input: input || {} }, ok, ng); }
     };
     return r;
   }
