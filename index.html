@@ -6,6 +6,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>luce 講師ページ</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="https://nulu-luce.github.io/luce-page/img/icon-180.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="https://nulu-luce.github.io/luce-page/img/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="https://nulu-luce.github.io/luce-page/img/icon-512.png" />
+    <meta name="apple-mobile-web-app-title" content="luce" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Maru+Gothic:wght@500;700&display=swap" />
     <style>
@@ -239,6 +243,8 @@
       .hrights .hr { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-top: 4px; }
       .hpick, .hadd { border: 1.5px solid var(--accent); border-radius: 10px; padding: 8px 10px; margin: 6px 0 8px; font-size: 14px; }
       .hcand { display: flex; justify-content: space-between; align-items: center; gap: 6px; border-top: 1px solid var(--rule); padding: 5px 0; }
+      .hcand > span:first-child { flex: 1 1 auto; }
+      .hcand .meta, .hcand .hb { white-space: nowrap; flex-shrink: 0; }   /* w22: 「残り n席」「済んだ回」を縦に折らない */
       .hday { margin-top: 10px; }
       .hdate { font-weight: 600; font-size: 14px; color: var(--muted); }
       .hdate.today { color: var(--accent); }
@@ -253,7 +259,8 @@
       .ht { font-weight: 600; font-variant-numeric: tabular-nums; }
       .hcnt { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
       .hcnt.full { color: var(--warn); font-weight: 600; }
-      .hseat { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 3px 0; font-size: 14px; border-top: 1px dashed var(--rule); }
+      .hseat { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 6px; padding: 3px 0; font-size: 14px; border-top: 1px dashed var(--rule); }
+      .hseat .att { margin-left: auto; }   /* w22: ピルが3つで入らないときは名前の下の行に（名前は折らない） */
       .hseat.off .hn { color: var(--muted); text-decoration: line-through; }
       .htag { font-size: 11px; padding: 0 6px; border-radius: 999px; margin-left: 4px; background: var(--ground); color: var(--muted); white-space: nowrap; }
       .htag.mv, .htag.ad { background: var(--accent-soft); color: var(--accent); }
@@ -403,7 +410,8 @@
   }
 
   var q = parseQuery(w.location && w.location.search);
-  w.__luce = { token: q.t || '', no: q.no || '', apiUrl: API_URL, parseQuery: parseQuery, toQuery: toQuery };
+  // token は先生の合言葉（?t=）、s は生徒ページ（ホケホケ）の家庭の合言葉（?s=。w21）
+  w.__luce = { token: q.t || '', no: q.no || '', s: q.s || '', apiUrl: API_URL, parseQuery: parseQuery, toQuery: toQuery };
 
   function finish(promise, ok, ng) {
     promise
@@ -462,12 +470,19 @@
       answerQuestion: function (row, at, qno, text, p) { post({ api: 'answerQuestion', t: p && p.t, no: p && p.no, row: row, at: at, qno: qno, text: text }, ok, ng); },
       // w17: ホケホケ
       getHokePage: function (p) { get({ api: 'hoke', t: p && p.t, no: p && p.no, week: p && p.week }, ok, ng); },
-      hokeCandidates: function (rightId, p) { get({ api: 'hokeCandidates', t: p && p.t, no: p && p.no, rightId: rightId }, ok, ng); },
+      hokeCandidates: function (rightId, p) { get({ api: 'hokeCandidates', t: p && p.t, no: p && p.no, rightId: rightId, past: p && p.past ? '1' : '' }, ok, ng); },
       hokeSetState: function (input, p) { post({ api: 'hokeSetState', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       hokeMove: function (input, p) { post({ api: 'hokeMove', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       hokeAdd: function (input, p) { post({ api: 'hokeAdd', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       hokeCancel: function (input, p) { post({ api: 'hokeCancel', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
-      hokeClose: function (input, p) { post({ api: 'hokeClose', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); }
+      hokeClose: function (input, p) { post({ api: 'hokeClose', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w21: ホケホケの生徒ページ（家庭の合言葉 s）
+      getHokeParentPage: function (p) { get({ api: 'hokeParent', s: p && p.s }, ok, ng); },
+      hokeParentCandidates: function (rightId, p) { get({ api: 'hokeParentCandidates', s: p && p.s, rightId: rightId }, ok, ng); },
+      hokeParentAbsent: function (input, p) { post({ api: 'hokeParentAbsent', s: p && p.s, input: input || {} }, ok, ng); },
+      hokeParentUndo: function (input, p) { post({ api: 'hokeParentUndo', s: p && p.s, input: input || {} }, ok, ng); },
+      hokeParentMove: function (input, p) { post({ api: 'hokeParentMove', s: p && p.s, input: input || {} }, ok, ng); },
+      hokeParentCancel: function (input, p) { post({ api: 'hokeParentCancel', s: p && p.s, input: input || {} }, ok, ng); }
     };
     return r;
   }
@@ -867,7 +882,9 @@
         d.week.days.forEach(function (day) {
           html += '<div class="hday"><div class="hdate' + (day.ymd === d.today ? ' today' : '') + '">' + esc(day.label) + (day.ymd === d.today ? '（今日）' : '') + '</div>' + day.occs.map(function (o) { return hokeOccHtml(d, o); }).join('') + '</div>';
         });
-        html += '<p class="hint">人数 ＝ 基本 − 欠席連絡 ＋ 振替 ＋ 追加 ＋ 体験。定員 ' + d.cap + '。欠席の連絡は前日まで（振替の権利1回）。当日は「当日欠席」。</p>';
+        html += '<p class="hint">人数 ＝ 基本 − 欠席連絡 ＋ 振替 ＋ 追加 ＋ 体験。定員 ' + d.cap + '。欠席の連絡は前日まで（振替の権利1回）。当日は「当日欠席」（振替なし）。'
+          + '保護者が生徒ページから当日のお休みを送ると、この画面に「当日欠席」で入り、成瀬先生にメールが届きます。'
+          + '過ぎた回の「事前キャンセル」は、前日までに直接連絡があったのに入れ忘れていたぶんを後から入れるとき（権利1回。振替先は「過ぎた回も出す」で選べます）。</p>';
         return html;
       }
       function hokeOccHtml(d, o) {
@@ -890,7 +907,8 @@
         var tags = '';
         if (s.kind !== '基本') tags += '<span class="htag ' + (s.kind === '振替' ? 'mv' : (s.kind === '体験' ? 'tr' : 'ad')) + '">' + esc(s.kind) + '</span>';
         if (/現金/.test(s.pay || '')) tags += '<span class="htag cash">現金</span>';
-        if (st !== '予定') tags += '<span class="htag ' + (st === '出席' ? 'ok' : (st === '当日欠席' ? 'ng' : '')) + '">' + esc(st) + '</span>';
+        var stLabel = (!future && st === '欠席連絡') ? '事前キャンセル' : st;   // w22: 過ぎた回の欠席連絡は「事前キャンセル」と出す（ピルと同じ言葉）
+        if (st !== '予定') tags += '<span class="htag ' + (st === '出席' ? 'ok' : (st === '当日欠席' ? 'ng' : '')) + '">' + esc(stLabel) + '</span>';
         var q = "'" + o.ymd + "','" + esc(o.classId) + "','" + esc(s.studentId) + "','" + esc(s.attId) + "'";
         var btns = '';
         if (future) {
@@ -900,9 +918,12 @@
           } else if (st === '予定' && s.attId) {   // 名簿の体験の子（行が無い）は稼働表の体験日で動くので、ここでは取りやめない
             btns = '<button class="hb" onclick="hokeCancel(\'' + esc(s.attId) + '\')">取りやめ</button>';
           }
-        } else if (st !== '欠席連絡' && st !== '振替済み' && st !== '休講') {
-          btns = '<span class="att">' + ['出席', '当日欠席'].map(function (a) {
-            return '<button class="' + (st === a ? 'on' : '') + '" onclick="hokeState(' + q + ', \'' + (st === a ? '予定' : a) + '\')">' + a + '</button>';
+        } else if (st !== '振替済み' && st !== '休講') {
+          // w22: 今日と過ぎた回。基本の席には「事前キャンセル」も（前日までに直接連絡があったぶんを後から入れる。振替の権利1回）
+          var pills = [['出席', '出席'], ['当日欠席', '当日欠席']];
+          if (s.kind === '基本') pills.push(['事前キャンセル', '欠席連絡']);
+          btns = '<span class="att">' + pills.map(function (a) {
+            return '<button class="' + (st === a[1] ? 'on' : '') + '" onclick="hokeState(' + q + ', \'' + (st === a[1] ? '予定' : a[1]) + '\')">' + a[0] + '</button>';
           }).join('') + '</span>';
         }
         var off = st === '欠席連絡' || st === '振替済み' || st === '休講';
@@ -911,10 +932,12 @@
       function hokePickHtml() {
         var p = HOKE.pick;
         var h = '<div class="hpick"><b>' + esc(p.right.name) + ' さんの振替先</b><span class="meta">　' + esc(p.right.label) + ' の欠席のぶん' + (p.right.course ? '（' + esc(p.right.course) + ' のコースだけ）' : '') + '</span>';
+        // w22: 過ぎた回も出す（保護者から直接聞いて振替先も決めていたのに入れ忘れていたぶんを後から入れる。済んだ回は「出席」で入る）
+        h += '<label class="meta" style="display:block;margin:4px 0"><input type="checkbox"' + (p.past ? ' checked' : '') + ' onchange="hokePick(\'' + esc(p.right.attId) + '\', this.checked)"> 過ぎた回も出す（後から入力）</label>';
         if (p.loading) h += '<div class="meta">空きを読んでいます…</div>';
-        else if (!p.candidates.length) h += '<div class="meta">空きのある回がありません（8週間先まで）</div>';
+        else if (!p.candidates.length) h += '<div class="meta">空きのある回がありません（' + (p.past ? '60日前から' : '') + '8週間先まで）</div>';
         else h += p.candidates.map(function (c) {
-          return '<div class="hcand"><span>' + esc(c.label) + (c.course ? ' <span class="hcourse ' + courseClass(c.course) + '">' + esc(c.course) + '</span>' : '') + '</span><span class="meta">残り ' + c.free + '席</span><button class="hb p" onclick="hokeMove(\'' + esc(p.right.attId) + '\', \'' + c.ymd + '\', \'' + esc(c.classId) + '\', \'' + esc(c.label) + '\')">この回にする</button></div>';
+          return '<div class="hcand"><span>' + esc(c.label) + (c.past ? ' <span class="htag">済</span>' : '') + (c.course ? ' <span class="hcourse ' + courseClass(c.course) + '">' + esc(c.course) + '</span>' : '') + '</span><span class="meta">' + (c.past ? '済んだ回' : '残り ' + c.free + '席') + '</span><button class="hb p" onclick="hokeMove(\'' + esc(p.right.attId) + '\', \'' + c.ymd + '\', \'' + esc(c.classId) + '\', \'' + esc(c.label) + '\', ' + (c.past ? 'true' : 'false') + ')">' + (c.past ? 'この回にした' : 'この回にする') + '</button></div>';
         }).join('');
         return h + '<div style="margin-top:6px"><button class="hb" onclick="HOKE.pick = null; rerenderHoke()">閉じる</button></div></div>';
       }
@@ -926,7 +949,10 @@
         return '<div class="hadd"><div class="meta">この回に1回だけ入れる（振替ではなく追加。体験の子もここから）</div><select id="hokeAddSel"><option value="">生徒を選ぶ</option>' + opts + '</select> または <input id="hokeAddName" placeholder="一覧にない子の名前"><div style="margin-top:4px"><button class="hb p" onclick="hokeAddSend(\'' + o.ymd + '\', \'' + esc(o.classId) + '\')">入れる</button> <button class="hb" onclick="HOKE.add = null; rerenderHoke()">やめる</button></div></div>';
       }
       function hokeState(ymd, classId, studentId, attId, state) {
-        if (state === '欠席連絡' && !confirm('欠席にしますか？（前日までの連絡なので、振替の権利が1回付きます）')) return;
+        if (state === '欠席連絡') {
+          var late = HOKE.data && ymd <= HOKE.data.today;
+          if (!confirm(late ? '前日までに連絡があった欠席（事前キャンセル）として記録しますか？\n振替の権利が1回付きます。当日になってからの連絡なら「当日欠席」です' : '欠席にしますか？（前日までの連絡なので、振替の権利が1回付きます）')) return;
+        }
         hokeSend('hokeSetState', { ymd: ymd, classId: classId, studentId: studentId, attId: attId, state: state });
       }
       function hokeCancel(attId) { if (!confirm('この席を取りやめますか？')) return; hokeSend('hokeCancel', { attId: attId }); }
@@ -934,7 +960,10 @@
         if (!confirm(closed ? 'この回を休講にしますか？（基本の生徒全員に振替の権利が1回付き、振替・追加の席は取りやめになります）' : '開講に戻しますか？（まだ使っていない権利は消えます）')) return;
         hokeSend('hokeClose', { ymd: ymd, classId: classId, closed: !!closed });
       }
-      function hokeMove(rightId, ymd, classId, label) { if (!confirm(label + ' に振替えますか？')) return; HOKE.pick = null; hokeSend('hokeMove', { rightId: rightId, ymd: ymd, classId: classId }); }
+      function hokeMove(rightId, ymd, classId, label, past) {
+        if (!confirm(past ? label + ' に振替えたことにしますか？（済んだ回なので「出席」で記録します）' : label + ' に振替えますか？')) return;
+        HOKE.pick = null; hokeSend('hokeMove', { rightId: rightId, ymd: ymd, classId: classId });
+      }
       function hokeAddOpen(ymd, classId) { HOKE.add = { ymd: ymd, classId: classId }; HOKE.pick = null; rerenderHoke(); }
       function hokeAddSend(ymd, classId) {
         var sel = document.getElementById('hokeAddSel'), nm = document.getElementById('hokeAddName');
@@ -943,13 +972,14 @@
         HOKE.add = null;
         hokeSend('hokeAdd', { ymd: ymd, classId: classId, studentId: sid, name: name });
       }
-      function hokePick(attId) {
+      function hokePick(attId, past) {
         var r = ((HOKE.data || {}).rights || []).filter(function (x) { return x.attId === attId; })[0] || { attId: attId, name: '', label: '' };
-        HOKE.pick = { right: r, candidates: [], loading: true }; HOKE.add = null; rerenderHoke();
+        HOKE.pick = { right: r, candidates: [], loading: true, past: !!past }; HOKE.add = null; rerenderHoke();
+        var p = hokeP(); p.past = !!past;   // w22: 過ぎた回も出す
         google.script.run
-          .withSuccessHandler(function (res) { HOKE.pick = { right: res.right, candidates: res.candidates || [], loading: false }; rerenderHoke(); })
+          .withSuccessHandler(function (res) { HOKE.pick = { right: res.right, candidates: res.candidates || [], loading: false, past: !!past }; rerenderHoke(); })
           .withFailureHandler(function (err) { HOKE.pick = null; alert(err.message); rerenderHoke(); })
-          .hokeCandidates(attId, hokeP());
+          .hokeCandidates(attId, p);
       }
 
       /* ---- w10 部屋の空き: 押したときだけカレンダーを読む（ホームの読み込みを遅くしない） ---- */
