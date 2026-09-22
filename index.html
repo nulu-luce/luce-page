@@ -230,6 +230,13 @@
       .memo input { flex: 1; font: inherit; font-size: 13px; padding: 4px 8px; border-radius: 8px; border: 1.5px dashed var(--rule); background: var(--surface); color: var(--ink); min-width: 0; }
       .memo input:focus { border-style: solid; border-color: var(--accent); outline: none; }
       .memo .ok { font-size: 11.5px; color: var(--ok); white-space: nowrap; }
+      /* w23 予定に無いレッスン */
+      .badge.extra { background: var(--caution-soft); color: var(--caution); }
+      .stu .del { font: inherit; font-size: 12px; color: var(--muted); background: none; border: 1px solid var(--rule); border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
+      .xtra { margin-top: 8px; }
+      .xtra .xbtn { font: inherit; font-size: 13px; color: var(--accent); background: none; border: 1.5px dashed var(--accent); border-radius: 999px; padding: 5px 12px; }
+      .xtra .rform { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; padding: 10px 12px; }
+      .xtra .hint { font-size: 12px; color: var(--muted); }
       .tnote { font-size: 12px; color: var(--muted); margin-top: 2px; }
       .tnote.none { color: var(--caution); }
       .unrec { background: var(--caution-soft); color: var(--caution); border-radius: 8px; padding: 6px 10px; font-size: 13.5px; margin: 0 0 8px; }
@@ -466,6 +473,7 @@
       decideRequest: function (id, decision, comment, force, p) { post({ api: 'decideRequest', t: p && p.t, no: p && p.no, id: id, decision: decision, comment: comment || '', force: !!force }, ok, ng); },
       // w12: レッスン記録
       saveRecord: function (input, p) { post({ api: 'saveRecord', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      deleteRecord: function (input, p) { post({ api: 'deleteRecord', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w14: 管理者が質問に返す
       answerQuestion: function (row, at, qno, text, p) { post({ api: 'answerQuestion', t: p && p.t, no: p && p.no, row: row, at: at, qno: qno, text: text }, ok, ng); },
       // w17: ホケホケ
@@ -647,6 +655,8 @@
         if (k === '新規') return '<span class="badge new">新規</span>';
         if (k === '振替') return '<span class="badge move">振替</span>';
         if (k === '予約') return '<span class="badge book">予約</span>';
+        if (k === '代講') return '<span class="badge">代講</span>';
+        if (k === '追加') return '<span class="badge new">追加</span>';
         return '';
       }
 
@@ -674,6 +684,7 @@
             html += '<div class="stu">' + today.students.map(function (s) { return studentRowHtml(data, today, s, true); }).join('') + '</div>';
           }
         }
+        html += extraFormHtml(data);   // w23: 予定に無いレッスンを記録
         if (past.length) {
           html += '<details><summary>昨日まで（' + past.length + '日）</summary>' + past.map(function (d) {
             return '<div class="pastday"><div class="pd">' + esc(d.label) + '</div><div class="stu">'
@@ -688,7 +699,7 @@
             return '<div class="d"><div>' + esc(d.label) + '</div><div>' + esc(rooms || '—') + ' <span class="rest">' + d.students.length + '名</span>' + flags + '</div></div>';
           }).join('') + '</div></details>';
         }
-        html += '<p class="hint">出欠は押した瞬間に記録されます。当日欠席は報酬あり、事前キャンセルと休講は振替日に報酬です。月報の出欠は今までどおり付けてください。</p></div>';
+        html += '<p class="hint">出欠は押した瞬間に記録され、翌朝、月報の出欠に写ります（先に付けてあればそのまま）。当日欠席は報酬あり、事前キャンセルと休講は振替日に報酬です。</p></div>';
         return html;
       }
 
@@ -706,7 +717,7 @@
       }
       function studentRowHtml(data, day, s, withRec) {
         var multi = (day.rooms || []).length > 1 || s.kind === '振替' || s.kind === '予約';
-        var html = '<div class="t">' + esc(s.time) + '</div><div>' + esc(s.name) + kindBadge(s.kind)
+        var html = '<div class="t">' + esc(s.time || (s.extra ? '—' : '')) + '</div><div>' + esc(s.name) + kindBadge(s.kind) + (s.extra ? '<span class="badge extra">予定外</span>' : '')
           + (s.note ? '<span class="lv"> ' + esc(s.note) + '</span>' : '') + '</div>'
           + '<div class="lv">' + esc(s.level) + (s.min ? ' ' + esc(s.min) + '分' : '') + (multi ? '<br>' + esc(s.room) : '') + '</div>';
         if (!withRec) return html;
@@ -720,7 +731,8 @@
         var tnote = '';
         if (r.attend === '事前キャンセル' || r.attend === '休講') tnote = '<div class="tnote' + (r.transfer === '未申請' ? ' none' : '') + '">振替: ' + esc(r.transfer || '未申請') + (r.transfer === '未申請' ? '（下の「振替・予約の申請」から）' : '') + '</div>';
         return html + '<div class="rec"><div class="att">' + pills + '</div>' + tnote
-          + '<div class="memo"><input placeholder="メモ（先生の控え）" value="' + esc(r.memo || '') + '" onchange="saveMemo(this, \'' + esc(day.ymd) + '\', \'' + esc(s.id || '') + '\', \'' + esc(s.name) + '\', \'' + esc(s.time) + '\', \'' + esc(s.room) + '\', \'' + esc(s.kind) + '\')"><span class="ok"></span></div></div>';
+          + '<div class="memo"><input placeholder="メモ（先生の控え）" value="' + esc(r.memo || '') + '" onchange="saveMemo(this, \'' + esc(day.ymd) + '\', \'' + esc(s.id || '') + '\', \'' + esc(s.name) + '\', \'' + esc(s.time) + '\', \'' + esc(s.room) + '\', \'' + esc(s.kind) + '\')"><span class="ok"></span>'
+          + (s.extra ? '<button type="button" class="del" onclick="deleteRec(\'' + esc(day.ymd) + '\', \'' + esc(s.id || '') + '\', \'' + esc(s.name) + '\', \'' + esc(s.time || '') + '\')">消す</button>' : '') + '</div></div>';
       }
       function saveAttend(btn, ymd, id, name, time, room, kind, attend) {
         var key = recKey(ymd, { id: id, name: name, time: time });
@@ -746,6 +758,58 @@
             alert('記録できませんでした。' + err.message);
           })
           .saveRecord(input, { t: TOKEN, no: STATE.teacherNo || '' });
+      }
+
+      /* ---- w23 予定に無いレッスンの記録（代講・追加・体験） ---- */
+      var RECF = { open: false, student: '', kind: '追加', attend: '出席' };
+      function extraFormHtml(data) {
+        var kinds = data.extraKinds || ['追加', '代講', '体験'];
+        var opts = data.attendOptions || ['出席', '当日欠席', '事前キャンセル', '休講'];
+        if (!RECF.open) return '<div class="xtra"><button type="button" class="xbtn" onclick="recfToggle(true)">＋ 予定にないレッスンを記録</button></div>';
+        var students = data.students || [];
+        var stOpts = '<option value="">選んでください</option>' + students.map(function (s) {
+          return '<option value="' + esc(s.id || s.name) + '"' + ((s.id || s.name) === RECF.student ? ' selected' : '') + '>' + esc(s.name) + (s.level ? '（' + esc(s.level) + '）' : '') + '</option>';
+        }).join('') + '<option value="__other"' + (RECF.student === '__other' ? ' selected' : '') + '>一覧にない生徒（他の先生の生徒・新しい生徒）</option>';
+        var pills = function (name, list, cur) {
+          return '<div class="pills">' + list.map(function (v) { return '<button type="button" class="' + (v === cur ? 'on' : '') + '" onclick="recfPick(\'' + name + '\', \'' + esc(v) + '\')">' + esc(v) + '</button>'; }).join('') + '</div>';
+        };
+        var today = data.today || '';
+        return '<div class="xtra"><div class="rform" id="xformBody">'
+          + '<div><b>予定にないレッスンを記録</b></div>'
+          + '<div><label>生徒</label><select id="xf_student" onchange="recfStudent(this.value)">' + stOpts + '</select>'
+          + '<input id="xf_sname" placeholder="生徒の名前" style="margin-top:6px' + (RECF.student === '__other' ? '' : ';display:none') + '"></div>'
+          + '<div class="inline"><div><label>日付</label><input type="date" id="xf_ymd" value="' + esc(today) + '" min="' + esc(addDays(today, -(data.pastDays || 7))) + '" max="' + esc(today) + '"></div>'
+          + '<div><label>開始（任意）</label><select id="xf_hm"><option value="">時刻なし</option>' + timeOptions('') + '</select></div></div>'
+          + '<div><label>種類</label>' + pills('kind', kinds, RECF.kind) + '</div>'
+          + '<div><label>出欠</label>' + pills('attend', opts, RECF.attend) + '</div>'
+          + '<div><label>メモ（任意）</label><input id="xf_memo" placeholder="例: 山口先生の代講"></div>'
+          + '<div class="hint">代講や追加のレッスンは、月報の曜日シートに行が無いことがあります。その場合は翌朝の反映で日置に「行がありません」と届くので、月報の「代講・特別レッスン」シートに行を足してください。</div>'
+          + '<div><button type="button" class="send p" id="xf_send" onclick="sendExtra()">記録する</button> <button type="button" class="send" onclick="recfToggle(false)">やめる</button></div>'
+          + '</div></div>';
+      }
+      function recfToggle(open) { RECF.open = !!open; renderHome(HOME); if (open) { var el = document.getElementById('xformBody'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' }); } }
+      function recfPick(name, v) { RECF[name] = v; renderHome(HOME); }
+      function recfStudent(v) { RECF.student = v; var el = document.getElementById('xf_sname'); if (el) el.style.display = v === '__other' ? '' : 'none'; }
+      function sendExtra() {
+        var g = function (id) { var el = document.getElementById(id); return el ? el.value : ''; };
+        var st = g('xf_student');
+        var student = (HOME.students || []).filter(function (s) { return (s.id || s.name) === st; })[0];
+        var input = { ymd: g('xf_ymd'), studentId: student ? student.id : '', studentName: student ? student.name : (st === '__other' ? g('xf_sname').trim() : ''),
+          hm: g('xf_hm'), room: '', kind: RECF.kind, attend: RECF.attend, memo: g('xf_memo').trim() };
+        if (!input.studentName) { alert('生徒を選んでください'); return; }
+        if (!input.ymd) { alert('日付を入れてください'); return; }
+        var btn = document.getElementById('xf_send'); btn.disabled = true; btn.textContent = '記録中…';
+        google.script.run
+          .withSuccessHandler(function () { RECF.open = false; RECF.student = ''; loadHome(STATE.teacherNo || ''); })
+          .withFailureHandler(function (err) { btn.disabled = false; btn.textContent = '記録する'; alert('記録できませんでした。' + err.message); })
+          .saveRecord(input, { t: TOKEN, no: STATE.teacherNo || '' });
+      }
+      function deleteRec(ymd, id, name, time) {
+        if (!confirm(name + ' さんの ' + ymd + ' の記録を消しますか？')) return;
+        google.script.run
+          .withSuccessHandler(function () { loadHome(STATE.teacherNo || ''); })
+          .withFailureHandler(function (err) { alert('消せませんでした。' + err.message); })
+          .deleteRecord({ ymd: ymd, studentId: id, studentName: name, hm: time }, { t: TOKEN, no: STATE.teacherNo || '' });
       }
 
       /* 文の中の URL をリンクに（お知らせの配布物など。w19）。esc したあとに置き換える */
