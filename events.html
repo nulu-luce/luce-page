@@ -228,6 +228,8 @@
       deleteRecord: function (input, p) { post({ api: 'deleteRecord', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w26: 今月の記録の確定
       confirmRecords: function (input, p) { post({ api: 'confirmRecords', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w27: 全先生の今月（管理者）
+      getAllTeachersPage: function (p) { get({ api: 'allTeachers', t: p && p.t, no: p && p.no }, ok, ng); },
       // w14: 管理者が質問に返す
       answerQuestion: function (row, at, qno, text, p) { post({ api: 'answerQuestion', t: p && p.t, no: p && p.no, row: row, at: at, qno: qno, text: text }, ok, ng); },
       // w17: ホケホケ
