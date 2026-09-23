@@ -230,6 +230,10 @@
       .memo input { flex: 1; font: inherit; font-size: 13px; padding: 4px 8px; border-radius: 8px; border: 1.5px dashed var(--rule); background: var(--surface); color: var(--ink); min-width: 0; }
       .memo input:focus { border-style: solid; border-color: var(--accent); outline: none; }
       .memo .ok { font-size: 11.5px; color: var(--ok); white-space: nowrap; }
+      /* w27 全先生の今月（管理者） */
+      #allCard tbody tr, #allCard tr[onclick] { cursor: pointer; }
+      #allCard td.warnc { color: var(--caution); font-weight: 700; }
+      #allCard .st { font-size: 12px; padding: 0 7px; border-radius: 999px; white-space: nowrap; }
       /* w26 今月の記録の確定 */
       .card.confirm { border: 1.5px solid var(--ok); }
       .card.confirm.warn { border-color: var(--caution); }
@@ -488,6 +492,8 @@
       deleteRecord: function (input, p) { post({ api: 'deleteRecord', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w26: 今月の記録の確定
       confirmRecords: function (input, p) { post({ api: 'confirmRecords', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w27: 全先生の今月（管理者）
+      getAllTeachersPage: function (p) { get({ api: 'allTeachers', t: p && p.t, no: p && p.no }, ok, ng); },
       // w14: 管理者が質問に返す
       answerQuestion: function (row, at, qno, text, p) { post({ api: 'answerQuestion', t: p && p.t, no: p && p.no, row: row, at: at, qno: qno, text: text }, ok, ng); },
       // w17: ホケホケ
@@ -657,11 +663,11 @@
         if (!document.getElementById('admin').innerHTML) renderAdmin(data);   // 今月の状況より先に、講師シートから出す
         if (data.hoke) {   // w17: 成瀬先生のホケホケ。今日のレッスン・部屋の空き・申請の代わりに
           if (!HOKE.data && !HOKE.loading && data.hokeData && !data.hokeData.error) { HOKE.data = data.hokeData; HOKE.week = 0; }   // w19: ホームと一緒に来た今週のぶん
-          box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + hokeCardHtml() + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
+          box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + allCardHtml(data) + hokeCardHtml() + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
           if (!HOKE.data && !HOKE.loading) loadHoke(HOKE.week);
           return;
         }
-        box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + confirmCardHtml(data) + todayHtml(data) + roomsCardHtml() + requestsHtml(data) + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
+        box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + allCardHtml(data) + confirmCardHtml(data) + todayHtml(data) + roomsCardHtml() + requestsHtml(data) + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
       }
 
       function kindBadge(k) {
@@ -773,6 +779,52 @@
             alert('記録できませんでした。' + err.message);
           })
           .saveRecord(input, { t: TOKEN, no: STATE.teacherNo || '' });
+      }
+
+      /* ---- w27 全先生の今月（管理者）。押したときだけ luce給与ブックの給与台帳を読む ---- */
+      var ALL = { data: null, loading: false, error: '' };
+      function allCardHtml(data) {
+        if (!data.admin) return '';
+        return '<div class="card" id="allCard"><h2>全先生の今月<small>luce給与 ④ の結果</small></h2><div id="all">' + allInnerHtml() + '</div></div>';
+      }
+      function allInnerHtml() {
+        if (ALL.loading) return '<div class="meta">読み込み中…（luce給与ブックを読みます）</div>';
+        if (ALL.error) return '<div class="banner err">' + esc(ALL.error) + '</div><button class="rbtn" onclick="loadAll()">もう一度</button>';
+        if (ALL.data) return allBodyHtml(ALL.data);
+        return '<div class="meta">luce給与の ④ の結果（入力完了・エラー・警告・総計・前月比）と記録の確定を、先生ごとに並べます。</div><button class="rbtn" onclick="loadAll()">全先生の今月を見る</button>';
+      }
+      function rerenderAll() { var el = document.getElementById('all'); if (el) el.innerHTML = allInnerHtml(); }
+      function loadAll() {
+        ALL.loading = true; ALL.error = ''; rerenderAll();
+        try {
+          if (!window.google || !google.script || !google.script.run || typeof google.script.run.getAllTeachersPage !== 'function') {
+            throw new Error('サーバー側に getAllTeachersPage がありません（貼り替えのあと「新バージョン」でデプロイしてください）');
+          }
+          google.script.run
+            .withSuccessHandler(function (d) { ALL.loading = false; if (!d || d.error) { ALL.error = (d && d.error) || '読めませんでした'; ALL.data = null; } else { ALL.data = d; } rerenderAll(); })
+            .withFailureHandler(function (err) { ALL.loading = false; ALL.error = err.message; rerenderAll(); })
+            .getAllTeachersPage({ t: TOKEN, no: STATE.teacherNo || '' });
+        } catch (err) { ALL.loading = false; ALL.error = err.message; rerenderAll(); }
+      }
+      function allBodyHtml(d) {
+        var s = d.summary || {};
+        var chips = '<div class="chips">'
+          + '<span class="chip ' + (s.done === s.teachers ? 'ok' : 'warn') + '">入力完了 <b>' + s.done + '</b>/' + s.teachers + '</span>'
+          + '<span class="chip ' + (s.withErrors ? 'err' : 'ok') + '">エラーのある先生 <b>' + s.withErrors + '</b></span>'
+          + '<span class="chip ' + (s.unconfirmed ? 'warn' : 'ok') + '">未確定 <b>' + s.unconfirmed + '</b></span>'
+          + '<span class="chip">総計 <b>' + esc(yen(s.total)) + '</b></span></div>';
+        var rows = (d.rows || []).map(function (r) {
+          var ratio = r.ratio === null || r.ratio === undefined ? '—' : Math.round(r.ratio * 100) + '%';
+          var big = r.ratio !== null && r.ratio !== undefined && Math.abs(r.ratio - 1) > 0.4;
+          return '<tr onclick="pickTeacher(\'' + esc(r.no) + '\')"><td class="name">' + esc(r.name) + '<small>' + esc(r.no) + (r.notDone ? '　未完了: ' + esc(r.notDone) : '') + '</small></td>'
+            + '<td class="c">' + (r.done ? '<span class="st ok">完了</span>' : '<span class="st no">未</span>') + '</td>'
+            + '<td class="c">' + (r.errors ? '<span class="st no">' + r.errors + '</span>' : '<span class="st none">0</span>') + (r.warnings ? '<small style="color:var(--muted)"> / ' + r.warnings + '</small>' : '') + '</td>'
+            + '<td class="r">' + esc(yen(r.total)) + '</td><td class="r' + (big ? ' warnc' : '') + '">' + ratio + '</td>'
+            + '<td class="c">' + (r.confirm === '確定' ? '<span class="st ok">済</span>' : (r.confirm === '変更あり' ? '<span class="st no">変更</span>' : '<span class="st none">—</span>')) + '</td></tr>';
+        }).join('');
+        return chips + '<div class="tbl"><table><tr><th>先生</th><th class="c">完了</th><th class="c">エラー / 警告</th><th class="r">総計</th><th class="r">前月比</th><th class="c">確定</th></tr>' + rows + '</table></div>'
+          + '<p class="hint">' + esc(d.label) + '。④ を ' + esc(d.at) + ' に実行した結果です。先生の行を押すとその先生の画面に切り替わります。前月比が ±40% を超えると色が付きます。'
+          + (d.bookUrl ? ' <a href="' + esc(d.bookUrl) + '" target="_blank" rel="noopener">luce給与ブックを開く</a>' : '') + '</p>';
       }
 
       /* ---- w26 今月の記録の確定（段階5）。月末3日前〜翌月5日だけ出る ---- */
