@@ -244,6 +244,19 @@
       .cbtn:disabled { opacity: .6; }
       .cnames { font-size: 13.5px; margin-top: 4px; }
       .cnames b { font-weight: 600; }
+      /* w29 担当生徒の登録内容 */
+      .rlist { margin-top: 4px; }
+      .rrow { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; border-top: 1px solid var(--rule); padding: 7px 0 4px; font-size: 14px; align-items: start; }
+      .rrow .nm { font-weight: 600; }
+      .rrow .nm small { color: var(--muted); font-weight: 400; margin-left: 4px; font-size: 12px; }
+      .rrow .dt { grid-column: 1 / 3; color: var(--muted); font-size: 13px; }
+      .rrow .dt i { font-style: normal; color: var(--caution); }
+      .rrow .dbtn { font: inherit; font-size: 12px; color: var(--accent); background: none; border: 1px solid var(--accent); border-radius: 999px; padding: 2px 10px; white-space: nowrap; }
+      .rrow .dbtn.sent { color: var(--ok); border-color: var(--ok); }
+      .rrow .rf { grid-column: 1 / 3; margin: 4px 0 4px; }
+      .rrow .rf textarea { min-height: 56px; }
+      .rrow .rf .row { display: flex; gap: 8px; align-items: center; }
+      .rrow .rf .cancel { font: inherit; font-size: 13px; color: var(--muted); background: none; border: 0; margin-top: 6px; }
       /* w23 予定に無いレッスン */
       .badge.extra { background: var(--caution-soft); color: var(--caution); }
       .stu .del { font: inherit; font-size: 12px; color: var(--muted); background: none; border: 1px solid var(--rule); border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
@@ -494,6 +507,9 @@
       confirmRecords: function (input, p) { post({ api: 'confirmRecords', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w27: 全先生の今月（管理者）
       getAllTeachersPage: function (p) { get({ api: 'allTeachers', t: p && p.t, no: p && p.no }, ok, ng); },
+      // w29: 担当生徒の登録内容と「違う」
+      getRosterPage: function (p) { get({ api: 'roster', t: p && p.t, no: p && p.no }, ok, ng); },
+      reportRosterIssue: function (input, p) { post({ api: 'reportRosterIssue', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w14: 管理者が質問に返す
       answerQuestion: function (row, at, qno, text, p) { post({ api: 'answerQuestion', t: p && p.t, no: p && p.no, row: row, at: at, qno: qno, text: text }, ok, ng); },
       // w17: ホケホケ
@@ -663,11 +679,11 @@
         if (!document.getElementById('admin').innerHTML) renderAdmin(data);   // 今月の状況より先に、講師シートから出す
         if (data.hoke) {   // w17: 成瀬先生のホケホケ。今日のレッスン・部屋の空き・申請の代わりに
           if (!HOKE.data && !HOKE.loading && data.hokeData && !data.hokeData.error) { HOKE.data = data.hokeData; HOKE.week = 0; }   // w19: ホームと一緒に来た今週のぶん
-          box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + allCardHtml(data) + hokeCardHtml() + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
+          box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + allCardHtml(data) + hokeCardHtml() + rosterCardHtml(data) + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
           if (!HOKE.data && !HOKE.loading) loadHoke(HOKE.week);
           return;
         }
-        box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + allCardHtml(data) + confirmCardHtml(data) + todayHtml(data) + roomsCardHtml() + requestsHtml(data) + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
+        box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + allCardHtml(data) + confirmCardHtml(data) + todayHtml(data) + roomsCardHtml() + requestsHtml(data) + rosterCardHtml(data) + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
       }
 
       function kindBadge(k) {
@@ -865,6 +881,67 @@
           + '<div class="cnames"><b>変更あり</b>（確定のあとに直した） ' + names(s.changed) + '</div>'
           + '<div class="cnames"><b>未確定</b>（記録はある） ' + names(s.pending) + '</div>'
           + '<p class="hint">記録が1件も無い先生 ' + s.unused.length + '名は数えていません（' + esc(s.unused.join('・')) + '）。luce給与の ④ も未確定の先生を警告に出します。</p></div>';
+      }
+
+      /* ---- w29 担当生徒の登録内容（名簿を先生の目で確かめる。「登録内容を見る」を押したときに読む） ---- */
+      var ROSTER = { loading: false, error: '', data: null, pick: '', sent: {} };
+      function rosterCardHtml(data) {
+        return '<div class="card" id="rosterCard"><h2>担当生徒の登録内容<small>名簿（稼働表New）</small></h2><div id="roster">' + rosterInnerHtml() + '</div></div>';
+      }
+      function rerenderRoster() { var el = document.getElementById('roster'); if (el) el.innerHTML = rosterInnerHtml(); }
+      function rosterInnerHtml() {
+        if (ROSTER.loading) return '<div class="meta">読み込み中…（名簿を読みます）</div>';
+        if (ROSTER.error) return '<div class="banner err">' + esc(ROSTER.error) + '</div><button class="rbtn" onclick="loadRoster()">もう一度</button>';
+        if (ROSTER.data) return rosterBodyHtml(ROSTER.data);
+        return '<div class="meta">名簿に登録されている、ご自分の生徒の 曜日・時刻・校舎・レベル・月謝・徴収方法 を確かめられます。翌月分の月報はこの名簿から作られます（毎月18日ごろ）。違うところは「違う」から日置に届きます。</div><button class="rbtn" onclick="loadRoster()">登録内容を見る</button>';
+      }
+      function loadRoster() {
+        ROSTER.loading = true; ROSTER.error = ''; ROSTER.pick = ''; rerenderRoster();
+        try {
+          if (!window.google || !google.script || !google.script.run || typeof google.script.run.getRosterPage !== 'function') {
+            throw new Error('サーバー側に getRosterPage がありません（貼り替えのあと「新バージョン」でデプロイしてください）');
+          }
+          google.script.run
+            .withSuccessHandler(function (d) { ROSTER.loading = false; if (!d || d.error) { ROSTER.error = (d && d.error) || '読めませんでした'; ROSTER.data = null; } else { ROSTER.data = d; } rerenderRoster(); })
+            .withFailureHandler(function (err) { ROSTER.loading = false; ROSTER.error = err.message; rerenderRoster(); })
+            .getRosterPage({ t: TOKEN, no: STATE.teacherNo || '' });
+        } catch (err) { ROSTER.loading = false; ROSTER.error = err.message; rerenderRoster(); }
+      }
+      function rosterBodyHtml(d) {
+        var list = d.students || [];
+        var html = '<div class="meta"><b>' + list.length + '人</b>（' + esc(d.asOf || '') + ' 時点）。違う行の「違う」を押して、何が違うかを書いてください。名簿を直すのは日置です。</div>';
+        if (!list.length) html += '<div class="banner info" style="margin-top:6px">名簿にこの先生の生徒が見つかりません。名簿の担当講師氏名が講師シートの名前（' + esc(d.teacherName || '') + '）と同じか、日置が確かめます。</div>';
+        html += '<div class="rlist">' + list.map(function (s) {
+          var key = s.key, sent = ROSTER.sent[key];
+          var badges = '';
+          if (s.src === 'trial') badges += '<span class="badge new">新規・体験</span>';
+          if (s.trialYmd) badges += '<span class="badge trial">体験</span>';
+          if (/休会/.test(s.status)) badges += '<span class="badge">休会中</span>';
+          if (s.share === '副') badges += '<span class="badge">枠共有（副）</span>';
+          var r = '<div class="rrow"><div class="nm">' + esc(s.name) + (s.id ? '<small>' + esc(s.id) + '</small>' : '') + badges + '</div>'
+            + '<button type="button" class="dbtn' + (sent ? ' sent' : '') + '"' + (sent ? ' disabled' : '') + ' onclick="rosterPick(\'' + esc(key) + '\')">' + (sent ? '送りました' : '違う') + '</button>'
+            + '<div class="dt">' + esc(s.line || '（曜日・時刻・レベルが空です）') + (s.note ? '　<i>' + esc(s.note) + '</i>' : '') + '</div>';
+          if (ROSTER.pick === key && !sent) {
+            r += '<div class="rf"><textarea id="rf_text" placeholder="何が違いますか（例: 曜日は水曜、時刻は 17:00、月謝は 7,500円、レベルは初級２）"></textarea>'
+              + '<div class="row"><button type="button" class="send" id="rf_btn" onclick="sendRosterIssue(\'' + esc(key) + '\')">日置に送る</button><button type="button" class="cancel" onclick="rosterPick(\'\')">やめる</button></div></div>';
+          }
+          return r + '</div>';
+        }).join('') + '</div>';
+        html += '<p class="hint">メール・電話・住所はここには出しません。送った内容は「よくある質問」の下の「自分の質問」にも残り、日置の返事もそこに届きます。名簿に無い生徒は「予定にないレッスン」で記録できますが、登録を日置に伝えてください。</p>';
+        return html;
+      }
+      function rosterPick(key) { ROSTER.pick = key; rerenderRoster(); if (key) { var el = document.getElementById('rf_text'); if (el) el.focus(); } }
+      function sendRosterIssue(key) {
+        var s = ((ROSTER.data && ROSTER.data.students) || []).filter(function (x) { return x.key === key; })[0];
+        var ta = document.getElementById('rf_text'), btn = document.getElementById('rf_btn');
+        var text = ta ? ta.value.trim() : '';
+        if (!s) { alert('生徒が分かりません。読み直してください'); return; }
+        if (!text) { alert('何が違うかを書いてください'); return; }
+        if (btn) { btn.disabled = true; btn.textContent = '送っています…'; }
+        google.script.run
+          .withSuccessHandler(function () { ROSTER.sent[key] = true; ROSTER.pick = ''; rerenderRoster(); })
+          .withFailureHandler(function (err) { if (btn) { btn.disabled = false; btn.textContent = '日置に送る'; } alert('送れませんでした。' + err.message); })
+          .reportRosterIssue({ id: s.id, name: s.name, line: s.line, text: text }, { t: TOKEN, no: STATE.teacherNo || '' });
       }
 
       /* ---- w23 予定に無いレッスンの記録（代講・追加・体験） ---- */
