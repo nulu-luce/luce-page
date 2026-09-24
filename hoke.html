@@ -203,6 +203,9 @@
       confirmRecords: function (input, p) { post({ api: 'confirmRecords', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w27: 全先生の今月（管理者）
       getAllTeachersPage: function (p) { get({ api: 'allTeachers', t: p && p.t, no: p && p.no }, ok, ng); },
+      // w29: 担当生徒の登録内容と「違う」
+      getRosterPage: function (p) { get({ api: 'roster', t: p && p.t, no: p && p.no }, ok, ng); },
+      reportRosterIssue: function (input, p) { post({ api: 'reportRosterIssue', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w14: 管理者が質問に返す
       answerQuestion: function (row, at, qno, text, p) { post({ api: 'answerQuestion', t: p && p.t, no: p && p.no, row: row, at: at, qno: qno, text: text }, ok, ng); },
       // w17: ホケホケ
