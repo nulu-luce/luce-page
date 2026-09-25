@@ -109,6 +109,11 @@
       .mark { display: inline-block; width: 18px; text-align: center; }
       .mark.on { color: var(--accent); font-weight: 700; }
       .mark.off { color: #c9cec8; }
+      .cash .cst { font-size: 13px; white-space: nowrap; }
+      .cash .cst.ok { color: var(--ok); font-weight: 600; }
+      .cash .cst.no { color: var(--caution); }
+      .cash button { font: inherit; font-size: 13px; padding: 5px 11px; border-radius: 999px; border: 1.5px solid var(--accent); background: var(--surface); color: var(--accent); white-space: nowrap; }
+      .cash button.no { border-color: var(--rule); color: var(--muted); }
       td.name { white-space: normal; min-width: 96px; }
       td.name small { color: var(--muted); font-size: 11.5px; display: block; line-height: 1.3; }
 
@@ -244,6 +249,14 @@
       .cbtn:disabled { opacity: .6; }
       .cnames { font-size: 13.5px; margin-top: 4px; }
       .cnames b { font-weight: 600; }
+      /* w32 今日の稼働（管理者） */
+      .shc { margin-top: 6px; font-size: 14px; }
+      .shc b { display: block; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+      .shr { display: flex; flex-wrap: wrap; gap: 0 8px; align-items: baseline; }
+      .shr .t { font-variant-numeric: tabular-nums; min-width: 7.2em; }
+      .shr .n { font-weight: 600; }
+      .shr .meta { font-size: 12.5px; }
+      .shr.ex .t, .shr.ex .n { color: var(--pu); }
       /* w29 担当生徒の登録内容 */
       .rlist { margin-top: 4px; }
       .rrow { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; border-top: 1px solid var(--rule); padding: 7px 0 4px; font-size: 14px; align-items: start; }
@@ -505,6 +518,8 @@
       deleteRecord: function (input, p) { post({ api: 'deleteRecord', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w26: 今月の記録の確定
       confirmRecords: function (input, p) { post({ api: 'confirmRecords', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w31: 現金の受け取り
+      saveCashReceipt: function (input, p) { post({ api: 'saveCashReceipt', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w27: 全先生の今月（管理者）
       getAllTeachersPage: function (p) { get({ api: 'allTeachers', t: p && p.t, no: p && p.no }, ok, ng); },
       // w29: 担当生徒の登録内容と「違う」
@@ -679,11 +694,11 @@
         if (!document.getElementById('admin').innerHTML) renderAdmin(data);   // 今月の状況より先に、講師シートから出す
         if (data.hoke) {   // w17: 成瀬先生のホケホケ。今日のレッスン・部屋の空き・申請の代わりに
           if (!HOKE.data && !HOKE.loading && data.hokeData && !data.hokeData.error) { HOKE.data = data.hokeData; HOKE.week = 0; }   // w19: ホームと一緒に来た今週のぶん
-          box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + allCardHtml(data) + hokeCardHtml() + rosterCardHtml(data) + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
+          box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + allCardHtml(data) + hokeCardHtml() + rosterCardHtml(data) + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
           if (!HOKE.data && !HOKE.loading) loadHoke(HOKE.week);
           return;
         }
-        box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + allCardHtml(data) + confirmCardHtml(data) + todayHtml(data) + roomsCardHtml() + requestsHtml(data) + rosterCardHtml(data) + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
+        box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + allCardHtml(data) + confirmCardHtml(data) + todayHtml(data) + roomsCardHtml() + requestsHtml(data) + rosterCardHtml(data) + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
       }
 
       function kindBadge(k) {
@@ -881,6 +896,23 @@
           + '<div class="cnames"><b>変更あり</b>（確定のあとに直した） ' + names(s.changed) + '</div>'
           + '<div class="cnames"><b>未確定</b>（記録はある） ' + names(s.pending) + '</div>'
           + '<p class="hint">記録が1件も無い先生 ' + s.unused.length + '名は数えていません（' + esc(s.unused.join('・')) + '）。luce給与の ④ も未確定の先生を警告に出します。</p></div>';
+      }
+
+      /* ---- w32 今日の稼働（管理者。全校舎の先生と時間。毎朝の Chat と同じ内容） ---- */
+      function shiftTodayHtml(data) {
+        var v = data.shiftToday;
+        if (!data.admin || !v) return '';
+        if (v.error) return '<div class="card pending" id="shiftCard"><h2>今日の稼働</h2><div class="banner err">' + esc(v.error) + '</div></div>';
+        var html = '<div class="card pending" id="shiftCard"><h2>今日の稼働<small>' + esc(v.label) + '　先生 ' + v.teacherCount + '名</small></h2>';
+        if (!v.campuses.length) html += '<div class="meta">' + (v.hasRows ? '今日の稼働の予定はありません' : '予定_部屋 が空です（luce給与の部屋カレンダー同期が今朝まだ動いていないかもしれません）') + '</div>';
+        v.campuses.forEach(function (c) {
+          html += '<div class="shc"><b>' + esc(c.campus) + '</b>'
+            + c.rows.map(function (r) { return '<div class="shr"><span class="t">' + esc(r.from + '〜' + r.to) + '</span><span class="n">' + esc(r.teacher) + '</span><span class="meta">' + esc(r.room) + (r.note ? '　' + esc(r.note) : '') + '</span></div>'; }).join('')
+            + c.extras.map(function (x) { return '<div class="shr ex"><span class="t">' + esc(x.from + (x.to ? '〜' + x.to : '')) + '</span><span class="n">' + esc(x.teacher) + '</span><span class="meta">' + esc(x.kind) + '　' + esc(x.room) + '（' + esc(x.student) + '）</span></div>'; }).join('')
+            + '</div>';
+        });
+        html += '<p class="hint">luce給与が毎朝書く「予定_部屋」（時間はレッスンの最初〜最後）と、承認済みの振替・予約、ホケホケの開講の回から。同じ内容を毎朝 ' + v.hour + '時台に Chat（質問のスペース）へ送ります。</p></div>';
+        return html;
       }
 
       /* ---- w29 担当生徒の登録内容（名簿を先生の目で確かめる。「登録内容を見る」を押したときに読む） ---- */
@@ -1602,6 +1634,7 @@
         html += issuesHtml(st);
         html += invoiceHtml(st);
         html += transportHtml(st);
+        html += cashHtml(st);
         html += tuitionHtml(st);
         html += lessonsHtml(st);
         html += '<button class="reload" onclick="load(STATE.teacherNo || \'\', true)">最新の状態に読み直す</button>';
@@ -1726,6 +1759,53 @@
           + '<tr class="sub"><td>交通費合計（税込）</td><td class="r">' + esc(yen(t.total)) + '</td></tr>'
           + (t.expense ? '<tr class="sub"><td>立替経費（E13）</td><td class="r">' + esc(yen(t.expense)) + '</td></tr>' : '')
           + '</table></div></div>';
+      }
+
+      /* ---- w31 現金の受け取り（段階5）。押すと講師運営ブックの「現金受取」に残り、翌朝 月謝明細の現金徴収済（BC）に写る ---- */
+      var CASH_ROWS = [];
+      function cashKey(r) { return r.id || String(r.name || '').normalize('NFKC').replace(/[\s\u3000]/g, ''); }
+      function cashMd(ymd) { var m = String(ymd || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? Number(m[2]) + '/' + Number(m[3]) : ''; }
+      function cashHtml(st) {
+        var targets = [];
+        (st.tuitions || []).forEach(function (t) { (t.rows || []).forEach(function (r) { if (Number(r.cashSub) > 0) targets.push(r); }); });
+        CASH_ROWS = targets;
+        if (!targets.length) return '';
+        var map = STATE.cash || {};
+        var got = 0, pending = 0;
+        var rows = targets.map(function (r, i) {
+          var c = map[cashKey(r)];
+          var stt, btn;
+          if (r.cashCheck) { got++; stt = '<span class="cst ok">明細に ✓ 済</span>'; btn = ''; }
+          else if (c) {
+            got++;
+            stt = '<span class="cst ok">受け取った' + (c.ymd ? '（' + esc(cashMd(c.ymd)) + '）' : '') + '</span><small>' + (c.synced ? '明細に写しました' : '翌朝、明細に写ります') + '</small>';
+            btn = '<button type="button" class="no" onclick="cashToggle(' + i + ', false, this)">取り消す</button>';
+          } else {
+            pending++;
+            stt = '<span class="cst no">まだ</span>';
+            btn = '<button type="button" onclick="cashToggle(' + i + ', true, this)">受け取った</button>';
+          }
+          return '<tr><td class="name">' + esc(r.name) + '<small>' + esc(r.method || '') + '</small></td>'
+            + '<td class="r">' + esc(yen(r.cashSub)) + '</td><td class="name">' + stt + '</td><td class="c">' + btn + '</td></tr>';
+        }).join('');
+        var ym = STATE.yyyymm ? Number(String(STATE.yyyymm).slice(4)) + '月分' : '';
+        return '<div class="card cash" id="cashCard"><h2>現金の受け取り<small>' + esc(ym) + '</small></h2>'
+          + '<div class="chips"><span class="chip ' + (pending ? 'warn' : 'ok') + '">まだ <b>' + pending + '</b></span><span class="chip ok">受け取り済 <b>' + got + '</b></span></div>'
+          + '<div class="tbl"><table><tr><th>生徒</th><th class="r">金額</th><th>状態</th><th></th></tr>' + rows + '</table></div>'
+          + '<p class="hint">現金を受け取ったら押してください。翌朝、月謝明細の「現金徴収済」にチェックが入ります（先に明細で ✓ を付けてあればそのままです）。金額は明細の現金徴収 小計です。</p></div>';
+      }
+      function cashToggle(i, received, btn) {
+        var r = CASH_ROWS[i];
+        if (!r) return;
+        if (btn) btn.disabled = true;
+        google.script.run
+          .withSuccessHandler(function (res) {
+            STATE.cash = (res && res.cash) || {};
+            var el = document.getElementById('cashCard');
+            if (el) el.outerHTML = cashHtml(STATE.status || {});
+          })
+          .withFailureHandler(function (err) { if (btn) btn.disabled = false; alert('保存できませんでした。' + err.message); })
+          .saveCashReceipt({ ym: STATE.yyyymm, studentId: r.id || '', studentName: r.name, amount: r.cashSub, received: !!received }, { t: TOKEN, no: STATE.teacherNo || '' });
       }
 
       function tuitionHtml(st) {
