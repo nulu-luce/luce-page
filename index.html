@@ -257,6 +257,14 @@
       .shr .n { font-weight: 600; }
       .shr .meta { font-size: 12.5px; }
       .shr.ex .t, .shr.ex .n { color: var(--pu); }
+      /* w33 締めチェック（管理者） */
+      .ckl { display: grid; gap: 2px; margin-top: 4px; }
+      .ck { display: grid; grid-template-columns: 22px 5.4em 1fr; gap: 0 8px; align-items: start; font-size: 14px; padding: 5px 0; border-top: 1px dashed var(--rule); cursor: pointer; }
+      .ck input { margin: 3px 0 0; width: 18px; height: 18px; }
+      .ck .d { color: var(--muted); font-size: 12.5px; padding-top: 2px; white-space: nowrap; }
+      .ck.on .t { color: var(--muted); text-decoration: line-through; }
+      .ck .t small { display: block; text-decoration: none; color: var(--ok); font-size: 11.5px; }
+      #checkCard details summary { color: var(--accent); cursor: pointer; font-size: 14px; }
       /* w29 担当生徒の登録内容 */
       .rlist { margin-top: 4px; }
       .rrow { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; border-top: 1px solid var(--rule); padding: 7px 0 4px; font-size: 14px; align-items: start; }
@@ -520,6 +528,8 @@
       confirmRecords: function (input, p) { post({ api: 'confirmRecords', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w31: 現金の受け取り
       saveCashReceipt: function (input, p) { post({ api: 'saveCashReceipt', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w33: 締めチェック（管理者）
+      setChecklistItem: function (input, p) { post({ api: 'setChecklistItem', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w27: 全先生の今月（管理者）
       getAllTeachersPage: function (p) { get({ api: 'allTeachers', t: p && p.t, no: p && p.no }, ok, ng); },
       // w29: 担当生徒の登録内容と「違う」
@@ -694,11 +704,11 @@
         if (!document.getElementById('admin').innerHTML) renderAdmin(data);   // 今月の状況より先に、講師シートから出す
         if (data.hoke) {   // w17: 成瀬先生のホケホケ。今日のレッスン・部屋の空き・申請の代わりに
           if (!HOKE.data && !HOKE.loading && data.hokeData && !data.hokeData.error) { HOKE.data = data.hokeData; HOKE.week = 0; }   // w19: ホームと一緒に来た今週のぶん
-          box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + allCardHtml(data) + hokeCardHtml() + rosterCardHtml(data) + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
+          box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + allCardHtml(data) + hokeCardHtml() + rosterCardHtml(data) + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
           if (!HOKE.data && !HOKE.loading) loadHoke(HOKE.week);
           return;
         }
-        box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + allCardHtml(data) + confirmCardHtml(data) + todayHtml(data) + roomsCardHtml() + requestsHtml(data) + rosterCardHtml(data) + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
+        box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + allCardHtml(data) + confirmCardHtml(data) + todayHtml(data) + roomsCardHtml() + requestsHtml(data) + rosterCardHtml(data) + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
       }
 
       function kindBadge(k) {
@@ -896,6 +906,29 @@
           + '<div class="cnames"><b>変更あり</b>（確定のあとに直した） ' + names(s.changed) + '</div>'
           + '<div class="cnames"><b>未確定</b>（記録はある） ' + names(s.pending) + '</div>'
           + '<p class="hint">記録が1件も無い先生 ' + s.unused.length + '名は数えていません（' + esc(s.unused.join('・')) + '）。luce給与の ④ も未確定の先生を警告に出します。</p></div>';
+      }
+
+      /* ---- w33 締めのチェックリスト（管理者。毎月の手順に ✓。済は講師運営ブックの「締めチェック」） ---- */
+      function checklistHtml(data) {
+        var c = data.checklist;
+        if (!data.admin || !c) return '';
+        if (c.error) return '<div class="card pending" id="checkCard"><h2>締めチェック</h2><div class="banner err">' + esc(c.error) + '</div></div>';
+        var open = c.done < c.total;
+        var html = '<div class="card pending" id="checkCard"><h2>' + esc(c.label) + 'の締め<small>' + c.done + ' / ' + c.total + '</small></h2>'
+          + '<details' + (open ? ' open' : '') + '><summary>' + (open ? 'あと ' + (c.total - c.done) + ' 項目' : '全部済み') + '</summary><div class="ckl">'
+          + c.items.map(function (it) {
+            return '<label class="ck' + (it.done ? ' on' : '') + '"><input type="checkbox"' + (it.done ? ' checked' : '') + ' onchange="checkItem(\'' + esc(c.ym) + '\', \'' + esc(it.id) + '\', this.checked, this)">'
+              + '<span class="d">' + esc(it.day) + '</span><span class="t">' + esc(it.text) + (it.at ? '<small>済 ' + esc(it.at) + '</small>' : '') + '</span></label>';
+          }).join('')
+          + '</div></details><p class="hint">毎月の手順（docs/monthly-calendar.md と同じ順）。25日から次の月の締めに切り替わります。✓ は講師運営ブックの「締めチェック」に残ります。</p></div>';
+        return html;
+      }
+      function checkItem(ym, id, done, el) {
+        el.disabled = true;
+        google.script.run
+          .withSuccessHandler(function (res) { if (res && res.checklist) HOME.checklist = res.checklist; renderHome(HOME); })
+          .withFailureHandler(function (err) { el.disabled = false; el.checked = !done; alert('記録できませんでした。' + err.message); })
+          .setChecklistItem({ ym: ym, id: id, done: !!done }, { t: TOKEN, no: STATE.teacherNo || '' });
       }
 
       /* ---- w32 今日の稼働（管理者。全校舎の先生と時間。毎朝の Chat と同じ内容） ---- */
