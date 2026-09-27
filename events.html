@@ -107,6 +107,12 @@
       .seg.small { margin: 8px 0 0; gap: 6px; }
       .seg.small button { padding: 8px 0; font-size: 14px; }
       .seg.small button.no.on { border-color: var(--muted); background: #eeefec; color: var(--ink); }
+      /* w39 会費（現金で集める） */
+      .fee { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; font-size: 13.5px; font-weight: 600; }
+      .fee small { font-weight: 400; color: var(--muted); }
+      .fee.paid { color: var(--ok, #2f7d4f); }
+      .fee button { font: inherit; font-size: 13px; font-weight: 700; padding: 5px 12px; border-radius: 999px; border: 1.5px solid var(--accent); background: var(--surface); color: var(--accent); margin-left: auto; }
+      .fee button.undo { border-color: var(--rule); color: var(--muted); font-weight: 400; }
       .more { display: flex; gap: 6px; margin-top: 8px; }
       .more input { font: inherit; font-size: 14px; border: 1.5px solid var(--rule); border-radius: 8px; padding: 7px 9px; background: var(--surface); }
       .more input.piece { flex: 1; min-width: 0; }
@@ -232,6 +238,8 @@
       saveCashReceipt: function (input, p) { post({ api: 'saveCashReceipt', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w37: 体験の結果（入会・検討・未入会）
       saveTrialResult: function (input, p) { post({ api: 'saveTrialResult', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w39: イベントの会費
+      collectEventFee: function (input, p) { post({ api: 'collectEventFee', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w33: 締めチェック（管理者）
       setChecklistItem: function (input, p) { post({ api: 'setChecklistItem', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w27: 全先生の今月（管理者）
@@ -432,13 +440,16 @@
           html += '<div class="tally">'
             + '<span>参加 <b>' + t['参加'] + '</b>名</span><span>未定 <b>' + t['未定'] + '</b>名</span>'
             + '<span>不参加 <b>' + t['不参加'] + '</b>名</span><span>演奏 合計 <b>' + t.minutes + '</b>分</span>'
-            + '<span>回答した先生 <b>' + t.answered + '</b> / 未回答 <b>' + t.notAnswered + '</b></span></div>';
+            + '<span>回答した先生 <b>' + t.answered + '</b> / 未回答 <b>' + t.notAnswered + '</b></span>'
+            + (e.fee ? '<span>会費 <b>' + yen(e.fee) + '</b> ×参加 ' + t['参加'] + '名 ＝ <b>' + yen(e.fee * t['参加']) + '</b></span>' : '')
+            + '</div>';
           if (e.studentRows && e.studentRows.length) {
             html += '<details open><summary>参加生徒の一覧（' + e.studentRows.length + '件）</summary>'
-              + '<table><tr><th>講師</th><th>生徒</th><th>参加</th><th>曲目</th><th>分</th></tr>'
+              + '<table><tr><th>講師</th><th>生徒</th><th>参加</th><th>曲目</th><th>分</th>' + (e.fee ? '<th>会費</th>' : '') + '</tr>'
               + e.studentRows.map(function (r) {
                   return '<tr><td>' + esc(r.teacher) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.part)
-                    + '</td><td>' + esc(r.piece) + '</td><td>' + esc(r.minutes) + '</td></tr>';
+                    + '</td><td>' + esc(r.piece) + '</td><td>' + esc(r.minutes) + '</td>'
+                    + (e.fee ? '<td>' + (r.paid ? '済 ' + esc(mdOf(r.paid)) : (r.part === '参加' ? '未' : '')) + '</td>' : '') + '</tr>';
                 }).join('')
               + '</table></details>';
           }
@@ -467,7 +478,32 @@
           + 'oninput="STU[\'' + esc(e.id) + '\'][' + i + '].minutes=this.value">'
           + '</div>';
         return '<div class="stu' + (hide ? ' hidden' : '') + '" id="stu-' + esc(e.id) + '-' + i + '">' + name
-          + '<div class="seg small">' + seg + '</div>' + more + '</div>';
+          + '<div class="seg small">' + seg + '</div>' + more + feeHtml(e, r, i) + '</div>';
+      }
+
+      /* ---- w39 会費（現金）。参加で保存済みの生徒に出す ---- */
+      function feeHtml(e, r, i) {
+        if (!e.fee || r.part !== '参加' || r.fromFileOnly) return '';
+        if (r.paid) {
+          return '<div class="fee paid">会費 ' + yen(r.fee || e.fee) + ' 集金済み<small>' + esc(mdOf(r.paid)) + '</small>'
+            + '<button type="button" class="undo" onclick="sendFee(\'' + esc(e.id) + '\',' + i + ',false,this)">取り消す</button></div>';
+        }
+        return '<div class="fee">会費 ' + yen(e.fee)
+          + '<button type="button" onclick="sendFee(\'' + esc(e.id) + '\',' + i + ',true,this)">集めた</button></div>';
+      }
+      function yen(n) { return (Number(n) || 0).toLocaleString('ja-JP') + '円'; }
+      function mdOf(ymd) { var m = String(ymd || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? Number(m[2]) + '/' + Number(m[3]) : ''; }
+      function sendFee(id, i, received, btn) {
+        var r = STU[id] && STU[id][i];
+        if (!r) return;
+        if (btn) { btn.disabled = true; btn.textContent = '送信中…'; }
+        google.script.run
+          .withSuccessHandler(function (data) { delete STU[id]; render(data); })
+          .withFailureHandler(function (err) {
+            if (btn) { btn.disabled = false; btn.textContent = received ? '集めた' : '取り消す'; }
+            alert(err.message);
+          })
+          .collectEventFee({ eventId: id, studentId: r.id || '', studentName: r.name, received: !!received }, CTX);
       }
 
       function rerenderStudents(id) {
