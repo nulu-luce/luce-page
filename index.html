@@ -368,6 +368,16 @@
       .tnote { font-size: 12px; color: var(--muted); margin-top: 2px; }
       .tnote.none { color: var(--caution); }
       .unrec { background: var(--caution-soft); color: var(--caution); border-radius: 8px; padding: 6px 10px; font-size: 13.5px; margin: 0 0 8px; }
+      /* w42: 昨日まで（日ごとに開く）と 予約・特別レッスンのカード */
+      .unrecb { display: inline-block; margin-left: 8px; font-size: 12px; font-weight: 600; color: var(--caution); background: var(--caution-soft); border-radius: 999px; padding: 1px 8px; }
+      .blist { display: grid; gap: 6px; }
+      .brow { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: space-between; border-top: 1px solid var(--rule); padding-top: 6px; }
+      .brow:first-child { border-top: 0; padding-top: 0; }
+      .brow .bn { font-weight: 600; display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+      .brow .bn .meta { font-weight: 400; }
+      .brow .bb { display: flex; gap: 6px; flex-wrap: wrap; }
+      .brow .bb button { font: inherit; font-size: 13px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+      .brow .bb button:hover { border-color: var(--brand); color: var(--brand); }
       .pastday { border-top: 1px solid var(--rule); padding: 8px 0 2px; }
       .pastday .pd { font-weight: 600; font-size: 14px; }
       /* w17 ホケホケ */
@@ -808,7 +818,7 @@
           if (!HOKE.data && !HOKE.loading) loadHoke(HOKE.week);
           return;
         }
-        box.innerHTML = trialAskHtml(data) + pendingQuestionsHtml(data) + pendingHtml(data) + pendingShiftsHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + eventPLHtml(data) + allCardHtml(data) + confirmCardHtml(data) + todayHtml(data) + trialsHtml(data) + roomsCardHtml() + requestsHtml(data) + shiftCardHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
+        box.innerHTML = trialAskHtml(data) + pendingQuestionsHtml(data) + pendingHtml(data) + pendingShiftsHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + eventPLHtml(data) + allCardHtml(data) + confirmCardHtml(data) + todayHtml(data) + bookStudentsHtml(data) + trialsHtml(data) + roomsCardHtml() + requestsHtml(data) + shiftCardHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
       }
 
       function kindBadge(k) {
@@ -847,18 +857,43 @@
         }
         html += extraFormHtml(data);   // w23: 予定に無いレッスンを記録
         if (past.length) {
+          // w42: 全部並べず、押した日だけ出す（長いので）。押していない人数は畳んだままでも見える
           var wide = data.pastFrom && data.pastFrom < addDays(data.today, -(data.pastDays || 7));
-          html += '<details' + (wide ? ' open' : '') + '><summary>昨日まで（' + past.length + '日'
-            + (wide ? '・' + esc(data.pastFrom.slice(5).replace('-', '/')) + ' から' : '') + '）</summary>'
-            + (wide ? '<div class="meta" style="margin:4px 0 8px">確定のため、今月の初めまで出しています</div>' : '')
+          var unrecOf = function (d) {
+            return d.students.filter(function (s) { var r = (data.records || {})[recKey(d.ymd, s)]; return !(r && r.attend); }).length;
+          };
+          var pastUn = past.reduce(function (a, d) { return a + unrecOf(d); }, 0);
+          html += '<details><summary>昨日まで（' + past.length + '日'
+            + (wide ? '・' + esc(data.pastFrom.slice(5).replace('-', '/')) + ' から' : '') + '）'
+            + (pastUn ? '<span class="unrecb">押していない ' + pastUn + ' 人</span>' : '') + '</summary>'
+            + (wide ? '<div class="meta" style="margin:4px 0 8px">確定のため、今月の初めまで出しています。日を押すと生徒が出ます</div>' : '')
             + past.map(function (d) {
-            return '<div class="pastday"><div class="pd">' + esc(d.label) + '</div><div class="stu">'
-              + d.students.map(function (s) { return studentRowHtml(data, d, s, true); }).join('') + '</div></div>';
+            var un = unrecOf(d);
+            return '<details class="dd"><summary><div class="d"><div>' + esc(d.label) + '</div><div>'
+              + '<span class="rest">' + d.students.length + '名</span>'
+              + (un ? '<span class="unrecb">押していない ' + un + ' 人</span>' : '') + '</div></div></summary>'
+              + '<div class="stu">' + d.students.map(function (s) { return studentRowHtml(data, d, s, true); }).join('') + '</div></details>';
           }).join('') + '</details>';
         }
         html += aheadHtml(data);   // w41: 明日以降の予定（2か月先まで。日を押すと生徒が出る）
         html += '<p class="hint">出欠は押した瞬間に記録され、翌朝、月報の出欠に写ります（先に付けてあればそのまま）。当日欠席は報酬あり、事前キャンセルと休講は振替日に報酬です。</p></div>';
         return html;
+      }
+
+      /* ---- w42 予約・特別レッスン（曜日・時刻が決まっていない生徒） ---- */
+      function bookStudentsHtml(data) {
+        var list = data.booking || [];
+        if (!list.length) return '';
+        return '<div class="card booking"><h2>予約・特別レッスン<small>曜日・時刻は決まっていません</small></h2>'
+          + '<div class="blist">' + list.map(function (b) {
+            return '<div class="brow"><div class="bn">' + esc(b.name)
+              + (b.level ? '<span class="meta">' + esc(b.level) + '</span>' : '')
+              + (b.campus ? '<span class="meta">' + esc(b.campus) + '</span>' : '')
+              + (b.note ? '<span class="badge">' + esc(b.note) + '</span>' : '') + '</div>'
+              + '<div class="bb"><button type="button" onclick="recfStart(\'' + esc(b.id || b.name) + '\', \'予約\')">予約レッスンを記録</button>'
+              + '<button type="button" onclick="recfStart(\'' + esc(b.id || b.name) + '\', \'特別レッスン\')">特別レッスン</button></div></div>';
+          }).join('') + '</div>'
+          + '<p class="hint">いつもの生徒に特別レッスンを足したときも、ここか「＋ 予定にないレッスンを記録」から「特別レッスン」で記録してください（報酬の単価が違うので、月報では代講・特別レッスンシートに入ります）。</p></div>';
       }
 
       /* ---- w41 明日以降の予定（2か月先まで） ---- */
@@ -1158,6 +1193,14 @@
           + '<div class="hint">代講や追加のレッスンは、月報の曜日シートに行が無いことがあります。その場合は翌朝の反映で日置に「行がありません」と届くので、月報の「代講・特別レッスン」シートに行を足してください。</div>'
           + '<div><button type="button" class="send p" id="xf_send" onclick="sendExtra()">記録する</button> <button type="button" class="send" onclick="recfToggle(false)">やめる</button></div>'
           + '</div></div>';
+      }
+      /* w42: 予約・特別レッスンのカードから、記録フォームをその生徒・その種類で開く */
+      function recfStart(student, kind) {
+        RECF.open = true; RECF.student = student; RECF.kind = kind;
+        if (!RECF.attend) RECF.attend = '出席';
+        renderHome(HOME);
+        var el = document.getElementById('xformBody');
+        if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center' });
       }
       function recfToggle(open) { RECF.open = !!open; renderHome(HOME); if (open) { var el = document.getElementById('xformBody'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' }); } }
       function recfPick(name, v) { RECF[name] = v; renderHome(HOME); }
@@ -1696,7 +1739,7 @@
         var groups = data.roomGroups || [];
         if (!REQF.campus && groups.length) REQF.campus = groups[0].campus;
         var g = groups.filter(function (x) { return x.campus === REQF.campus; })[0] || groups[0] || { rooms: [] };
-        if (g.rooms.indexOf(REQF.room) < 0) REQF.room = g.rooms[0] || '';
+        if (REQF.room && g.rooms.indexOf(REQF.room) < 0) REQF.room = '';   // w42: 既定は「おまかせ」（空）
         var students = data.students || [];
         var stOpts = '<option value="">選んでください</option>' + students.map(function (s) {
           return '<option value="' + esc(s.id || s.name) + '"' + ((s.id || s.name) === REQF.student ? ' selected' : '') + '>' + esc(s.name) + (s.time ? '（' + esc(s.time) + (s.level ? ' ' + esc(s.level) : '') + '）' : '') + '</option>';
@@ -1720,7 +1763,10 @@
           + (isMove ? fromSel + '<div class="inline" id="rq_fromManual"' + (manual ? '' : ' style="display:none"') + '><div><label>元の日</label><input type="date" id="rq_from" value="' + esc(today) + '"></div><div><label>元の時刻</label><select id="rq_fromhm">' + timeOptions(stSel && /^\d{2}:\d{2}$/.test(stSel.time || '') ? stSel.time : '') + '</select></div></div>' : '')
           + '<div><label>希望の日</label><input type="date" id="rq_ymd" value="' + esc(today) + '" min="' + esc(today) + '" onchange="reqFree()"></div>'
           + '<div class="inline"><div><label>校舎</label><select id="rq_campus" onchange="reqCampus(this.value)">' + groups.map(function (x) { return '<option' + (x.campus === REQF.campus ? ' selected' : '') + '>' + esc(x.campus) + '</option>'; }).join('') + '</select></div>'
-          + '<div><label>部屋</label><select id="rq_room" onchange="REQF.room=this.value;reqFree()">' + g.rooms.map(function (r) { return '<option' + (r === REQF.room ? ' selected' : '') + '>' + esc(r) + '</option>'; }).join('') + '</select></div></div>'
+          + '<div><label>部屋</label><select id="rq_room" onchange="REQF.room=this.value;reqFree()">'
+          + '<option value=""' + (REQF.room ? '' : ' selected') + '>おまかせ（自動で決まります）</option>'
+          + g.rooms.map(function (r) { return '<option' + (r === REQF.room ? ' selected' : '') + '>' + esc(r) + '</option>'; }).join('') + '</select></div></div>'
+          + (REQF.room ? '' : '<div class="meta" style="margin:-2px 0 2px">部屋はおまかせです。その日いつも使う部屋、空いていなければ同じ校舎の空き部屋が自動で選ばれます。</div>')
           + (data.roomGroupsError ? '<div class="freeinfo ng">' + esc(data.roomGroupsError) + '</div>' : '<div class="freeinfo" id="rq_free"><button type="button" onclick="reqFree()">この日の空きを見る</button></div>')
           + '<div class="inline"><div><label>開始</label><select id="rq_hm">' + timeOptions('') + '</select></div><div><label>長さ</label><select id="rq_min"><option value="30">30分</option><option value="45">45分</option><option value="60">60分</option></select></div></div>'
           + '<div><label>理由</label>' + pills('reason', data.reasons || ['講師都合', '生徒都合', 'その他'], REQF.reason) + '</div>'
@@ -1793,7 +1839,12 @@
         var box = document.getElementById('rq_free');
         var ymd = (document.getElementById('rq_ymd') || {}).value;
         var room = (document.getElementById('rq_room') || {}).value;
-        if (!box || !ymd || !room) return;
+        if (!box || !ymd) return;
+        if (!room) {   // w42: おまかせのときは部屋が決まっていないので、空きは出さない
+          box.className = 'freeinfo';
+          box.innerHTML = '部屋はおまかせです（その日いつも使う部屋 → 空いている部屋の順に自動で決まります）。時間の空きを見たいときは部屋を選んでください。';
+          return;
+        }
         box.innerHTML = '空きを読んでいます…';
         google.script.run
           .withSuccessHandler(function (data) {
