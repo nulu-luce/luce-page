@@ -152,6 +152,26 @@
       .notice .dt { font-size: 12px; color: var(--muted); }
       .notice .tt { font-weight: 600; }
       .notice .bd { font-size: 14px; white-space: pre-wrap; }
+      /* w35 イベント予定 */
+      .evp .m { font-size: 12.5px; font-weight: 700; color: var(--muted); letter-spacing: .06em; border-top: 1px solid var(--rule); padding: 9px 0 1px; }
+      .evp .m:first-child { border-top: 0; padding-top: 2px; }
+      .evp .e { display: flex; gap: 6px 8px; align-items: baseline; flex-wrap: wrap; padding: 3px 0 5px; }
+      .evp .e .d { font-weight: 700; min-width: 4.6em; font-variant-numeric: tabular-nums; }
+      .evp .e .n { font-weight: 600; }
+      .evp .e .w { font-size: 13px; color: var(--muted); }
+      .evp .e .nt { flex-basis: 100%; font-size: 13.5px; color: var(--muted); white-space: pre-wrap; }
+      .evp .e .go { font-size: 12.5px; font-weight: 700; color: var(--accent); text-decoration: none; border: 1.5px solid var(--accent); border-radius: 999px; padding: 2px 10px; }
+      .evp .badge.plan { background: var(--accent-soft); color: var(--accent); }
+      .evp .badge.open { background: var(--ok-soft); color: var(--ok); }
+      .evp .badge.close { background: var(--ground); color: var(--muted); }
+      .evp details summary { font-size: 13.5px; color: var(--muted); margin-top: 8px; }
+      /* w36 資料（リンク集。読むだけ） */
+      .docs .dg { font-size: 12.5px; font-weight: 700; color: var(--muted); letter-spacing: .06em; border-top: 1px solid var(--rule); padding: 9px 0 1px; }
+      .docs .dg:first-of-type { border-top: 0; padding-top: 2px; }
+      .docs .dr { padding: 2px 0 6px; }
+      .docs .dr a { font-weight: 600; color: var(--accent); text-decoration: none; }
+      .docs .dr .dt { font-size: 12px; color: var(--muted); margin-left: 8px; white-space: nowrap; }
+      .docs .dr .ds { font-size: 13.5px; color: var(--muted); }
       .task { display: flex; gap: 10px; align-items: flex-start; border-top: 1px solid var(--rule); padding: 8px 0; }
       .task:first-child { border-top: 0; padding-top: 2px; }
       .task .body { flex: 1; }
@@ -704,11 +724,11 @@
         if (!document.getElementById('admin').innerHTML) renderAdmin(data);   // 今月の状況より先に、講師シートから出す
         if (data.hoke) {   // w17: 成瀬先生のホケホケ。今日のレッスン・部屋の空き・申請の代わりに
           if (!HOKE.data && !HOKE.loading && data.hokeData && !data.hokeData.error) { HOKE.data = data.hokeData; HOKE.week = 0; }   // w19: ホームと一緒に来た今週のぶん
-          box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + allCardHtml(data) + hokeCardHtml() + rosterCardHtml(data) + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
+          box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + allCardHtml(data) + hokeCardHtml() + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
           if (!HOKE.data && !HOKE.loading) loadHoke(HOKE.week);
           return;
         }
-        box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + allCardHtml(data) + confirmCardHtml(data) + todayHtml(data) + roomsCardHtml() + requestsHtml(data) + rosterCardHtml(data) + noticesHtml(data) + tasksHtml(data) + faqHtml(data);
+        box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + allCardHtml(data) + confirmCardHtml(data) + todayHtml(data) + roomsCardHtml() + requestsHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
       }
 
       function kindBadge(k) {
@@ -1069,6 +1089,61 @@
       function linkify(text) {
         return esc(text).replace(/(https?:\/\/[^\s<]+)/g, function (u) { return '<a href="' + u + '" target="_blank" rel="noopener">' + u + '</a>'; });
       }
+      /* ---- w35 イベント予定（読むだけ。1年先まで月ごとに） ---- */
+      /* イベント画面へのリンク。見出しの「イベント →」と同じ先にする。
+         行き先は GAS と静的ページで違い（build-site.mjs が events.html に書き換え、site-shim が合言葉を付ける）、
+         書き換えは見出しの1か所だけなので、ここではその出来上がりを読む */
+      function eventsHref() {
+        var a = document.querySelector('.hdr a.ev:not(.help)');
+        return (a && a.getAttribute('href')) || '';
+      }
+      function eventBadge(e) {
+        if (e.open) return '<span class="badge open">' + (e.help ? '出欠を聞いています' : '生徒の参加を聞いています') + '</span>';
+        if (e.tentative) return '<span class="badge">日程は仮</span>';
+        if (e.status === '募集中' || e.status === '締切') return '<span class="badge close">受付は終わり</span>';
+        return '<span class="badge plan">予定</span>';
+      }
+      function eventRowHtml(e) {
+        var where = [e.time, e.place].filter(function (x) { return !!x; }).join('　');
+        return '<div class="e"><span class="d">' + esc(e.dateJa) + '</span><span class="n">' + esc(e.name) + '</span>'
+          + (where ? '<span class="w">' + esc(where) + '</span>' : '') + eventBadge(e)
+          + (e.open && eventsHref() ? '<a class="go" href="' + esc(eventsHref()) + '">' + (e.help ? '出欠を答える' : '生徒を登録する') + '</a>' : '')
+          + (e.note ? '<div class="nt">' + linkify(e.note) + '</div>' : '') + '</div>';
+      }
+      function eventPlanHtml(data) {
+        var p = data.eventPlan || {};
+        var ms = p.months || [], past = p.past || [];
+        var html = '<div class="card evp"><h2>イベント予定' + (p.count ? '<small>' + p.count + '件</small>' : '') + '</h2>';
+        if (p.error) return html + '<div class="banner err">' + esc(p.error) + '</div></div>';
+        if (!ms.length && !past.length) return html + '<div class="meta">まだ決まっているイベントはありません。決まりしだいここに出ます</div></div>';
+        if (!ms.length) html += '<div class="meta">この先のイベントはまだ決まっていません</div>';
+        html += ms.map(function (m) {
+          return '<div class="m">' + esc(m.label) + '</div>' + m.items.map(eventRowHtml).join('');
+        }).join('');
+        if (past.length) {
+          html += '<details><summary>終わったイベント（' + past.length + '件）</summary>'
+            + past.map(eventRowHtml).join('') + '</details>';
+        }
+        return html + '<p class="hint">日程が決まった時点で先に載せています（ホールの予約は1年ほど前）。「日程は仮」は変わることがあります。手伝いの出欠は「出欠を聞いています」になってからお願いします。</p></div>';
+      }
+
+      /* ---- w36 資料（シフト表・ハンドブックなどのリンク集。読むだけ） ---- */
+      function docsHtml(data) {
+        var gs = data.docs || [];
+        var n = 0;
+        gs.forEach(function (g) { n += g.items.length; });
+        var html = '<div class="card docs"><h2>資料' + (n ? '<small>' + n + '件</small>' : '') + '</h2>';
+        if (!gs.length) return html + '<div class="meta">まだ資料はありません</div></div>';
+        html += gs.map(function (g) {
+          return '<div class="dg">' + esc(g.group) + '</div>' + g.items.map(function (d) {
+            return '<div class="dr"><a href="' + esc(d.link) + '" target="_blank" rel="noopener">' + esc(d.name) + '</a>'
+              + (d.updated ? '<span class="dt">' + esc(d.updated) + ' 更新</span>' : '')
+              + (d.desc ? '<div class="ds">' + esc(d.desc) + '</div>' : '') + '</div>';
+          }).join('');
+        }).join('');
+        return html + '<p class="hint">開くといつも最新のものが出ます（手元に保存した控えではなく、ここから開いてください）。ご自分の生徒の登録内容は上の「担当生徒の登録内容」で見られます（名簿そのものは、ほかのご家庭の連絡先も入っているので置いていません）。</p></div>';
+      }
+
       function noticesHtml(data) {
         var ns = data.notices || [];
         var html = '<div class="card notices"><h2>お知らせ' + (ns.length ? '<small>' + ns.length + '件</small>' : '') + '</h2>';
