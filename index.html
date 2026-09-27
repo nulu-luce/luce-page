@@ -747,7 +747,11 @@
         }
         html += extraFormHtml(data);   // w23: 予定に無いレッスンを記録
         if (past.length) {
-          html += '<details><summary>昨日まで（' + past.length + '日）</summary>' + past.map(function (d) {
+          var wide = data.pastFrom && data.pastFrom < addDays(data.today, -(data.pastDays || 7));
+          html += '<details' + (wide ? ' open' : '') + '><summary>昨日まで（' + past.length + '日'
+            + (wide ? '・' + esc(data.pastFrom.slice(5).replace('-', '/')) + ' から' : '') + '）</summary>'
+            + (wide ? '<div class="meta" style="margin:4px 0 8px">確定のため、今月の初めまで出しています</div>' : '')
+            + past.map(function (d) {
             return '<div class="pastday"><div class="pd">' + esc(d.label) + '</div><div class="stu">'
               + d.students.map(function (s) { return studentRowHtml(data, d, s, true); }).join('') + '</div></div>';
           }).join('') + '</details>';
@@ -1027,7 +1031,7 @@
           + '<div><b>予定にないレッスンを記録</b></div>'
           + '<div><label>生徒</label><select id="xf_student" onchange="recfStudent(this.value)">' + stOpts + '</select>'
           + '<input id="xf_sname" placeholder="生徒の名前" style="margin-top:6px' + (RECF.student === '__other' ? '' : ';display:none') + '"></div>'
-          + '<div class="inline"><div><label>日付</label><input type="date" id="xf_ymd" value="' + esc(today) + '" min="' + esc(addDays(today, -(data.pastDays || 7))) + '" max="' + esc(today) + '"></div>'
+          + '<div class="inline"><div><label>日付</label><input type="date" id="xf_ymd" value="' + esc(today) + '" min="' + esc(data.pastFrom || addDays(today, -(data.pastDays || 7))) + '" max="' + esc(today) + '"></div>'
           + '<div><label>開始（任意）</label><select id="xf_hm"><option value="">時刻なし</option>' + timeOptions('') + '</select></div></div>'
           + '<div><label>種類</label>' + pills('kind', kinds, RECF.kind) + '</div>'
           + '<div><label>出欠</label>' + pills('attend', opts, RECF.attend) + '</div>'
