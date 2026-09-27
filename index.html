@@ -114,6 +114,31 @@
       .cash .cst.no { color: var(--caution); }
       .cash button { font: inherit; font-size: 13px; padding: 5px 11px; border-radius: 999px; border: 1.5px solid var(--accent); background: var(--surface); color: var(--accent); white-space: nowrap; }
       .cash button.no { border-color: var(--rule); color: var(--muted); }
+      /* w38 現金であずかったもの（予約制のレッスン料・入会金・体験レッスン料・イベント会費） */
+      .cash .csec { font-size: 12.5px; font-weight: 700; color: var(--muted); letter-spacing: .06em; border-top: 1px solid var(--rule); margin-top: 10px; padding: 8px 0 2px; }
+      .cash .csec small { font-weight: 400; margin-left: 8px; color: var(--ink); }
+      .cash .crow { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: baseline; padding: 5px 0; border-top: 1px dotted var(--rule); }
+      .cash .crow:first-of-type { border-top: 0; }
+      .cash .crow .cn { font-weight: 600; }
+      .cash .crow .cn small, .cash .crow .cc small { display: block; font-weight: 400; font-size: 11.5px; color: var(--muted); line-height: 1.35; }
+      .cash .crow .cc { grid-column: 1; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+      .cash .crow .cb { grid-row: 1 / 3; grid-column: 2; text-align: right; }
+      .cash .crow .cb .cst { display: block; margin-bottom: 3px; }
+      .cash .warnx { color: var(--caution); }
+      .cash .cadd { margin-top: 10px; border-top: 1px solid var(--rule); padding-top: 10px; }
+      .cash .cadd .add { border-style: dashed; }
+      .cash .cadd small { display: block; color: var(--muted); font-size: 11.5px; margin-top: 3px; }
+      .cash .cform { margin-top: 10px; border-top: 1px solid var(--rule); padding-top: 8px; }
+      .cash .crowf { display: grid; grid-template-columns: 5.2em 1fr; gap: 6px 8px; align-items: center; margin-bottom: 8px; }
+      .cash .crowf label { font-size: 12.5px; color: var(--muted); }
+      .cash .crowf > div { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+      .cash .crowf small { color: var(--muted); font-size: 11.5px; }
+      .cash .crowf select, .cash .crowf input { font: inherit; font-size: 14px; padding: 6px 8px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); max-width: 100%; }
+      .cash .crowf input[type="number"] { width: 7em; }
+      .cash .pill { background: var(--surface); }
+      .cash .pill.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+      .cash .cbtns { display: flex; gap: 8px; margin-top: 4px; }
+      .cash .cbtns button { font-size: 14px; padding: 8px 16px; font-weight: 700; }
       td.name { white-space: normal; min-width: 96px; }
       td.name small { color: var(--muted); font-size: 11.5px; display: block; line-height: 1.3; }
 
@@ -172,6 +197,26 @@
       .docs .dr a { font-weight: 600; color: var(--accent); text-decoration: none; }
       .docs .dr .dt { font-size: 12px; color: var(--muted); margin-left: 8px; white-space: nowrap; }
       .docs .dr .ds { font-size: 13.5px; color: var(--muted); }
+      /* w37 体験レッスン（自分の担当分。メモはこの画面だけ）と、体験の結果 */
+      .trials .tr { border-top: 1px solid var(--rule); padding: 7px 0; }
+      .trials .tr:first-of-type { border-top: 0; padding-top: 2px; }
+      .trials .tr.near { background: var(--accent-soft); border-radius: 10px; padding: 7px 10px; margin: 2px -4px; }
+      .trials .th, .trialask .th { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; font-size: 13.5px; }
+      .trials .th .d, .trialask .th .d { font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; }
+      .trials .th .t, .trialask .th .t { font-variant-numeric: tabular-nums; }
+      .trials .th .c, .trialask .th .c { color: var(--muted); }
+      .trials .th .soon { font-size: 12px; font-weight: 700; color: var(--accent); border: 1.5px solid var(--accent); border-radius: 999px; padding: 0 8px; }
+      .trials .tn, .trialask .tn { font-weight: 600; margin-top: 2px; }
+      .trials .tn .g, .trialask .tn .g { font-weight: 400; font-size: 13px; color: var(--muted); margin-left: 6px; }
+      .trials .tm { font-size: 13.5px; color: var(--muted); white-space: pre-wrap; margin-top: 3px; }
+      .card.trialask { border: 1.5px solid var(--accent); }
+      .card.trialask.over { border-color: var(--caution); }
+      .trialask .ta { border-top: 1px solid var(--rule); padding: 8px 0; }
+      .trialask .ta:first-of-type { border-top: 0; padding-top: 2px; }
+      .trialask .th .late { font-size: 12px; font-weight: 700; color: var(--caution); }
+      .trialask .tb { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+      .trialask .tb button { font: inherit; font-size: 14px; font-weight: 700; padding: 8px 16px; border-radius: 999px; border: 1.5px solid var(--accent); background: #fff; color: var(--accent); }
+      .trialask .tb button:disabled { opacity: .6; }
       .task { display: flex; gap: 10px; align-items: flex-start; border-top: 1px solid var(--rule); padding: 8px 0; }
       .task:first-child { border-top: 0; padding-top: 2px; }
       .task .body { flex: 1; }
@@ -548,6 +593,8 @@
       confirmRecords: function (input, p) { post({ api: 'confirmRecords', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w31: 現金の受け取り
       saveCashReceipt: function (input, p) { post({ api: 'saveCashReceipt', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w37: 体験の結果（入会・検討・未入会）
+      saveTrialResult: function (input, p) { post({ api: 'saveTrialResult', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w33: 締めチェック（管理者）
       setChecklistItem: function (input, p) { post({ api: 'setChecklistItem', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w27: 全先生の今月（管理者）
@@ -724,11 +771,11 @@
         if (!document.getElementById('admin').innerHTML) renderAdmin(data);   // 今月の状況より先に、講師シートから出す
         if (data.hoke) {   // w17: 成瀬先生のホケホケ。今日のレッスン・部屋の空き・申請の代わりに
           if (!HOKE.data && !HOKE.loading && data.hokeData && !data.hokeData.error) { HOKE.data = data.hokeData; HOKE.week = 0; }   // w19: ホームと一緒に来た今週のぶん
-          box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + allCardHtml(data) + hokeCardHtml() + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
+          box.innerHTML = trialAskHtml(data) + pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + allCardHtml(data) + hokeCardHtml() + trialsHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
           if (!HOKE.data && !HOKE.loading) loadHoke(HOKE.week);
           return;
         }
-        box.innerHTML = pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + allCardHtml(data) + confirmCardHtml(data) + todayHtml(data) + roomsCardHtml() + requestsHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
+        box.innerHTML = trialAskHtml(data) + pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + allCardHtml(data) + confirmCardHtml(data) + todayHtml(data) + trialsHtml(data) + roomsCardHtml() + requestsHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
       }
 
       function kindBadge(k) {
@@ -1089,6 +1136,60 @@
       function linkify(text) {
         return esc(text).replace(/(https?:\/\/[^\s<]+)/g, function (u) { return '<a href="' + u + '" target="_blank" rel="noopener">' + u + '</a>'; });
       }
+      /* ---- w37 体験レッスン（自分が担当する分だけ。メモはこの画面にしか出ない） ---- */
+      function trialsHtml(data) {
+        var ts = data.trials || [];
+        if (!ts.length) return '';
+        return '<div class="card trials"><h2>体験レッスン<small>' + ts.length + '件</small></h2>'
+          + ts.map(function (t) {
+            var mark = t.when === 'today' ? '<span class="soon">今日</span>' : (t.when === 'tomorrow' ? '<span class="soon">明日</span>' : '');
+            var who = [t.grade, t.level].filter(Boolean).join('・');
+            return '<div class="tr' + (t.when ? ' near' : '') + '"><div class="th"><span class="d">' + esc(t.dateJa) + '</span>'
+              + '<span class="t">' + esc(t.time || '時刻未定') + '</span>'
+              + (t.campus ? '<span class="c">' + esc(t.campus) + '</span>' : '') + mark + '</div>'
+              + '<div class="tn">' + esc(t.name) + ' さん' + (who ? '<span class="g">' + esc(who) + '</span>' : '') + '</div>'
+              + (t.note ? '<div class="tm">' + linkify(t.note) + '</div>' : '') + '</div>';
+          }).join('')
+          + '<p class="hint">ご自分が担当する体験です（この先の分は全部出ます）。メモ（ご家庭の連絡先など）はこの画面にしか出ません。Google Chat に流しているのは 日程・時間・校舎・講師名・生徒名・学年 だけです。</p></div>';
+      }
+
+      /* ---- w37 体験の結果（入会・検討・未入会）。押すまでいちばん上に出る ---- */
+      function trialAskHtml(data) {
+        var ts = data.trialResults || [];
+        if (!ts.length) return '';
+        var opts = data.trialResultOptions || ['入会', '検討', '未入会'];
+        var over = ts.filter(function (t) { return t.overdue; }).length;
+        return '<div class="card trialask' + (over ? ' over' : '') + '"><h2>体験の結果を教えてください<small>' + ts.length + '件</small></h2>'
+          + ts.map(function (t) {
+            return '<div class="ta"><div class="th"><span class="d">' + esc(t.dateJa) + '</span>'
+              + '<span class="t">' + esc(t.time || '') + '</span>'
+              + (t.campus ? '<span class="c">' + esc(t.campus) + '</span>' : '')
+              + (t.overdue ? '<span class="late">1週間過ぎています</span>' : '') + '</div>'
+              + '<div class="tn">' + esc(t.name) + ' さん' + (t.grade ? '<span class="g">' + esc(t.grade) + '</span>' : '') + '</div>'
+              + '<div class="tb">' + opts.map(function (o) {
+                return '<button onclick="sendTrialResult(\'' + esc(t.key) + '\', \'' + esc(o) + '\', this)">' + esc(o) + '</button>';
+              }).join('') + '</div></div>';
+          }).join('')
+          + '<p class="hint">体験が終わったら押してください（押すまでここに出ます）。「検討」はお返事待ちのときに。押し間違えても、日置に言えば直せます。</p></div>';
+      }
+
+      function sendTrialResult(key, result, btn) {
+        var box = btn && btn.parentNode;
+        if (box) Array.prototype.forEach.call(box.getElementsByTagName('button'), function (b) { b.disabled = true; });
+        if (btn) btn.textContent = '送信中…';
+        google.script.run
+          .withSuccessHandler(function (res) {
+            HOME.trialResults = (res && res.trialResults) || [];
+            renderHome(HOME);
+          })
+          .withFailureHandler(function (err) {
+            if (box) Array.prototype.forEach.call(box.getElementsByTagName('button'), function (b) { b.disabled = false; });
+            if (btn) btn.textContent = result;
+            alert('記録できませんでした。' + err.message);
+          })
+          .saveTrialResult({ key: key, result: result }, { t: TOKEN, no: STATE.teacherNo || '' });
+      }
+
       /* ---- w35 イベント予定（読むだけ。1年先まで月ごとに） ---- */
       /* イベント画面へのリンク。見出しの「イベント →」と同じ先にする。
          行き先は GAS と静的ページで違い（build-site.mjs が events.html に書き換え、site-shim が合言葉を付ける）、
@@ -1873,15 +1974,20 @@
           + '</table></div></div>';
       }
 
-      /* ---- w31 現金の受け取り（段階5）。押すと講師運営ブックの「現金受取」に残り、翌朝 月謝明細の現金徴収済（BC）に写る ---- */
+      /* ---- w31/w38 現金であずかったもの（段階5）。押すと講師運営ブックの「現金受取」に残り、翌朝 月謝明細に写る ---- */
       var CASH_ROWS = [];
+      var BOOK_ROWS = [];    // w38: 予約制の生徒（回数 × コースの1回分）
+      var CASH_ITEMS = [];   // w38: 入会金・体験レッスン料・イベント会費として記録したもの
+      var CASHF = { open: false, kind: '入会金', amount: 5000, count: 1, detail: '' };
       function cashKey(r) { return r.id || String(r.name || '').normalize('NFKC').replace(/[\s\u3000]/g, ''); }
       function cashMd(ymd) { var m = String(ymd || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? Number(m[2]) + '/' + Number(m[3]) : ''; }
       function cashHtml(st) {
         var targets = [];
         (st.tuitions || []).forEach(function (t) { (t.rows || []).forEach(function (r) { if (Number(r.cashSub) > 0) targets.push(r); }); });
         CASH_ROWS = targets;
-        if (!targets.length) return '';
+        BOOK_ROWS = (st.bookings || []);
+        var items = STATE.cashItems || [];
+        if (!targets.length && !BOOK_ROWS.length && !items.length) return '';
         var map = STATE.cash || {};
         var got = 0, pending = 0;
         var rows = targets.map(function (r, i) {
@@ -1901,23 +2007,176 @@
             + '<td class="r">' + esc(yen(r.cashSub)) + '</td><td class="name">' + stt + '</td><td class="c">' + btn + '</td></tr>';
         }).join('');
         var ym = STATE.yyyymm ? Number(String(STATE.yyyymm).slice(4)) + '月分' : '';
-        return '<div class="card cash" id="cashCard"><h2>現金の受け取り<small>' + esc(ym) + '</small></h2>'
-          + '<div class="chips"><span class="chip ' + (pending ? 'warn' : 'ok') + '">まだ <b>' + pending + '</b></span><span class="chip ok">受け取り済 <b>' + got + '</b></span></div>'
-          + '<div class="tbl"><table><tr><th>生徒</th><th class="r">金額</th><th>状態</th><th></th></tr>' + rows + '</table></div>'
-          + '<p class="hint">現金を受け取ったら押してください。翌朝、月謝明細の「現金徴収済」にチェックが入ります（先に明細で ✓ を付けてあればそのままです）。金額は明細の現金徴収 小計です。</p></div>';
+        var html = '<div class="card cash" id="cashCard"><h2>現金であずかったもの<small>' + esc(ym) + '</small></h2>'
+          + '<div class="chips"><span class="chip ' + (pending ? 'warn' : 'ok') + '">まだ <b>' + pending + '</b></span><span class="chip ok">受け取り済 <b>' + got + '</b></span></div>';
+        if (targets.length) {
+          html += '<div class="tbl"><table><tr><th>生徒</th><th class="r">金額</th><th>状態</th><th></th></tr>' + rows + '</table></div>'
+            + '<p class="hint">現金を受け取ったら押してください。翌朝、月謝明細の「現金徴収済」にチェックが入ります（先に明細で ✓ を付けてあればそのままです）。金額は明細の現金徴収 小計です。</p>';
+        }
+        html += bookingHtml(st) + cashItemsHtml(st) + cashFormHtml(st);
+        return html + '</div>';
       }
-      function cashToggle(i, received, btn) {
-        var r = CASH_ROWS[i];
-        if (!r) return;
+
+      /* ---- w38 予約制のレッスン料（回数 × コースの1回分。月謝0円の月は管理費も0円） ---- */
+      function bookingHtml(st) {
+        var bs = BOOK_ROWS || [];
+        if (!bs.length) return '';
+        var names = cashKindNames();
+        var done = {};
+        (STATE.cashItems || []).forEach(function (x) { if (x.kind === names.BOOKING) done[x.key] = x; });
+        return '<div class="csec">予約制のレッスン料</div>' + bs.map(function (b, i) {
+          var x = done[b.key];
+          var calc = b.unit
+            ? '記録 <b>' + b.count + '回</b> × ' + esc(yen(b.unit)) + (b.admin ? ' ＋ 管理費 ' + esc(yen(b.admin)) : '') + ' = <b>' + esc(yen(b.amount)) + '</b>'
+            : '<span class="warnx">この コースの1回分が単価表にありません。日置に確認してください</span>';
+          var btn = x
+            ? '<span class="cst ok">記録しました' + (x.ymd ? '（' + esc(cashMd(x.ymd)) + '）' : '') + '</span>'
+              + '<button type="button" class="no" onclick="bookToggle(' + i + ', false, this)">取り消す</button>'
+            : (b.unit ? '<button type="button" onclick="bookToggle(' + i + ', true, this)">' + (b.amount ? '受け取った' : '0円で記録') + '</button>' : '');
+          return '<div class="crow"><div class="cn">' + esc(b.name) + ' さん<small>' + esc(b.level) + '</small></div>'
+            + '<div class="cc">' + calc + '</div><div class="cb">' + btn + '</div></div>';
+        }).join('')
+          + '<p class="hint">回数はレッスン記録（曜日シートの回数計）、1回分はコースの単価表から出しています。0回の月は月謝も管理費も0円です。押すと翌朝、月謝明細の 月謝・管理費 に入ります。</p>';
+      }
+
+      /* ---- w38 入会金・体験レッスン料・イベント会費 ---- */
+      function cashKindNames() {
+        var n = (STATE.cashKinds && STATE.cashKinds.names) || {};
+        return { ENROLL: n.ENROLL || '入会金', TRIAL: n.TRIAL || '体験レッスン料', BOOKING: n.BOOKING || '予約レッスン料', EVENT: n.EVENT || 'イベント会費' };
+      }
+      function cashStudents(st) {
+        var out = [], seen = {};
+        ((st || {}).tuitions || []).forEach(function (t) {
+          (t.rows || []).forEach(function (r) {
+            var k = cashKey(r);
+            if (!k || seen[k]) return;
+            seen[k] = true;
+            out.push({ id: r.id || '', name: r.name, key: k });
+          });
+        });
+        return out;
+      }
+      function cashItemsHtml(st) {
+        var names = cashKindNames();
+        var items = (STATE.cashItems || []).filter(function (x) { return x.kind !== names.BOOKING; });
+        if (!items.length) return '';
+        CASH_ITEMS = items;
+        var sum = items.reduce(function (a, x) { return a + (Number(x.amount) || 0); }, 0);
+        return '<div class="csec">ほかにあずかったもの<small>' + esc(yen(sum)) + '</small></div>'
+          + items.map(function (x, i) {
+            return '<div class="crow"><div class="cn">' + esc(x.studentName) + ' さん<small>' + esc(x.kind) + (x.detail ? '・' + esc(x.detail) : '') + '</small></div>'
+              + '<div class="cc">' + esc(yen(x.amount)) + '<small>' + (x.ymd ? esc(cashMd(x.ymd)) + '　' : '') + (x.synced ? '明細に写しました' : '翌朝、明細に写ります') + '</small></div>'
+              + '<div class="cb"><button type="button" class="no" onclick="itemToggle(' + i + ', this)">取り消す</button></div></div>';
+          }).join('');
+      }
+      function cashFormHtml(st) {
+        var names = cashKindNames();
+        if (!CASHF.open) {
+          return '<div class="cadd"><button type="button" class="add" onclick="cashfOpen(true)">＋ あずかったものを足す</button>'
+            + '<small>入会金・体験レッスン料・イベント会費</small></div>';
+        }
+        var k = CASHF.kind;
+        var cfg = STATE.cashKinds || {};
+        var list = cashStudents(st);
+        var chip = function (v) { return '<button type="button" class="pill' + (k === v ? ' on' : '') + '" onclick="cashfKind(\'' + esc(v) + '\')">' + esc(v) + '</button>'; };
+        var body = '';
+        if (k === names.ENROLL) {
+          body = '<div class="crowf"><label>金額</label><div>' + (cfg.enroll || [5000, 2500]).map(function (a) {
+            return '<button type="button" class="pill' + (Number(CASHF.amount) === a ? ' on' : '') + '" onclick="cashfAmount(' + a + ')">' + esc(yen(a)) + '</button>';
+          }).join('') + '<small>キャンペーン中は ' + esc(yen((cfg.enroll || [5000, 2500])[1])) + '</small></div></div>';
+        } else if (k === names.TRIAL) {
+          var fee = Number(cfg.trialFee) || 2000, max = Number(cfg.trialMax) || 10, opts = '';
+          for (var n = 1; n <= max; n++) opts += '<option value="' + n + '"' + (Number(CASHF.count) === n ? ' selected' : '') + '>' + n + '回</option>';
+          body = '<div class="crowf"><label>有料の回数</label><div><select id="cf_count" onchange="cashfCount(this.value)">' + opts + '</select>'
+            + '<b>' + esc(yen(fee * (Number(CASHF.count) || 1))) + '</b><small>1回目は無料。2回目以降 ' + esc(yen(fee)) + '／回</small></div></div>';
+        } else {
+          body = '<div class="crowf"><label>金額</label><div><input id="cf_amount" type="number" inputmode="numeric" min="0" step="100" value="' + (Number(CASHF.amount) || '') + '" onchange="cashfAmount(this.value)"><small>円</small></div></div>'
+            + '<div class="crowf"><label>何の会費</label><div><input id="cf_detail" type="text" maxlength="40" value="' + esc(CASHF.detail || '') + '" placeholder="大人会・クリスマス会など"></div></div>';
+        }
+        return '<div class="cform"><div class="crowf"><label>種類</label><div>' + chip(names.ENROLL) + chip(names.TRIAL) + chip(names.EVENT) + '</div></div>'
+          + '<div class="crowf"><label>生徒</label><div><select id="cf_student"><option value="">選んでください</option>'
+          + list.map(function (x) { return '<option value="' + esc(x.key) + '">' + esc(x.name) + '</option>'; }).join('')
+          + '<option value="__other">一覧にない生徒</option></select>'
+          + '<input id="cf_other" type="text" maxlength="30" placeholder="生徒の名前" style="display:none"></div></div>'
+          + body
+          + '<div class="cbtns"><button type="button" id="cf_send" onclick="sendCashItem()">記録する</button>'
+          + '<button type="button" class="no" onclick="cashfOpen(false)">やめる</button></div></div>';
+      }
+      function cashRedraw() {
+        var el = document.getElementById('cashCard');
+        if (el) el.outerHTML = cashHtml(STATE.status || {});
+        var sel = document.getElementById('cf_student');
+        if (sel) sel.onchange = function () { var o = document.getElementById('cf_other'); if (o) o.style.display = this.value === '__other' ? '' : 'none'; };
+      }
+      function cashfOpen(v) { CASHF.open = !!v; cashRedraw(); }
+      function cashfKind(k) {
+        var names = cashKindNames();
+        CASHF.kind = k;
+        CASHF.amount = k === names.ENROLL ? ((STATE.cashKinds && STATE.cashKinds.enroll) || [5000])[0] : 0;
+        CASHF.count = 1;
+        cashRedraw();
+      }
+      function cashfAmount(v) { CASHF.amount = Number(v) || 0; cashRedraw(); }
+      function cashfCount(v) { CASHF.count = Number(v) || 1; cashRedraw(); }
+
+      function cashSend(input, btn, after) {
         if (btn) btn.disabled = true;
         google.script.run
           .withSuccessHandler(function (res) {
             STATE.cash = (res && res.cash) || {};
-            var el = document.getElementById('cashCard');
-            if (el) el.outerHTML = cashHtml(STATE.status || {});
+            STATE.cashItems = (res && res.cashItems) || [];
+            if (after) after();
+            cashRedraw();
           })
           .withFailureHandler(function (err) { if (btn) btn.disabled = false; alert('保存できませんでした。' + err.message); })
-          .saveCashReceipt({ ym: STATE.yyyymm, studentId: r.id || '', studentName: r.name, amount: r.cashSub, received: !!received }, { t: TOKEN, no: STATE.teacherNo || '' });
+          .saveCashReceipt(input, { t: TOKEN, no: STATE.teacherNo || '' });
+      }
+      function cashToggle(i, received, btn) {
+        var r = CASH_ROWS[i];
+        if (!r) return;
+        cashSend({ ym: STATE.yyyymm, studentId: r.id || '', studentName: r.name, amount: r.cashSub, received: !!received }, btn);
+      }
+      function bookToggle(i, received, btn) {
+        var b = BOOK_ROWS[i];
+        if (!b) return;
+        var names = cashKindNames();
+        cashSend({ ym: STATE.yyyymm, kind: names.BOOKING, studentId: b.id || '', studentName: b.name, amount: b.amount,
+          count: b.count, detail: b.count + '回 × ' + b.unit + '円' + (b.admin ? ' ＋ 管理費 ' + b.admin + '円' : ''), received: !!received }, btn);
+      }
+      function itemToggle(i, btn) {
+        var x = CASH_ITEMS[i];
+        if (!x) return;
+        if (!confirm(x.studentName + ' さんの ' + x.kind + ' を取り消しますか？')) return;
+        cashSend({ ym: STATE.yyyymm, kind: x.kind, studentId: x.studentId || '', studentName: x.studentName, amount: x.amount, received: false }, btn);
+      }
+      function sendCashItem() {
+        var names = cashKindNames();
+        var cfg = STATE.cashKinds || {};
+        var sel = document.getElementById('cf_student');
+        var v = sel ? sel.value : '';
+        var list = cashStudents(STATE.status || {});
+        var stu = list.filter(function (x) { return x.key === v; })[0];
+        var other = document.getElementById('cf_other');
+        var name = stu ? stu.name : (v === '__other' && other ? other.value.trim() : '');
+        if (!name) { alert('生徒を選んでください'); return; }
+        var k = CASHF.kind, amount = 0, count = 0, detail = '';
+        if (k === names.ENROLL) {
+          amount = Number(CASHF.amount) || 0;
+          if (!amount) { alert('金額を選んでください'); return; }
+        } else if (k === names.TRIAL) {
+          count = Number(CASHF.count) || 1;
+          amount = (Number(cfg.trialFee) || 2000) * count;
+          detail = count + '回';
+        } else {
+          var el = document.getElementById('cf_amount');
+          amount = Number(el ? el.value : 0) || 0;
+          var d = document.getElementById('cf_detail');
+          detail = d ? d.value.trim() : '';
+          if (!amount) { alert('金額を入れてください'); return; }
+        }
+        cashSend({ ym: STATE.yyyymm, kind: k, studentId: stu ? stu.id : '', studentName: name,
+          amount: amount, count: count, detail: detail, received: true }, document.getElementById('cf_send'),
+          function () { CASHF.open = false; CASHF.count = 1; });
       }
 
       function tuitionHtml(st) {
