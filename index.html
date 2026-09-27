@@ -491,7 +491,17 @@
       .foot { margin-top: 26px; }
       .foot .poem { font-family: "Shippori Mincho", "Hiragino Mincho ProN", serif; font-size: 14px; letter-spacing: .12em; color: var(--muted); }
       .foot .v { font-size: 11px; color: var(--muted); }
-    </style>
+      /* w41: これからの予定（日ごとに開ける） */
+  .week .dd { border-bottom: 1px solid var(--line, #eee); }
+  .week .dd:last-child { border-bottom: 0; }
+  .week .dd > summary { list-style: none; cursor: pointer; }
+  .week .dd > summary::-webkit-details-marker { display: none; }
+  .week .dd > summary .d { margin: 0; }
+  .week .dd[open] > summary .d { font-weight: 600; }
+  .week .dd .stu { padding: 2px 0 8px; }
+  .week .dd .meta { padding: 2px 0 8px; }
+
+</style>
   </head>
   <body>
     <div class="wrap">
@@ -619,6 +629,12 @@
       // w29: 担当生徒の登録内容と「違う」
       getRosterPage: function (p) { get({ api: 'roster', t: p && p.t, no: p && p.no }, ok, ng); },
       reportRosterIssue: function (input, p) { post({ api: 'reportRosterIssue', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w40: シフト（出勤日）の変更
+      getShiftPage: function (p) { get({ api: 'shift', t: p && p.t, no: p && p.no }, ok, ng); },
+      getShiftRooms: function (ymd, campus, p) { get({ api: 'shiftRooms', t: p && p.t, no: p && p.no, ymd: ymd, campus: campus }, ok, ng); },
+      submitShiftRequest: function (input, p) { post({ api: 'submitShiftRequest', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      cancelShiftRequest: function (id, reason, p) { post({ api: 'cancelShiftRequest', t: p && p.t, no: p && p.no, id: id, reason: reason }, ok, ng); },
+      decideShiftRequest: function (id, decision, comment, p) { post({ api: 'decideShiftRequest', t: p && p.t, no: p && p.no, id: id, decision: decision, comment: comment }, ok, ng); },
       // w14: 管理者が質問に返す
       answerQuestion: function (row, at, qno, text, p) { post({ api: 'answerQuestion', t: p && p.t, no: p && p.no, row: row, at: at, qno: qno, text: text }, ok, ng); },
       // w17: ホケホケ
@@ -788,11 +804,11 @@
         if (!document.getElementById('admin').innerHTML) renderAdmin(data);   // 今月の状況より先に、講師シートから出す
         if (data.hoke) {   // w17: 成瀬先生のホケホケ。今日のレッスン・部屋の空き・申請の代わりに
           if (!HOKE.data && !HOKE.loading && data.hokeData && !data.hokeData.error) { HOKE.data = data.hokeData; HOKE.week = 0; }   // w19: ホームと一緒に来た今週のぶん
-          box.innerHTML = trialAskHtml(data) + pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + eventPLHtml(data) + allCardHtml(data) + hokeCardHtml() + trialsHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
+          box.innerHTML = trialAskHtml(data) + pendingQuestionsHtml(data) + pendingHtml(data) + pendingShiftsHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + eventPLHtml(data) + allCardHtml(data) + hokeCardHtml() + trialsHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
           if (!HOKE.data && !HOKE.loading) loadHoke(HOKE.week);
           return;
         }
-        box.innerHTML = trialAskHtml(data) + pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + eventPLHtml(data) + allCardHtml(data) + confirmCardHtml(data) + todayHtml(data) + trialsHtml(data) + roomsCardHtml() + requestsHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
+        box.innerHTML = trialAskHtml(data) + pendingQuestionsHtml(data) + pendingHtml(data) + pendingShiftsHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + eventPLHtml(data) + allCardHtml(data) + confirmCardHtml(data) + todayHtml(data) + trialsHtml(data) + roomsCardHtml() + requestsHtml(data) + shiftCardHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
       }
 
       function kindBadge(k) {
@@ -840,16 +856,35 @@
               + d.students.map(function (s) { return studentRowHtml(data, d, s, true); }).join('') + '</div></div>';
           }).join('') + '</details>';
         }
-        var rest = days.filter(function (d) { return d.ymd !== data.today && (d.rooms.length || d.students.length); });
-        if (rest.length) {
-          html += '<details><summary>明日から1週間（' + rest.length + '日）</summary><div class="week">' + rest.map(function (d) {
-            var rooms = d.rooms.map(function (r) { return r.room + ' ' + r.lesson; }).join('、');
-            var flags = (d.flags || []).map(function (f) { return '<span class="badge' + (f === '体験' ? ' trial' : '') + '">' + esc(f) + '</span>'; }).join('');
-            return '<div class="d"><div>' + esc(d.label) + '</div><div>' + esc(rooms || '—') + ' <span class="rest">' + d.students.length + '名</span>' + flags + '</div></div>';
-          }).join('') + '</div></details>';
-        }
+        html += aheadHtml(data);   // w41: 明日以降の予定（2か月先まで。日を押すと生徒が出る）
         html += '<p class="hint">出欠は押した瞬間に記録され、翌朝、月報の出欠に写ります（先に付けてあればそのまま）。当日欠席は報酬あり、事前キャンセルと休講は振替日に報酬です。</p></div>';
         return html;
+      }
+
+      /* ---- w41 明日以降の予定（2か月先まで） ---- */
+      function aheadHtml(data) {
+        var days = (data.schedule || []).filter(function (d) { return d.ymd > data.today && (d.rooms.length || d.students.length); });
+        if (!days.length) return '';
+        var until = data.studentsUntil || '';
+        var md = function (ymd) { return String(ymd || '').slice(5).replace('-', '/'); };
+        var body = days.map(function (d) {
+          var rooms = d.rooms.map(function (r) { return r.room + ' ' + r.lesson; }).join('、');
+          var flags = (d.flags || []).map(function (f) { return '<span class="badge' + (f === '体験' ? ' trial' : '') + '">' + esc(f) + '</span>'; }).join('');
+          var head = '<div class="d"><div>' + esc(d.label) + '</div><div>' + esc(rooms || '—')
+            + (d.students.length ? ' <span class="rest">' + d.students.length + '名</span>' : '') + flags + '</div></div>';
+          if (d.students.length) {
+            return '<details class="dd"><summary>' + head + '</summary><div class="stu">'
+              + d.students.map(function (s) { return studentRowHtml(data, d, s, false); }).join('') + '</div></details>';
+          }
+          // 生徒の予定がまだ書き出されていない先の日は、部屋と時間だけ
+          var why = (until && d.ymd > until) ? '<div class="meta">生徒の予定は ' + esc(md(until)) + ' までしか出ていません（毎朝ぶん書き足されます）</div>' : '';
+          return '<details class="dd"><summary>' + head + '</summary>' + (why || '<div class="meta">この日の生徒の予定はありません</div>') + '</details>';
+        }).join('');
+        var last = days[days.length - 1];
+        return '<details id="aheadCard"><summary>これからの予定（' + days.length + '日・' + esc(md(last.ymd)) + ' まで）</summary>'
+          + '<div class="week">' + body + '</div>'
+          + '<p class="hint">日を押すとその日の生徒が出ます。出欠は当日になってから押せます。'
+          + '承認された振替・予約もここに出ます。</p></details>';
       }
 
       /* ---- w12 レッスン記録 ---- */
@@ -1870,6 +1905,144 @@
           .withSuccessHandler(function (res) { HOME.pending = (res && res.pending) || []; renderHome(HOME); })
           .withFailureHandler(function (err) { alert('できませんでした。' + err.message); })
           .decideRequest(id, decision, comment, !!force, { t: TOKEN, no: STATE.teacherNo || '' });
+      }
+
+      /* ---- w40 シフト（出勤日）の変更 ---- */
+      var SHIFTD = { loaded: false, loading: false, days: [], end: '', error: '' };
+      var SHF = { off: '', on: '', hm: '16:00', campus: '', room: '', reason: '講師都合', memo: '', rooms: null, roomMsg: '', open: false };
+
+      function shiftCardHtml(data) {
+        var rs = data.shiftRequests || [];
+        var open = rs.filter(function (q) { return q.status === '申請中'; }).length;
+        var html = '<div class="card" id="shiftCard"><h2>シフト（出勤日）の変更' + (open ? '<small>承認待ち ' + open + '件</small>' : '') + '</h2>';
+        html += rs.length ? rs.map(shiftReqHtml).join('') : '<div class="meta">いま出している申請はありません</div>';
+        html += '<details id="shiftForm"' + (SHF.open ? ' open' : '') + '><summary>申請する</summary>' + shiftFormHtml(data) + '</details>'
+          + '<p class="hint">「この日を休む」「この日に出勤日を足す」を、今年度（' + esc(data.shiftEnd || '') + 'まで）のどの日でも申請できます。'
+          + '承認されるとシフト表が書き換わり、1時間ほどで稼働表と部屋カレンダーに反映されます。'
+          + '<b>休む日の生徒は、別に振替の申請が必要です。</b>毎週の曜日を変えるご相談は日置さんへ直接お願いします。</p></div>';
+        return html;
+      }
+
+      function shiftReqHtml(q) {
+        var sub = (q.reason ? esc(q.reason) : '') + (q.memo ? ' ／ ' + esc(q.memo) : '')
+          + (q.comment ? '<br>日置: ' + esc(q.comment) : '') + (q.cancelReason ? '<br>取り消し: ' + esc(q.cancelReason) : '');
+        var btn = '';
+        if (q.status === '申請中') btn = '<button class="no" onclick="cancelShift(\'' + esc(q.id) + '\', \'取り下げ\')">取り下げ</button>';
+        else if (q.status === '承認') btn = '<button class="no" onclick="cancelShift(\'' + esc(q.id) + '\', \'取り消し\')">取り消す</button>';
+        return '<div class="req"><div class="body"><div>' + esc(q.line || '') + '</div><div class="sub">' + sub + '</div>' + stLabel(q) + '</div>' + btn + '</div>';
+      }
+
+      function shiftFormHtml(data) {
+        if (SHIFTD.loading) return '<div class="meta">出勤日を読んでいます…</div>';
+        if (!SHIFTD.loaded) return '<div class="meta"><button class="p" onclick="loadShiftDays()">出勤日を読み込む</button></div>';
+        if (SHIFTD.error) return '<div class="meta ng">' + esc(SHIFTD.error) + '</div>';
+        var offOpts = '<option value="">休まない</option>' + (SHIFTD.days || []).map(function (d) {
+          return '<option value="' + esc(d.ymd) + '"' + (d.ymd === SHF.off ? ' selected' : '') + '>' + esc(d.label) + ' ' + esc(d.hm) + ' ' + esc(d.room) + '</option>';
+        }).join('');
+        var groups = data.roomGroups || [];
+        var pills = function (name, list, cur) {
+          return '<div class="pills">' + list.map(function (v) { return '<button type="button" class="' + (v === cur ? 'on' : '') + '" onclick="shiftPick(\'' + name + '\', \'' + esc(v) + '\')">' + esc(v) + '</button>'; }).join('') + '</div>';
+        };
+        var html = '<div class="rf"><label>休む日<select id="sf_off" onchange="SHF.off=this.value">' + offOpts + '</select></label>';
+        html += '<label>出勤日を足す日<input type="date" id="sf_on" value="' + esc(SHF.on) + '" min="' + esc(data.today || '') + '" max="' + esc(data.shiftEnd || '') + '" onchange="shiftOnDay(this.value)"></label>';
+        if (SHF.on) {
+          html += '<label>開始時刻<select id="sf_hm" onchange="SHF.hm=this.value">' + timeOptions(SHF.hm) + '</select></label>';
+          html += '<div class="meta">校舎</div>' + pills('campus', groups.map(function (g) { return g.campus; }), SHF.campus);
+          if (SHF.roomMsg) html += '<div class="meta ng">' + esc(SHF.roomMsg) + '</div>';
+          else if (SHF.rooms) html += '<div class="meta">部屋（この日に空いているものだけ）</div>' + pills('room', SHF.rooms, SHF.room);
+          else html += '<div class="meta">部屋を調べています…</div>';
+        }
+        html += '<div class="meta">理由</div>' + pills('reason', (data.reasons || ['講師都合', '生徒都合', 'その他']), SHF.reason);
+        html += '<label>メモ（任意）<input id="sf_memo" value="' + esc(SHF.memo) + '" oninput="SHF.memo=this.value" placeholder="子の学校行事のため など"></label>';
+        html += '<div class="btns"><button class="p" onclick="sendShift()">申請する</button></div></div>';
+        return html;
+      }
+
+      function loadShiftDays() {
+        SHIFTD.loading = true; SHF.open = true; renderHome(HOME);
+        google.script.run
+          .withSuccessHandler(function (res) {
+            SHIFTD = { loaded: true, loading: false, days: (res && res.days) || [], end: (res && res.end) || '', error: (res && res.error) || '' };
+            renderHome(HOME);
+          })
+          .withFailureHandler(function (err) {
+            SHIFTD = { loaded: true, loading: false, days: [], end: '', error: '読めませんでした。' + err.message };
+            renderHome(HOME);
+          })
+          .getShiftPage({ t: TOKEN, no: STATE.teacherNo || '' });
+      }
+
+      function shiftPick(name, v) {
+        SHF[name] = v;
+        if (name === 'campus') { SHF.rooms = null; SHF.room = ''; SHF.roomMsg = ''; loadShiftRooms(); }
+        SHF.open = true;
+        renderHome(HOME);
+      }
+
+      function shiftOnDay(v) {
+        SHF.on = v; SHF.rooms = null; SHF.room = ''; SHF.roomMsg = ''; SHF.open = true;
+        if (v) loadShiftRooms();
+        renderHome(HOME);
+      }
+
+      function loadShiftRooms() {
+        if (!SHF.on) return;
+        var groups = (HOME && HOME.roomGroups) || [];
+        if (!SHF.campus && groups.length) SHF.campus = groups[0].campus;
+        google.script.run
+          .withSuccessHandler(function (res) {
+            SHF.rooms = (res && res.free) || [];
+            SHF.roomMsg = (res && res.error) || '';
+            SHF.room = (res && res.suggest) || (SHF.rooms[0] || '');
+            renderHome(HOME);
+          })
+          .withFailureHandler(function (err) { SHF.rooms = []; SHF.roomMsg = '部屋を調べられませんでした。' + err.message; renderHome(HOME); })
+          .getShiftRooms(SHF.on, SHF.campus, { t: TOKEN, no: STATE.teacherNo || '' });
+      }
+
+      function sendShift() {
+        if (!SHF.off && !SHF.on) { alert('休む日か、出勤日を足す日のどちらかを選んでください'); return; }
+        if (SHF.on && !SHF.room) { alert('足す日の部屋を選んでください'); return; }
+        if (SHF.off && !SHF.on && !confirm('この日を休むだけで、出勤日を足しません。今年度の回数が1回減りますがよろしいですか？')) return;
+        google.script.run
+          .withSuccessHandler(function () {
+            SHF = { off: '', on: '', hm: '16:00', campus: '', room: '', reason: '講師都合', memo: '', rooms: null, roomMsg: '', open: false };
+            SHIFTD.loaded = false;
+            alert('申請しました。日置さんが承認するとシフト表に反映されます。');
+            load();
+          })
+          .withFailureHandler(function (err) { alert('申請できませんでした。' + err.message); })
+          .submitShiftRequest({ offYmd: SHF.off, onYmd: SHF.on, hm: SHF.hm, campus: SHF.campus, room: SHF.room, reason: SHF.reason, memo: SHF.memo },
+            { t: TOKEN, no: STATE.teacherNo || '' });
+      }
+
+      function cancelShift(id, what) {
+        var reason = prompt(what + 'の理由（任意）', '');
+        if (reason === null) return;
+        google.script.run
+          .withSuccessHandler(function () { SHIFTD.loaded = false; load(); })
+          .withFailureHandler(function (err) { alert(what + 'できませんでした。' + err.message); })
+          .cancelShiftRequest(id, reason, { t: TOKEN, no: STATE.teacherNo || '' });
+      }
+
+      function pendingShiftsHtml(data) {
+        var ps = data.pendingShifts || [];
+        if (!data.admin || !ps.length) return '';
+        return '<div class="card pending" id="pendShiftCard"><h2>承認待ちのシフト変更<small>' + ps.length + '件</small></h2>' + ps.map(function (q) {
+          return '<div class="pend"><div><b>' + esc(q.name) + ' 先生</b>　' + esc(q.line || '') + '</div>'
+            + '<div class="sub">' + esc(q.reason || '') + (q.memo ? ' ／ ' + esc(q.memo) : '') + '　（' + esc(q.at) + ' 申請）</div>'
+            + '<div class="btns"><button class="p" onclick="decideShift(\'' + esc(q.id) + '\', \'ok\')">承認</button>'
+            + '<button class="no" onclick="decideShift(\'' + esc(q.id) + '\', \'ng\')">却下</button></div></div>';
+        }).join('') + '<p class="hint">承認するとマンツーシフトの月シフト表が書き換わり、1時間ほどで稼働表と部屋カレンダーに反映されます。</p></div>';
+      }
+
+      function decideShift(id, decision) {
+        var comment = prompt(decision === 'ok' ? '先生への一言（任意）' : '却下の理由（先生に届きます）', '');
+        if (comment === null) return;
+        google.script.run
+          .withSuccessHandler(function (res) { HOME.pendingShifts = (res && res.pendingShifts) || []; renderHome(HOME); })
+          .withFailureHandler(function (err) { alert('できませんでした。' + err.message); })
+          .decideShiftRequest(id, decision, comment, { t: TOKEN, no: STATE.teacherNo || '' });
       }
 
       function renderCenter(msg) {
