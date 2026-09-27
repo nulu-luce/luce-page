@@ -247,6 +247,12 @@
       // w29: 担当生徒の登録内容と「違う」
       getRosterPage: function (p) { get({ api: 'roster', t: p && p.t, no: p && p.no }, ok, ng); },
       reportRosterIssue: function (input, p) { post({ api: 'reportRosterIssue', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w40: シフト（出勤日）の変更
+      getShiftPage: function (p) { get({ api: 'shift', t: p && p.t, no: p && p.no }, ok, ng); },
+      getShiftRooms: function (ymd, campus, p) { get({ api: 'shiftRooms', t: p && p.t, no: p && p.no, ymd: ymd, campus: campus }, ok, ng); },
+      submitShiftRequest: function (input, p) { post({ api: 'submitShiftRequest', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      cancelShiftRequest: function (id, reason, p) { post({ api: 'cancelShiftRequest', t: p && p.t, no: p && p.no, id: id, reason: reason }, ok, ng); },
+      decideShiftRequest: function (id, decision, comment, p) { post({ api: 'decideShiftRequest', t: p && p.t, no: p && p.no, id: id, decision: decision, comment: comment }, ok, ng); },
       // w14: 管理者が質問に返す
       answerQuestion: function (row, at, qno, text, p) { post({ api: 'answerQuestion', t: p && p.t, no: p && p.no, row: row, at: at, qno: qno, text: text }, ok, ng); },
       // w17: ホケホケ
