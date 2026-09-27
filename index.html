@@ -197,6 +197,21 @@
       .docs .dr a { font-weight: 600; color: var(--accent); text-decoration: none; }
       .docs .dr .dt { font-size: 12px; color: var(--muted); margin-left: 8px; white-space: nowrap; }
       .docs .dr .ds { font-size: 13.5px; color: var(--muted); }
+      /* w39 イベント収支（管理者） */
+      .epl .er { border-top: 1px solid var(--rule); padding: 8px 0; }
+      .epl .er:first-of-type { border-top: 0; padding-top: 2px; }
+      .epl .eh { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+      .epl .eh .d { font-weight: 700; font-variant-numeric: tabular-nums; }
+      .epl .eh .n { font-weight: 600; }
+      .epl .eh .f { font-size: 12.5px; color: var(--muted); }
+      .epl .eb { display: flex; gap: 6px 14px; flex-wrap: wrap; font-size: 13.5px; margin-top: 3px; font-variant-numeric: tabular-nums; }
+      .epl .eb .ok { color: var(--ok); }
+      .epl .eb .no { color: var(--caution); }
+      .epl .eb .p b { color: var(--accent); }
+      .epl details summary { font-size: 13px; color: var(--muted); margin-top: 4px; }
+      .epl .ci { display: flex; gap: 8px; font-size: 13px; padding: 2px 0 2px 10px; }
+      .epl .ci b { font-variant-numeric: tabular-nums; }
+      .epl .ci small { color: var(--muted); }
       /* w37 体験レッスン（自分の担当分。メモはこの画面だけ）と、体験の結果 */
       .trials .tr { border-top: 1px solid var(--rule); padding: 7px 0; }
       .trials .tr:first-of-type { border-top: 0; padding-top: 2px; }
@@ -595,6 +610,8 @@
       saveCashReceipt: function (input, p) { post({ api: 'saveCashReceipt', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w37: 体験の結果（入会・検討・未入会）
       saveTrialResult: function (input, p) { post({ api: 'saveTrialResult', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w39: イベントの会費
+      collectEventFee: function (input, p) { post({ api: 'collectEventFee', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w33: 締めチェック（管理者）
       setChecklistItem: function (input, p) { post({ api: 'setChecklistItem', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w27: 全先生の今月（管理者）
@@ -771,11 +788,11 @@
         if (!document.getElementById('admin').innerHTML) renderAdmin(data);   // 今月の状況より先に、講師シートから出す
         if (data.hoke) {   // w17: 成瀬先生のホケホケ。今日のレッスン・部屋の空き・申請の代わりに
           if (!HOKE.data && !HOKE.loading && data.hokeData && !data.hokeData.error) { HOKE.data = data.hokeData; HOKE.week = 0; }   // w19: ホームと一緒に来た今週のぶん
-          box.innerHTML = trialAskHtml(data) + pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + allCardHtml(data) + hokeCardHtml() + trialsHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
+          box.innerHTML = trialAskHtml(data) + pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + eventPLHtml(data) + allCardHtml(data) + hokeCardHtml() + trialsHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
           if (!HOKE.data && !HOKE.loading) loadHoke(HOKE.week);
           return;
         }
-        box.innerHTML = trialAskHtml(data) + pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + allCardHtml(data) + confirmCardHtml(data) + todayHtml(data) + trialsHtml(data) + roomsCardHtml() + requestsHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
+        box.innerHTML = trialAskHtml(data) + pendingQuestionsHtml(data) + pendingHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + eventPLHtml(data) + allCardHtml(data) + confirmCardHtml(data) + todayHtml(data) + trialsHtml(data) + roomsCardHtml() + requestsHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
       }
 
       function kindBadge(k) {
@@ -1136,6 +1153,38 @@
       function linkify(text) {
         return esc(text).replace(/(https?:\/\/[^\s<]+)/g, function (u) { return '<a href="' + u + '" target="_blank" rel="noopener">' + u + '</a>'; });
       }
+      /* ---- w39 イベント収支（管理者だけ。売上＝参加人数×会費、経費はイベント経費シート） ---- */
+      function eventPLHtml(data) {
+        var p = data.eventPL;
+        if (!p) return '';
+        var rows = p.rows || [];
+        var html = '<div class="card epl"><h2>イベント収支' + (rows.length ? '<small>' + rows.length + '件</small>' : '') + '</h2>';
+        if (p.error) return html + '<div class="banner err">' + esc(p.error) + '</div></div>';
+        if (!rows.length) return html + '<div class="meta">会費のあるイベントも経費もまだありません</div></div>';
+        var one = function (e) {
+          return '<div class="er"><div class="eh"><span class="d">' + esc(e.dateJa) + '</span><span class="n">' + esc(e.name) + '</span>'
+            + (e.fee ? '<span class="f">会費 ' + esc(yen(e.fee)) + '</span>' : '') + '</div>'
+            + '<div class="eb">'
+            + '<span>参加 <b>' + e.join + '</b>名</span>'
+            + '<span>売上 <b>' + esc(yen(e.revenue)) + '</b></span>'
+            + (e.fee ? '<span class="' + (e.unpaidCount ? 'no' : 'ok') + '">集金 <b>' + esc(yen(e.paid)) + '</b>'
+              + (e.unpaidCount ? '（未 ' + e.unpaidCount + '名 ' + esc(yen(e.unpaid)) + '）' : '（全員）') + '</span>' : '')
+            + '<span>経費 <b>' + esc(yen(e.cost)) + '</b></span>'
+            + '<span class="p">利益 <b>' + esc(yen(e.profit)) + '</b></span>'
+            + '</div>'
+            + (e.costItems && e.costItems.length
+              ? '<details><summary>経費の内訳（' + e.costItems.length + '件）</summary>'
+                + e.costItems.map(function (c) { return '<div class="ci">' + esc(c.item || '（項目なし）') + '<b>' + esc(yen(c.amount)) + '</b>'
+                  + (c.to ? '<small>' + esc(c.to) + '</small>' : '') + '</div>'; }).join('') + '</details>'
+              : '') + '</div>';
+        };
+        html += rows.slice(0, 4).map(one).join('');
+        if (rows.length > 4) {
+          html += '<details><summary>前のイベント（' + (rows.length - 4) + '件）</summary>' + rows.slice(4).map(one).join('') + '</details>';
+        }
+        return html + '<p class="hint">売上は「参加」の人数 × 会費です。先生が「集めた」を押すと集金に入り、翌朝その生徒の月謝明細の「その他※現金徴収」に入ります（先生の支払いから差し引かれます）。経費はイベント運営ブックの「イベント経費」シートに 項目と金額 を書いてください。</p></div>';
+      }
+
       /* ---- w37 体験レッスン（自分が担当する分だけ。メモはこの画面にしか出ない） ---- */
       function trialsHtml(data) {
         var ts = data.trials || [];
