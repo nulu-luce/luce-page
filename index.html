@@ -370,6 +370,15 @@
       .unrec { background: var(--caution-soft); color: var(--caution); border-radius: 8px; padding: 6px 10px; font-size: 13.5px; margin: 0 0 8px; }
       /* w42: 昨日まで（日ごとに開く）と 予約・特別レッスンのカード */
       .unrecb { display: inline-block; margin-left: 8px; font-size: 12px; font-weight: 600; color: var(--caution); background: var(--caution-soft); border-radius: 999px; padding: 1px 8px; }
+      /* w43: 翌月の確認 */
+      .nlist { display: grid; gap: 6px; margin: 8px 0; }
+      .nrow { border-top: 1px solid var(--rule); padding-top: 6px; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; justify-content: space-between; }
+      .nrow:first-child { border-top: 0; padding-top: 0; }
+      .nrow .nn { font-weight: 600; display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+      .nrow .nn .meta { font-weight: 400; }
+      .nrow .ns { flex-basis: 100%; color: var(--muted); font-size: 13px; }
+      .nbtns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+      .badge.ok { background: var(--ok-soft, #e8f4ec); color: var(--ok, #2f7d4f); }
       .blist { display: grid; gap: 6px; }
       .brow { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: space-between; border-top: 1px solid var(--rule); padding-top: 6px; }
       .brow:first-child { border-top: 0; padding-top: 0; }
@@ -634,6 +643,10 @@
       collectEventFee: function (input, p) { post({ api: 'collectEventFee', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w33: 締めチェック（管理者）
       setChecklistItem: function (input, p) { post({ api: 'setChecklistItem', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w43: 翌月の確認
+      saveNextMonth: function (input, p) { post({ api: 'saveNextMonth', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      deleteNextMonth: function (input, p) { post({ api: 'deleteNextMonth', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      confirmNextMonth: function (input, p) { post({ api: 'confirmNextMonth', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w27: 全先生の今月（管理者）
       getAllTeachersPage: function (p) { get({ api: 'allTeachers', t: p && p.t, no: p && p.no }, ok, ng); },
       // w29: 担当生徒の登録内容と「違う」
@@ -814,11 +827,11 @@
         if (!document.getElementById('admin').innerHTML) renderAdmin(data);   // 今月の状況より先に、講師シートから出す
         if (data.hoke) {   // w17: 成瀬先生のホケホケ。今日のレッスン・部屋の空き・申請の代わりに
           if (!HOKE.data && !HOKE.loading && data.hokeData && !data.hokeData.error) { HOKE.data = data.hokeData; HOKE.week = 0; }   // w19: ホームと一緒に来た今週のぶん
-          box.innerHTML = trialAskHtml(data) + pendingQuestionsHtml(data) + pendingHtml(data) + pendingShiftsHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + eventPLHtml(data) + allCardHtml(data) + hokeCardHtml() + trialsHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
+          box.innerHTML = trialAskHtml(data) + pendingQuestionsHtml(data) + pendingHtml(data) + pendingShiftsHtml(data) + confirmAdminHtml(data) + nextAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + eventPLHtml(data) + allCardHtml(data) + hokeCardHtml() + trialsHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
           if (!HOKE.data && !HOKE.loading) loadHoke(HOKE.week);
           return;
         }
-        box.innerHTML = trialAskHtml(data) + pendingQuestionsHtml(data) + pendingHtml(data) + pendingShiftsHtml(data) + confirmAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + eventPLHtml(data) + allCardHtml(data) + confirmCardHtml(data) + todayHtml(data) + bookStudentsHtml(data) + trialsHtml(data) + roomsCardHtml() + requestsHtml(data) + shiftCardHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
+        box.innerHTML = trialAskHtml(data) + pendingQuestionsHtml(data) + pendingHtml(data) + pendingShiftsHtml(data) + confirmAdminHtml(data) + nextAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + eventPLHtml(data) + allCardHtml(data) + confirmCardHtml(data) + nextCardHtml(data) + todayHtml(data) + bookStudentsHtml(data) + trialsHtml(data) + roomsCardHtml() + requestsHtml(data) + shiftCardHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
       }
 
       function kindBadge(k) {
@@ -877,6 +890,111 @@
         }
         html += aheadHtml(data);   // w41: 明日以降の予定（2か月先まで。日を押すと生徒が出る）
         html += '<p class="hint">出欠は押した瞬間に記録され、翌朝、月報の出欠に写ります（先に付けてあればそのまま）。当日欠席は報酬あり、事前キャンセルと休講は振替日に報酬です。</p></div>';
+        return html;
+      }
+
+      /* ---- w43 翌月の確認（レベル変更・休会・復帰・退会。毎月15〜23日） ---- */
+      var NEXTF = { open: false, student: '', kind: '', msg: '' };
+      function nextHint(kind) {
+        if (kind === 'レベル（コース）変更') return '新しいレベル（例: 初級２(30分)）';
+        if (kind === '翌月から休会') return '戻る予定（分かれば。例: 2027年1月から）';
+        if (kind === '休会から戻る') return '戻る日（例: 11/1 から）';
+        if (kind === '今月で退会') return '最終レッスン日（例: 10/28）';
+        return '内容';
+      }
+      function nextCardHtml(data) {
+        var n = data.next || {};
+        if (!n.show) return '';
+        var kinds = n.kinds || [];
+        var items = n.items || [];
+        var html = '<div class="card nextm"><h2>翌月の確認<small>' + esc(n.label || '') + '・' + (n.until || 23) + '日まで</small></h2>';
+        html += '<div class="meta">翌月から<b>レベル（コース）が変わる</b>・<b>休会する</b>・<b>休会から戻る</b>・<b>今月で退会する</b>生徒がいれば入れてください。'
+          + '変更のある生徒だけで大丈夫です。日置が名簿を直します。</div>';
+        if (items.length) {
+          html += '<div class="nlist">' + items.map(function (x) {
+            return '<div class="nrow"><div class="nn">' + esc(x.sname) + '<span class="badge">' + esc(x.kind) + '</span>'
+              + (x.detail ? '<span class="meta">' + esc(x.detail) + '</span>' : '')
+              + (x.state ? '<span class="badge ok">' + esc(x.state) + '</span>' : '') + '</div>'
+              + (x.memo ? '<div class="ns">' + esc(x.memo) + '</div>' : '')
+              + '<button type="button" class="dbtn" onclick="nextDel(' + x.row + ')">消す</button></div>';
+          }).join('') + '</div>';
+        }
+        if (n.done) {
+          html += '<div class="cst ok">確認おわり（' + esc(String(n.doneAt || '').slice(5, 16)) + '）ありがとうございます。'
+            + '<button type="button" class="cbtn" onclick="nextDone(true)">やっぱり直す</button></div>';
+        } else {
+          if (!NEXTF.open) {
+            html += '<div class="nbtns"><button type="button" class="send p" onclick="nextToggle(true)">＋ 変更がある生徒を入れる</button>'
+              + '<button type="button" class="send" onclick="nextDone(false)">' + (items.length ? '以上です（これで全部）' : '変更はありません') + '</button></div>';
+          } else {
+            var stOpts = '<option value="">選んでください</option>' + (data.students || []).map(function (st) {
+              return '<option value="' + esc(st.id || st.name) + '"' + ((st.id || st.name) === NEXTF.student ? ' selected' : '') + '>' + esc(st.name) + (st.level ? '（' + esc(st.level) + '）' : '') + '</option>';
+            }).join('') + '<option value="__other"' + (NEXTF.student === '__other' ? ' selected' : '') + '>一覧にない生徒</option>';
+            html += '<div class="rform" id="nextFormBody">'
+              + '<div><label>生徒</label><select id="nx_student" onchange="nextStudent(this.value)">' + stOpts + '</select>'
+              + '<input id="nx_sname" placeholder="生徒の名前" style="margin-top:6px' + (NEXTF.student === '__other' ? '' : ';display:none') + '"></div>'
+              + '<div><label>種類</label><div class="pills">' + kinds.map(function (k) {
+                return '<button type="button" class="' + (k === NEXTF.kind ? 'on' : '') + '" onclick="nextPick(\'' + esc(k) + '\')">' + esc(k) + '</button>';
+              }).join('') + '</div></div>'
+              + '<div><label>内容' + (NEXTF.kind === 'レベル（コース）変更' ? '' : '（任意）') + '</label><input id="nx_detail" placeholder="' + esc(nextHint(NEXTF.kind)) + '"></div>'
+              + '<div><label>補足（任意）</label><input id="nx_memo" placeholder="例: ご家庭の都合で3か月お休み"></div>'
+              + '<div><button type="button" class="send p" id="nx_send" onclick="nextSave()">入れる</button> '
+              + '<button type="button" class="send" onclick="nextToggle(false)">やめる</button></div>'
+              + '<div class="sent">' + esc(NEXTF.msg || '') + '</div></div>';
+          }
+        }
+        html += '<p class="hint">名簿の締めは25日、翌月分のファイルは27日に作られます。ここに入れたものは日置に届きます（名簿を直すのは日置です）。</p></div>';
+        return html;
+      }
+      function nextToggle(open) { NEXTF.open = !!open; NEXTF.msg = ''; renderHome(HOME); if (open) { var el = document.getElementById('nextFormBody'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' }); } }
+      function nextPick(k) { NEXTF.kind = k; var keep = { detail: (document.getElementById('nx_detail') || {}).value, memo: (document.getElementById('nx_memo') || {}).value }; renderHome(HOME); var d = document.getElementById('nx_detail'), m = document.getElementById('nx_memo'); if (d) d.value = keep.detail || ''; if (m) m.value = keep.memo || ''; }
+      function nextStudent(v) { NEXTF.student = v; var el = document.getElementById('nx_sname'); if (el) el.style.display = v === '__other' ? '' : 'none'; }
+      function nextSave() {
+        var g = function (id) { var el = document.getElementById(id); return el ? el.value : ''; };
+        var st = g('nx_student');
+        var student = (HOME.students || []).filter(function (x) { return (x.id || x.name) === st; })[0];
+        var input = { ym: (HOME.next || {}).ym, studentId: student ? student.id : '', studentName: student ? student.name : (st === '__other' ? g('nx_sname').trim() : ''),
+          kind: NEXTF.kind, detail: g('nx_detail').trim(), memo: g('nx_memo').trim() };
+        if (!input.studentName) { alert('生徒を選んでください'); return; }
+        if (!input.kind) { alert('種類を選んでください'); return; }
+        var btn = document.getElementById('nx_send'); btn.disabled = true; btn.textContent = '送信中…';
+        google.script.run
+          .withSuccessHandler(function (res) { HOME.next = (res && res.next) || HOME.next; NEXTF.open = false; NEXTF.student = ''; NEXTF.kind = ''; renderHome(HOME); })
+          .withFailureHandler(function (err) { btn.disabled = false; btn.textContent = '入れる'; alert('入れられませんでした。' + err.message); })
+          .saveNextMonth(input, { t: TOKEN, no: STATE.teacherNo || '' });
+      }
+      function nextDel(row) {
+        if (!confirm('この行を消します。よろしいですか。')) return;
+        google.script.run
+          .withSuccessHandler(function (res) { HOME.next = (res && res.next) || HOME.next; renderHome(HOME); })
+          .withFailureHandler(function (err) { alert('消せませんでした。' + err.message); })
+          .deleteNextMonth({ row: row }, { t: TOKEN, no: STATE.teacherNo || '' });
+      }
+      function nextDone(off) {
+        google.script.run
+          .withSuccessHandler(function (res) { HOME.next = (res && res.next) || HOME.next; renderHome(HOME); })
+          .withFailureHandler(function (err) { alert('送れませんでした。' + err.message); })
+          .confirmNextMonth({ off: !!off }, { t: TOKEN, no: STATE.teacherNo || '' });
+      }
+
+      /* ---- w43 管理者のまとめ ---- */
+      function nextAdminHtml(data) {
+        var n = data.nextSummary;
+        if (!n || !data.admin) return '';
+        if (!n.items.length && !n.pending.length && !n.done.length) return '';
+        var html = '<div class="card nextm"><h2>翌月の確認<small>' + esc(n.label || '') + '</small></h2>'
+          + '<div class="cst">答えた先生 ' + n.done.length + ' 名 / まだ ' + n.pending.length + ' 名'
+          + '　変更 ' + n.items.length + ' 件（名簿に未反映 ' + n.unhandled + ' 件）</div>';
+        if (n.items.length) {
+          html += '<div class="nlist">' + n.items.map(function (x) {
+            return '<div class="nrow"><div class="nn">' + esc(x.name) + '<span class="meta">' + esc(x.sname) + '</span>'
+              + '<span class="badge">' + esc(x.kind) + '</span>' + (x.detail ? '<span class="meta">' + esc(x.detail) + '</span>' : '')
+              + (x.state ? '<span class="badge ok">' + esc(x.state) + '</span>' : '') + '</div>'
+              + (x.memo ? '<div class="ns">' + esc(x.memo) + '</div>' : '') + '</div>';
+          }).join('') + '</div>';
+        }
+        if (n.pending.length) html += '<div class="cnames">まだの先生: ' + esc(n.pending.join('、')) + '</div>';
+        html += '<p class="hint">名簿を直したら、講師運営ブックの「翌月の確認」シートの「状態」に「反映済み」と入れてください。</p></div>';
         return html;
       }
 
@@ -1294,10 +1412,40 @@
               + (t.overdue ? '<span class="late">1週間過ぎています</span>' : '') + '</div>'
               + '<div class="tn">' + esc(t.name) + ' さん' + (t.grade ? '<span class="g">' + esc(t.grade) + '</span>' : '') + '</div>'
               + '<div class="tb">' + opts.map(function (o) {
-                return '<button onclick="sendTrialResult(\'' + esc(t.key) + '\', \'' + esc(o) + '\', this)">' + esc(o) + '</button>';
-              }).join('') + '</div></div>';
+                return '<button onclick="' + (o === '入会' ? 'trialJoin(\'' + esc(t.key) + '\')' : 'sendTrialResult(\'' + esc(t.key) + '\', \'' + esc(o) + '\', this)') + '">' + esc(o) + '</button>';
+              }).join('') + '</div>'
+              + (TRIALJ.key === t.key ? trialJoinFormHtml(t) : '') + '</div>';
           }).join('')
           + '<p class="hint">体験が終わったら押してください（押すまでここに出ます）。「検討」はお返事待ちのときに。押し間違えても、日置に言えば直せます。</p></div>';
+      }
+
+      /* ---- w43: 「入会」を押したら レッスン開始日・支払い方法・コース を続けて聞く ---- */
+      var TRIALJ = { key: '' };
+      function trialJoin(key) { TRIALJ.key = key; renderHome(HOME); var el = document.getElementById('tj_form'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' }); }
+      function trialJoinFormHtml(t) {
+        var ways = ['クレジット（STORES）', '現金'];
+        return '<div class="rform" id="tj_form" style="margin-top:8px">'
+          + '<div><b>' + esc(t.name) + ' さん 入会</b>（分かるものだけで大丈夫です）</div>'
+          + '<div class="inline"><div><label>レッスン開始日</label><input type="date" id="tj_start"></div>'
+          + '<div><label>コース</label><input id="tj_course" placeholder="例: 初級１(30分)"></div></div>'
+          + '<div><label>月謝の支払い方法</label><div class="pills" id="tj_pays">' + ways.map(function (w) {
+            return '<button type="button" onclick="tjPay(this)">' + esc(w) + '</button>';
+          }).join('') + '</div></div>'
+          + '<div><button type="button" class="send p" id="tj_send" onclick="trialJoinSend(\'' + esc(t.key) + '\')">入会で送る</button> '
+          + '<button type="button" class="send" onclick="trialJoin(\'\')">やめる</button></div></div>';
+      }
+      function tjPay(btn) {
+        var box = document.getElementById('tj_pays');
+        if (box) Array.prototype.forEach.call(box.getElementsByTagName('button'), function (b) { b.className = b === btn ? 'on' : ''; });
+      }
+      function trialJoinSend(key) {
+        var g = function (id) { var el = document.getElementById(id); return el ? el.value : ''; };
+        var on = document.querySelector('#tj_pays button.on');
+        var btn = document.getElementById('tj_send'); btn.disabled = true; btn.textContent = '送信中…';
+        google.script.run
+          .withSuccessHandler(function (res) { TRIALJ.key = ''; HOME.trialResults = (res && res.trialResults) || []; renderHome(HOME); })
+          .withFailureHandler(function (err) { btn.disabled = false; btn.textContent = '入会で送る'; alert('送れませんでした。' + err.message); })
+          .saveTrialResult({ key: key, result: '入会', start: g('tj_start'), pay: on ? on.textContent : '', course: g('tj_course').trim() }, { t: TOKEN, no: STATE.teacherNo || '' });
       }
 
       function sendTrialResult(key, result, btn) {
