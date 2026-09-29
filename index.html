@@ -224,6 +224,8 @@
       .trials .tn, .trialask .tn { font-weight: 600; margin-top: 2px; }
       .trials .tn .g, .trialask .tn .g { font-weight: 400; font-size: 13px; color: var(--muted); margin-left: 6px; }
       .trials .tm { font-size: 13.5px; color: var(--muted); white-space: pre-wrap; margin-top: 3px; }
+      .trials .ti { font-size: 13.5px; white-space: pre-wrap; margin-top: 3px; }
+      .trials .ti b { font-size: 12px; font-weight: 700; color: var(--accent); margin-right: 6px; }
       .card.trialask { border: 1.5px solid var(--accent); }
       .card.trialask.over { border-color: var(--caution); }
       .trialask .ta { border-top: 1px solid var(--rule); padding: 8px 0; }
@@ -1393,9 +1395,10 @@
               + '<span class="t">' + esc(t.time || '時刻未定') + '</span>'
               + (t.campus ? '<span class="c">' + esc(t.campus) + '</span>' : '') + mark + '</div>'
               + '<div class="tn">' + esc(t.name) + ' さん' + (who ? '<span class="g">' + esc(who) + '</span>' : '') + '</div>'
+              + (t.info ? '<div class="ti"><b>事前情報</b>' + esc(t.info) + '</div>' : '')
               + (t.note ? '<div class="tm">' + linkify(t.note) + '</div>' : '') + '</div>';
           }).join('')
-          + '<p class="hint">ご自分が担当する体験です（この先の分は全部出ます）。メモ（ご家庭の連絡先など）はこの画面にしか出ません。Google Chat に流しているのは 日程・時間・校舎・講師名・生徒名・学年 だけです。</p></div>';
+          + '<p class="hint">ご自分が担当する体験です（この先の分は全部、登録されたらすぐ出ます）。事前情報とメモ（ご家庭の連絡先など）はこの画面にしか出ません。Google Chat に流しているのは 日程・時間・校舎・講師名・生徒名・学年 だけです。</p></div>';
       }
 
       /* ---- w37 体験の結果（入会・検討・未入会）。押すまでいちばん上に出る ---- */
