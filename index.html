@@ -829,11 +829,11 @@
         if (!document.getElementById('admin').innerHTML) renderAdmin(data);   // 今月の状況より先に、講師シートから出す
         if (data.hoke) {   // w17: 成瀬先生のホケホケ。今日のレッスン・部屋の空き・申請の代わりに
           if (!HOKE.data && !HOKE.loading && data.hokeData && !data.hokeData.error) { HOKE.data = data.hokeData; HOKE.week = 0; }   // w19: ホームと一緒に来た今週のぶん
-          box.innerHTML = trialAskHtml(data) + pendingQuestionsHtml(data) + pendingHtml(data) + pendingShiftsHtml(data) + confirmAdminHtml(data) + nextAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + eventPLHtml(data) + allCardHtml(data) + hokeCardHtml() + trialsHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
+          box.innerHTML = trialAskHtml(data) + pendingQuestionsHtml(data) + pendingHtml(data) + pendingShiftsHtml(data) + confirmAdminHtml(data) + nextAdminHtml(data) + nextIssuesHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + eventPLHtml(data) + allCardHtml(data) + hokeCardHtml() + trialsHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
           if (!HOKE.data && !HOKE.loading) loadHoke(HOKE.week);
           return;
         }
-        box.innerHTML = trialAskHtml(data) + pendingQuestionsHtml(data) + pendingHtml(data) + pendingShiftsHtml(data) + confirmAdminHtml(data) + nextAdminHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + eventPLHtml(data) + allCardHtml(data) + confirmCardHtml(data) + nextCardHtml(data) + todayHtml(data) + bookStudentsHtml(data) + trialsHtml(data) + roomsCardHtml() + requestsHtml(data) + shiftCardHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
+        box.innerHTML = trialAskHtml(data) + pendingQuestionsHtml(data) + pendingHtml(data) + pendingShiftsHtml(data) + confirmAdminHtml(data) + nextAdminHtml(data) + nextIssuesHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + eventPLHtml(data) + allCardHtml(data) + confirmCardHtml(data) + nextCardHtml(data) + todayHtml(data) + bookStudentsHtml(data) + trialsHtml(data) + roomsCardHtml() + requestsHtml(data) + shiftCardHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
       }
 
       function kindBadge(k) {
@@ -996,8 +996,28 @@
           }).join('') + '</div>';
         }
         if (n.pending.length) html += '<div class="cnames">まだの先生: ' + esc(n.pending.join('、')) + '</div>';
-        html += '<p class="hint">名簿を直したら、講師運営ブックの「翌月の確認」シートの「状態」に「反映済み」と入れてください。</p></div>';
+        html += '<p class="hint">先生の回答は 稼働表New の「翌月の変更」に自動で入り、適用日の朝4時台に名簿へ入ります（状態「変更シートに記入済み」）。'
+          + '「手で入れてください」と届いたものだけ、名簿か「翌月の変更」を直して、講師運営ブックの「翌月の確認」の「状態」に「反映済み」と入れてください。</p></div>';
         return html;
+      }
+
+      /* ---- w53 「翌月の変更」の処理メモ（■ 名簿に入らなかった ／ ※ 入ったけれど確認が要る）。管理者だけ・あるときだけ ---- */
+      function nextIssuesHtml(data) {
+        var list = data.admin ? (data.nextIssues || []) : [];
+        if (!list.length) return '';
+        var fails = list.filter(function (x) { return x.kind === 'fail'; }).length;
+        var one = function (x) {
+          var what = [x.field, x.value].filter(Boolean).join(' → ') + (x.apply ? '（適用日 ' + x.apply + '）' : '');
+          return '<div class="issue ' + (x.kind === 'fail' ? 'err' : 'warn') + '">'
+            + '<div class="where"><span class="sev">' + (x.kind === 'fail' ? '名簿に入らなかった' : '確認が要る') + '</span>'
+            + '<b>' + esc(x.sname || '（生徒名なし）') + '</b>　' + esc(x.teacher) + '　' + esc(what) + '　' + x.row + '行目</div>'
+            + '<div class="msg">' + esc(x.memo) + '</div></div>';
+        };
+        return '<div class="card"><h2>翌月の変更の要確認<small>' + (fails ? '名簿に入らなかった ' + fails + '件' : '') + (fails && fails < list.length ? '・' : '')
+          + (list.length - fails ? '確認 ' + (list.length - fails) + '件' : '') + '</small></h2>'
+          + list.map(one).join('')
+          + '<p class="hint">稼働表New の「翌月の変更」シートの処理メモです。<b>名簿に入らなかった</b>ものは毎朝やり直すので、名簿か「翌月の変更」の行を直せば翌朝に入ります。'
+          + '<b>確認が要る</b>ものは名簿には入っています。確かめたら処理メモの先頭の「※」を消すと、ここから消えます（45日たっても消えます）。</p></div>';
       }
 
       /* ---- w42 予約・特別レッスン（曜日・時刻が決まっていない生徒） ---- */
