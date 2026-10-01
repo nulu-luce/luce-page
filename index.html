@@ -768,8 +768,16 @@
       function load(no, fresh) {
         clearTimers();
         STATE.teacherNo = no || STATE.teacherNo || '';
-        loadHome(STATE.teacherNo);
         renderCenter('読み込み中…\n（シートを読むので少し時間がかかります）');
+        // w54: ホーム（今日のレッスン）を先に。今月の状況はホームが返ってから読む（同時に2つ投げるとサーバーが混む）。
+        // ホームが20秒たっても返らなければ待たずに読む
+        var started = false;
+        var go = function () { if (started) return; started = true; loadStatus(no, fresh); };
+        TIMERS.push(setTimeout(go, 20000));
+        loadHome(STATE.teacherNo, go);
+      }
+
+      function loadStatus(no, fresh) {
         try {
           if (!window.google || !google.script || !google.script.run) {
             throw new Error('google.script.run が使えません。GASのウェブアプリとして開いてください');
@@ -799,23 +807,26 @@
 
       /* ---- w7 ホーム: 今日のレッスン・お知らせ・提出物・よくある質問（講師運営ブックだけを読むので速い） ---- */
       var HOME = {};
-      function loadHome(no) {
+      function loadHome(no, done) {
         var box = document.getElementById('home');
-        if (!box) return;
+        var after = function () { if (typeof done === 'function') done(); };
+        if (!box) { after(); return; }
         if (window.HOKE) { HOKE.data = null; HOKE.error = ''; HOKE.pick = null; HOKE.add = null; }   // w17: 先生を切り替えたら読み直す
         if (!box.innerHTML) box.innerHTML = '<div class="card today"><div class="meta">今日の予定を読み込み中…</div></div>';
         try {
           if (!window.google || !google.script || !google.script.run || typeof google.script.run.getHomePage !== 'function') {
             box.innerHTML = '';
+            after();
             return;
           }
           google.script.run
-            .withSuccessHandler(function (data) { HOME = data || {}; renderHome(HOME); })
+            .withSuccessHandler(function (data) { HOME = data || {}; try { renderHome(HOME); } finally { after(); } })
             .withFailureHandler(function (err) {
               box.innerHTML = '<div class="card"><div class="banner err">今日の予定を読み込めませんでした。' + esc(err.message) + '</div></div>';
+              after();
             })
             .getHomePage({ no: no || '', t: TOKEN });
-        } catch (err) { box.innerHTML = ''; }
+        } catch (err) { box.innerHTML = ''; after(); }
       }
 
       function renderHome(data) {
@@ -1418,7 +1429,7 @@
               + (t.info ? '<div class="ti"><b>事前情報</b>' + esc(t.info) + '</div>' : '')
               + (t.note ? '<div class="tm">' + linkify(t.note) + '</div>' : '') + '</div>';
           }).join('')
-          + '<p class="hint">ご自分が担当する体験です（この先の分は全部、登録されたらすぐ出ます）。事前情報とメモ（ご家庭の連絡先など）はこの画面にしか出ません。Google Chat に流しているのは 日程・時間・校舎・講師名・生徒名・学年 だけです。</p></div>';
+          + '<p class="hint">ご自分が担当する体験です（この先の分は全部、登録から数分で出ます）。事前情報とメモ（ご家庭の連絡先など）はこの画面にしか出ません。Google Chat に流しているのは 日程・時間・校舎・講師名・生徒名・学年 だけです。</p></div>';
       }
 
       /* ---- w37 体験の結果（入会・検討・未入会）。押すまでいちばん上に出る ---- */
