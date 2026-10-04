@@ -643,6 +643,8 @@
       saveTrialResult: function (input, p) { post({ api: 'saveTrialResult', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w39: イベントの会費
       collectEventFee: function (input, p) { post({ api: 'collectEventFee', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w61: 参加率の分母をこの時点で確定（管理者）
+      fixEventTargets: function (input, p) { post({ api: 'fixEventTargets', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w33: 締めチェック（管理者）
       setChecklistItem: function (input, p) { post({ api: 'setChecklistItem', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w43: 翌月の確認
@@ -1392,7 +1394,7 @@
         if (!rows.length) return html + '<div class="meta">会費のあるイベントも経費もまだありません</div></div>';
         var one = function (e) {
           return '<div class="er"><div class="eh"><span class="d">' + esc(e.dateJa) + '</span><span class="n">' + esc(e.name) + '</span>'
-            + (e.fee ? '<span class="f">会費 ' + esc(yen(e.fee)) + '</span>' : '') + '</div>'
+            + (e.fee ? '<span class="f">会費 ' + esc(yen(e.fee)) + (e.sibFee ? '（きょうだい ' + esc(yen(e.sibFee)) + '）' : '') + '</span>' : '') + '</div>'
             + '<div class="eb">'
             + '<span>参加 <b>' + e.join + '</b>名</span>'
             + '<span>売上 <b>' + esc(yen(e.revenue)) + '</b></span>'
@@ -1411,7 +1413,7 @@
         if (rows.length > 4) {
           html += '<details><summary>前のイベント（' + (rows.length - 4) + '件）</summary>' + rows.slice(4).map(one).join('') + '</details>';
         }
-        return html + '<p class="hint">売上は「参加」の人数 × 会費です。先生が「集めた」を押すと集金に入り、翌朝その生徒の月謝明細の「その他※現金徴収」に入ります（先生の支払いから差し引かれます）。経費はイベント運営ブックの「イベント経費」シートに 項目と金額 を書いてください。</p></div>';
+        return html + '<p class="hint">売上は「参加」の生徒の会費の合計です（きょうだい会費のあるイベントは、家庭で2人目からきょうだい会費）。先生が「集めた」を押すと集金に入り、翌朝その生徒の月謝明細の「その他※現金徴収」に入ります（先生の支払いから差し引かれます）。経費はイベント運営ブックの「イベント経費」シートに 項目と金額 を書いてください。</p></div>';
       }
 
       /* ---- w37 体験レッスン（自分が担当する分だけ。メモはこの画面にしか出ない） ---- */
