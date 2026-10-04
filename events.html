@@ -113,6 +113,14 @@
       .fee.paid { color: var(--ok, #2f7d4f); }
       .fee button { font: inherit; font-size: 13px; font-weight: 700; padding: 5px 12px; border-radius: 999px; border: 1.5px solid var(--accent); background: var(--surface); color: var(--accent); margin-left: auto; }
       .fee button.undo { border-color: var(--rule); color: var(--muted); font-weight: 400; }
+      .fee .fbtn { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; justify-content: flex-end; }
+      .fee .fbtn button { margin-left: 0; }
+      .fee button.alt { border-color: var(--rule); color: var(--ink); font-weight: 500; }
+      .fee .sib { flex-basis: 100%; font-weight: 400; color: var(--muted); font-size: 12.5px; }
+      .sibwarn { color: var(--warn); }
+      table.rate td.num, table.rate th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+      table.rate td.num small { color: var(--muted); font-size: 11px; margin-left: 2px; }
+      table.rate tr.sum td { border-top: 1.5px solid var(--ink); font-weight: 700; }
       .more { display: flex; gap: 6px; margin-top: 8px; }
       .more input { font: inherit; font-size: 14px; border: 1.5px solid var(--rule); border-radius: 8px; padding: 7px 9px; background: var(--surface); }
       .more input.piece { flex: 1; min-width: 0; }
@@ -240,6 +248,8 @@
       saveTrialResult: function (input, p) { post({ api: 'saveTrialResult', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w39: イベントの会費
       collectEventFee: function (input, p) { post({ api: 'collectEventFee', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w61: 参加率の分母をこの時点で確定（管理者）
+      fixEventTargets: function (input, p) { post({ api: 'fixEventTargets', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w33: 締めチェック（管理者）
       setChecklistItem: function (input, p) { post({ api: 'setChecklistItem', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w43: 翌月の確認
@@ -420,7 +430,9 @@
       function studentsHtml(e) {
         if (!STU[e.id]) {
           STU[e.id] = (e.myStudents || []).map(function (r) {
-            return { id: r.id, name: r.name, grade: r.grade, part: r.part, piece: r.piece, minutes: r.minutes, fromFile: r.fromFile };
+            // w59: 会費の状態（fee・paid）と見込み・きょうだいも持つ（w39 からここで落としていたので「集金済み」が出ていなかった）
+            return { id: r.id, name: r.name, grade: r.grade, part: r.part, piece: r.piece, minutes: r.minutes, fromFile: r.fromFile,
+              fee: r.fee || 0, paid: r.paid || '', due: r.due || 0, siblings: r.siblings || [] };
           });
           NOSTU[e.id] = !!e.noStudents;
           FILTER[e.id] = FILTER[e.id] || 'all';
@@ -451,7 +463,9 @@
             + '<span>参加 <b>' + t['参加'] + '</b>名</span><span>未定 <b>' + t['未定'] + '</b>名</span>'
             + '<span>不参加 <b>' + t['不参加'] + '</b>名</span><span>演奏 合計 <b>' + t.minutes + '</b>分</span>'
             + '<span>回答した先生 <b>' + t.answered + '</b> / 未回答 <b>' + t.notAnswered + '</b></span>'
-            + (e.fee ? '<span>会費 <b>' + yen(e.fee) + '</b> ×参加 ' + t['参加'] + '名 ＝ <b>' + yen(e.fee * t['参加']) + '</b></span>' : '')
+            + (e.fee ? (e.sibFee
+                ? '<span>会費 <b>' + yen(e.fee) + '</b>（きょうだい ' + yen(e.sibFee) + '）・参加 ' + t['参加'] + '名 ＝ 見込み <b>' + yen(e.dueTotal || 0) + '</b></span>'
+                : '<span>会費 <b>' + yen(e.fee) + '</b> ×参加 ' + t['参加'] + '名 ＝ <b>' + yen(e.fee * t['参加']) + '</b></span>') : '')
             + '</div>';
           if (e.studentRows && e.studentRows.length) {
             html += '<details open><summary>参加生徒の一覧（' + e.studentRows.length + '件）</summary>'
@@ -459,9 +473,38 @@
               + e.studentRows.map(function (r) {
                   return '<tr><td>' + esc(r.teacher) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.part)
                     + '</td><td>' + esc(r.piece) + '</td><td>' + esc(r.minutes) + '</td>'
-                    + (e.fee ? '<td>' + (r.paid ? '済 ' + esc(mdOf(r.paid)) : (r.part === '参加' ? '未' : '')) + '</td>' : '') + '</tr>';
+                    + (e.fee ? '<td>' + (r.paid ? '済 ' + esc(mdOf(r.paid)) + (e.sibFee ? ' ' + yen(r.fee) : '') : (r.part === '参加' ? '未' + (e.sibFee && r.due ? ' ' + yen(r.due) : '') : ''))
+                      + (r.sibling ? ' <small>きょうだい</small>' : '') + '</td>' : '') + '</tr>';
                 }).join('')
               + '</table></details>';
+          }
+          if (e.rates && e.rates.rows && e.rates.rows.length) {
+            var pct = function (v) { return v === null || v === undefined ? '—' : v + '%'; };
+            var rr = function (o, cls) {
+              return '<tr' + (cls ? ' class="' + cls + '"' : '') + '><td>' + esc(o.teacher) + '</td><td class="num">' + o.target
+                + '<small>（園' + o.kinder + '・小' + o.school + '）</small></td><td class="num">' + o.join
+                + (o.other ? '<small>（うち園児・小学生以外 ' + o.other + '）</small>' : '') + '</td><td class="num">' + o.undecided
+                + '</td><td class="num"><b>' + pct(o.rate) + '</b></td>' + '</tr>';
+            };
+            html += '<details open><summary>参加率（参加した全員 ÷ 園児・小学生の生徒数）　全体 ' + pct(e.rates.total.rate) + '（' + e.rates.total.join + ' / ' + e.rates.total.target + '名）</summary>'
+              + '<table class="rate"><tr><th>講師</th><th>生徒数（年少〜小6）</th><th>参加（全員）</th><th>未定</th><th>参加率</th></tr>'
+              + e.rates.rows.map(function (o) { return rr(o, ''); }).join('') + rr(e.rates.total, 'sum') + '</table>'
+              + (e.ratesFixed
+                ? '<p class="hint"><b>対象は ' + esc(e.ratesAsOf || '') + ' に確定</b>した一覧です（そのあとの入会・退会では変わりません）。確定し直すときは下のボタン。</p>'
+                : '<p class="hint"><b>まだ確定していません</b>（' + esc(e.ratesAsOf || '') + ' の名簿で数えています。入会・退会で動きます）。</p>')
+              + '<button type="button" class="none" onclick="fixTargets(\'' + esc(e.id) + '\',this,' + (e.ratesFixed ? 'true' : 'false') + ')">'
+              + (e.ratesFixed ? '今の名簿で確定し直す' : 'この時点の名簿で対象を確定する') + '</button>'
+              + '<p class="hint">対象は名簿で在籍している生徒（休会中・退会が決まっている子・入会が決まった子も含む）のうち、学年が 年少〜小6 の子です。'
+              + '参加は、その先生が「参加」で登録した全員（中学生以上・大人・ベビーも）なので、100% を超える先生もいます。</p></details>';
+          }
+          if (e.households && e.households.length) {
+            var warn = e.households.filter(function (h) { return h.note; });
+            html += '<details' + (warn.length ? ' open' : '') + '><summary>きょうだいで参加（' + e.households.length + '家庭' + (warn.length ? '・要確認 ' + warn.length : '') + '）</summary>'
+              + e.households.map(function (h) {
+                  return '<div class="' + (h.note ? 'sibwarn' : '') + '">' + esc(h.names.join('・')) + '　集金 ' + h.paid + '/' + h.count
+                    + (h.note ? '　' + esc(h.note) : '') + '</div>';
+                }).join('')
+              + '<p class="hint">名簿のメールアドレスか電話番号が同じで、姓も同じ生徒をきょうだいとみなしています。家庭で最初に集めた子が会費、あとから集めるきょうだいは きょうだい会費 です。</p></details>';
           }
           if (e.noStudentTeachers && e.noStudentTeachers.length) {
             html += '<p class="hint">参加する生徒はいません: ' + esc(e.noStudentTeachers.join('・')) + '</p>';
@@ -498,22 +541,51 @@
           return '<div class="fee paid">会費 ' + yen(r.fee || e.fee) + ' 集金済み<small>' + esc(mdOf(r.paid)) + '</small>'
             + '<button type="button" class="undo" onclick="sendFee(\'' + esc(e.id) + '\',' + i + ',false,this)">取り消す</button></div>';
         }
-        return '<div class="fee">会費 ' + yen(e.fee)
-          + '<button type="button" onclick="sendFee(\'' + esc(e.id) + '\',' + i + ',true,this)">集めた</button></div>';
+        if (!e.sibFee) {
+          return '<div class="fee">会費 ' + yen(e.fee)
+            + '<button type="button" onclick="sendFee(\'' + esc(e.id) + '\',' + i + ',true,this)">集めた</button></div>';
+        }
+        // w59: きょうだい会費。家庭で最初に集めた子が会費、あとから集めるきょうだいは きょうだい会費（見込みの額のボタンを先に）
+        var due = r.due || e.fee;
+        var other = due === e.fee ? e.sibFee : e.fee;
+        var label = function (amt) { return (amt === e.sibFee ? 'きょうだい ' : '') + yen(amt) + 'を集めた'; };
+        var btn = function (amt, alt) {
+          return '<button type="button" class="' + (alt ? 'alt' : '') + '" onclick="sendFee(\'' + esc(e.id) + '\',' + i + ',true,this,' + amt + ')">' + label(amt) + '</button>';
+        };
+        var sibs = r.siblings || [];
+        var note = sibs.length
+          ? '<span class="sib">きょうだい: ' + sibs.map(function (x) {
+              return esc(x.name) + '（' + esc(x.teacher) + '・' + (x.paid ? yen(x.fee) + ' 集金済み' : 'まだ') + '）';
+            }).join('、') + '</span>'
+          : '';
+        return '<div class="fee"><span>会費 ' + yen(due) + (due === e.sibFee ? '（きょうだい）' : '') + '</span>'
+          + '<span class="fbtn">' + btn(due, false) + btn(other, true) + '</span>' + note + '</div>';
       }
       function yen(n) { return (Number(n) || 0).toLocaleString('ja-JP') + '円'; }
       function mdOf(ymd) { var m = String(ymd || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? Number(m[2]) + '/' + Number(m[3]) : ''; }
-      function sendFee(id, i, received, btn) {
+      function sendFee(id, i, received, btn, amount) {
         var r = STU[id] && STU[id][i];
         if (!r) return;
+        var was = btn ? btn.textContent : '';
         if (btn) { btn.disabled = true; btn.textContent = '送信中…'; }
         google.script.run
           .withSuccessHandler(function (data) { delete STU[id]; render(data); })
           .withFailureHandler(function (err) {
-            if (btn) { btn.disabled = false; btn.textContent = received ? '集めた' : '取り消す'; }
+            if (btn) { btn.disabled = false; btn.textContent = was; }
             alert(err.message);
           })
-          .collectEventFee({ eventId: id, studentId: r.id || '', studentName: r.name, received: !!received }, CTX);
+          .collectEventFee({ eventId: id, studentId: r.id || '', studentName: r.name, received: !!received, amount: amount || '' }, CTX);
+      }
+
+      /* ---- w61: 参加率の分母を確定（管理者） ---- */
+      function fixTargets(id, btn, again) {
+        if (again && !confirm('今の名簿で対象を確定し直します。前に確定した一覧は置き換わります。よろしいですか？')) return;
+        var was = btn ? btn.textContent : '';
+        if (btn) { btn.disabled = true; btn.textContent = '確定しています…'; }
+        google.script.run
+          .withSuccessHandler(function (data) { render(data); })
+          .withFailureHandler(function (err) { if (btn) { btn.disabled = false; btn.textContent = was; } alert(err.message); })
+          .fixEventTargets({ eventId: id }, CTX);
       }
 
       function rerenderStudents(id) {
