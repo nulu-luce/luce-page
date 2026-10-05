@@ -119,8 +119,18 @@
       .fee .sib { flex-basis: 100%; font-weight: 400; color: var(--muted); font-size: 12.5px; }
       .sibwarn { color: var(--warn); }
       table.rate td.num, table.rate th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-      table.rate td.num small { color: var(--muted); font-size: 11px; margin-left: 2px; }
+      table.rate td.num small { display: block; white-space: nowrap; color: var(--muted); font-size: 11px; line-height: 1.3; }   /* w63: 注記は数字の下に（狭い画面で横にはみ出さない） */
+      table.rate td:first-child { word-break: keep-all; }   /* 名前は姓と名の間でだけ折り返す */
       table.rate tr.sum td { border-top: 1.5px solid var(--ink); font-weight: 700; }
+      /* w63 部 */
+      .ses { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; font-size: 13.5px; }
+      .ses select, .asg select { font: inherit; font-size: 14px; border: 1.5px solid var(--rule); border-radius: 8px; padding: 5px 8px; background: var(--surface); color: var(--ink); }
+      .ses select:focus, .asg select:focus { outline: none; border-color: var(--accent); }
+      .ses .moved { color: var(--warn); font-size: 12.5px; }
+      .mine { margin: 0 0 6px; font-size: 14px; }
+      .asg td { vertical-align: middle; }
+      .asg select { width: 100%; }
+      .save.sub { background: var(--surface); color: var(--accent); border: 1.5px solid var(--accent); }
       .more { display: flex; gap: 6px; margin-top: 8px; }
       .more input { font: inherit; font-size: 14px; border: 1.5px solid var(--rule); border-radius: 8px; padding: 7px 9px; background: var(--surface); }
       .more input.piece { flex: 1; min-width: 0; }
@@ -250,6 +260,8 @@
       collectEventFee: function (input, p) { post({ api: 'collectEventFee', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w61: 参加率の分母をこの時点で確定（管理者）
       fixEventTargets: function (input, p) { post({ api: 'fixEventTargets', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w63: 先生ごとの担当の部（管理者）
+      saveEventSessions: function (input, p) { post({ api: 'saveEventSessions', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w33: 締めチェック（管理者）
       setChecklistItem: function (input, p) { post({ api: 'setChecklistItem', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w43: 翌月の確認
@@ -414,6 +426,7 @@
           + (e.open ? '募集中' : '締切') + '</span></h2>'
           + '<div class="meta"><b>' + esc(e.dateJa) + '</b>'
           + (e.time ? ' ' + esc(e.time) : '') + (e.place ? '｜' + esc(e.place) : '')
+          + (hasSessions(e) ? '<br>部: ' + esc(e.sessions.join('・')) : '')
           + (e.deadline ? '<br>回答締切 ' + esc(e.deadlineJa) : '') + '</div>'
           + (e.note ? '<p class="note">' + esc(e.note) + '</p>' : '')
           + (e.students ? studentsHtml(e) : '')
@@ -432,7 +445,8 @@
           STU[e.id] = (e.myStudents || []).map(function (r) {
             // w59: 会費の状態（fee・paid）と見込み・きょうだいも持つ（w39 からここで落としていたので「集金済み」が出ていなかった）
             return { id: r.id, name: r.name, grade: r.grade, part: r.part, piece: r.piece, minutes: r.minutes, fromFile: r.fromFile,
-              fee: r.fee || 0, paid: r.paid || '', due: r.due || 0, siblings: r.siblings || [] };
+              fee: r.fee || 0, paid: r.paid || '', due: r.due || 0, siblings: r.siblings || [],
+              session: r.session || '' };   // w63: 担当と違う部で参加するときの部（担当どおりなら空）
           });
           NOSTU[e.id] = !!e.noStudents;
           FILTER[e.id] = FILTER[e.id] || 'all';
@@ -444,6 +458,12 @@
           + '決まったところから何度でも保存できます。'
           + (e.studentError ? '\n' + esc(e.studentError) + '\n一覧に出ない生徒は「一覧にない生徒を足す」で入れてください。' : '')
           + '</p>';
+        if (hasSessions(e)) {
+          html += '<p class="mine">' + (e.mySession
+              ? 'あなたの担当の部: <b>' + esc(e.mySession) + '</b>'
+              : '<b>担当の部はまだ決まっていません</b>（日置さんが決めます）。生徒ごとに部を選ぶこともできます。') + '</p>'
+            + '<p class="hint">生徒は基本、先生の担当の部に参加します。都合が悪い子だけ、参加を選んだあと「部」を別の日・別の部に変えてください。</p>';
+        }
         if (hasAdult) {
           html += '<div class="filter">'
             + '<button type="button" class="' + (FILTER[e.id] === 'adult' ? 'on' : '') + '" onclick="setFilter(\'' + esc(e.id) + '\',\'adult\')">大人だけ</button>'
@@ -457,6 +477,7 @@
             + '<button class="save" id="ssv-' + esc(e.id) + '" onclick="saveStudents(\'' + esc(e.id) + '\')">生徒の登録を保存する</button>'
             + '<div id="smsg-' + esc(e.id) + '"></div>';
         }
+        if (hasSessions(e) && e.mySession) html += rosterHtml(e);
         if (e.studentTally) {
           var t = e.studentTally;
           html += '<div class="tally">'
@@ -469,25 +490,27 @@
             + '</div>';
           if (e.studentRows && e.studentRows.length) {
             html += '<details open><summary>参加生徒の一覧（' + e.studentRows.length + '件）</summary>'
-              + '<table><tr><th>講師</th><th>生徒</th><th>参加</th><th>曲目</th><th>分</th>' + (e.fee ? '<th>会費</th>' : '') + '</tr>'
+              + '<table><tr><th>講師</th><th>生徒</th><th>参加</th>' + (hasSessions(e) ? '<th>部</th>' : '') + '<th>曲目</th><th>分</th>' + (e.fee ? '<th>会費</th>' : '') + '</tr>'
               + e.studentRows.map(function (r) {
                   return '<tr><td>' + esc(r.teacher) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.part)
+                    + (hasSessions(e) ? '</td><td>' + esc(r.session) + (r.moved ? ' <small class="sibwarn">※担当と違う部</small>' : '') : '')
                     + '</td><td>' + esc(r.piece) + '</td><td>' + esc(r.minutes) + '</td>'
                     + (e.fee ? '<td>' + (r.paid ? '済 ' + esc(mdOf(r.paid)) + (e.sibFee ? ' ' + yen(r.fee) : '') : (r.part === '参加' ? '未' + (e.sibFee && r.due ? ' ' + yen(r.due) : '') : ''))
                       + (r.sibling ? ' <small>きょうだい</small>' : '') + '</td>' : '') + '</tr>';
                 }).join('')
               + '</table></details>';
           }
+          if (hasSessions(e)) html += sessionAdminHtml(e);
           if (e.rates && e.rates.rows && e.rates.rows.length) {
             var pct = function (v) { return v === null || v === undefined ? '—' : v + '%'; };
             var rr = function (o, cls) {
               return '<tr' + (cls ? ' class="' + cls + '"' : '') + '><td>' + esc(o.teacher) + '</td><td class="num">' + o.target
                 + '<small>（園' + o.kinder + '・小' + o.school + '）</small></td><td class="num">' + o.join
-                + (o.other ? '<small>（うち園児・小学生以外 ' + o.other + '）</small>' : '') + '</td><td class="num">' + o.undecided
+                + (o.other ? '<small>年少〜小6以外 ' + o.other + '</small>' : '') + '</td><td class="num">' + o.undecided
                 + '</td><td class="num"><b>' + pct(o.rate) + '</b></td>' + '</tr>';
             };
             html += '<details open><summary>参加率（参加した全員 ÷ 園児・小学生の生徒数）　全体 ' + pct(e.rates.total.rate) + '（' + e.rates.total.join + ' / ' + e.rates.total.target + '名）</summary>'
-              + '<table class="rate"><tr><th>講師</th><th>生徒数（年少〜小6）</th><th>参加（全員）</th><th>未定</th><th>参加率</th></tr>'
+              + '<table class="rate"><tr><th>講師</th><th>生徒数</th><th>参加</th><th>未定</th><th>参加率</th></tr>'
               + e.rates.rows.map(function (o) { return rr(o, ''); }).join('') + rr(e.rates.total, 'sum') + '</table>'
               + (e.ratesFixed
                 ? '<p class="hint"><b>対象は ' + esc(e.ratesAsOf || '') + ' に確定</b>した一覧です（そのあとの入会・退会では変わりません）。確定し直すときは下のボタン。</p>'
@@ -531,7 +554,101 @@
           + 'oninput="STU[\'' + esc(e.id) + '\'][' + i + '].minutes=this.value">'
           + '</div>';
         return '<div class="stu' + (hide ? ' hidden' : '') + '" id="stu-' + esc(e.id) + '-' + i + '">' + name
-          + '<div class="seg small">' + seg + '</div>' + more + feeHtml(e, r, i) + '</div>';
+          + '<div class="seg small">' + seg + '</div>' + sesHtml(e, r, i) + more + feeHtml(e, r, i) + '</div>';
+      }
+
+      /* ---- w63: 部（クリスマス会のように日・時間帯で分かれるイベント） ---- */
+      function hasSessions(e) { return !!(e && e.sessions && e.sessions.length); }
+
+      // 生徒ごとの部。担当どおりなら空で持ち、担当と違う部を選んだときだけ部の名前を送る
+      function sesHtml(e, r, i) {
+        if (!hasSessions(e)) return '';
+        var cur = r.session || e.mySession || '';
+        var show = r.part === '参加' || r.part === '未定';
+        return '<div class="ses" id="ses-' + esc(e.id) + '-' + i + '" style="' + (show ? '' : 'display:none') + '">'
+          + '<label>部 <select ' + (e.open ? '' : 'disabled ') + 'onchange="pickSession(\'' + esc(e.id) + '\',' + i + ',this.value)">'
+          + (cur ? '' : '<option value="">部を選んでください</option>')
+          + e.sessions.map(function (x) {
+              return '<option value="' + esc(x) + '"' + (x === cur ? ' selected' : '') + '>' + esc(x) + (x === e.mySession ? '（担当）' : '') + '</option>';
+            }).join('')
+          + '</select></label>'
+          + (r.session && r.session !== e.mySession ? '<span class="moved">担当と違う部で参加</span>' : '')
+          + '</div>';
+      }
+
+      function pickSession(id, i, v) {
+        var ev = eventOf(id);
+        if (!ev || !STU[id] || !STU[id][i]) return;
+        STU[id][i].session = v === ev.mySession ? '' : v;
+        var box = document.getElementById('ses-' + id + '-' + i);
+        if (box) box.outerHTML = sesHtml(ev, STU[id][i], i);
+      }
+
+      function eventOf(id) {
+        var ev = null;
+        (STATE.events || []).forEach(function (x) { if (x.id === id) ev = x; });
+        return ev;
+      }
+
+      // 先生の担当の部に来る生徒（他の先生から来る子も）。当日の受付用
+      function rosterHtml(e) {
+        var ro = e.sessionRoster || [];
+        var g = ro.filter(function (x) { return x.guest; }).length;
+        return '<details><summary>' + esc(e.mySession) + ' に参加する生徒（' + ro.length + '名' + (g ? '・うち他の部の先生の生徒 ' + g + '名' : '') + '）</summary>'
+          + (ro.length
+              ? '<table><tr><th>生徒</th><th>担当の先生</th></tr>' + ro.map(function (x) {
+                  return '<tr><td>' + esc(x.name) + (x.guest ? ' <small class="sibwarn">他の部の先生の生徒</small>' : '') + '</td><td>' + esc(x.teacher) + '</td></tr>';
+                }).join('') + '</table>'
+              : '<p class="hint">まだいません。</p>')
+          + '<p class="hint">「参加」で保存された生徒です。他の先生の生徒も、この部で参加する子は載ります。当日の受付に使えます。</p></details>';
+      }
+
+      // 管理者: 部ごとの人数・担当と違う部の子・先生ごとの担当の部
+      function sessionAdminHtml(e) {
+        var html = '';
+        var tal = e.sessionTally || [];
+        html += '<details open><summary>部ごとの人数</summary><table class="rate"><tr><th>部</th><th>参加</th><th>未定</th><th>担当の先生</th></tr>'
+          + tal.map(function (t) {
+              return '<tr><td>' + (t.session ? esc(t.session) : '<span class="sibwarn">部が決まっていない</span>') + '</td><td class="num">' + t.join
+                + (t.guests ? '<small>うち他の部から ' + t.guests + '</small>' : '') + '</td><td class="num">' + t.undecided
+                + '</td><td>' + (t.session ? (t.teachers.length ? esc(t.teachers.join('・')) : '<span class="sibwarn">まだいません</span>') : '') + '</td></tr>';
+            }).join('')
+          + '</table><p class="hint">参加は「参加」で保存された生徒。担当の部と違う部を選んだ子は、選んだ部で数えます（「他の部から」は、先生の担当がほかの部の子）。</p></details>';
+        var mv = e.moved || [];
+        if (mv.length) {
+          html += '<details><summary>担当と違う部で参加（' + mv.length + '名）</summary><table><tr><th>生徒</th><th>先生</th><th>担当の部 → 参加する部</th></tr>'
+            + mv.map(function (m) {
+                return '<tr><td>' + esc(m.name) + (m.part === '未定' ? ' <small>未定</small>' : '') + '</td><td>' + esc(m.teacher) + '</td><td>'
+                  + (m.from ? esc(m.from) : '担当なし') + ' → <b>' + esc(m.to) + '</b></td></tr>';
+              }).join('')
+            + '</table></details>';
+        }
+        var asg = e.sessionAssign || [];
+        var unset = asg.filter(function (a) { return !a.session; }).length;
+        html += '<details' + (asg.length && unset === asg.length ? ' open' : '') + '><summary>担当の部（先生ごと）' + (unset ? '　未設定 ' + unset + '名' : '') + '</summary>'
+          + '<table class="asg"><tr><th>先生</th><th>担当の部</th></tr>'
+          + asg.map(function (a) {
+              return '<tr><td>' + esc(a.name) + '</td><td><select data-no="' + esc(a.no) + '" class="asg-' + esc(e.id) + '">'
+                + '<option value="">（なし）</option>'
+                + e.sessions.map(function (x) { return '<option value="' + esc(x) + '"' + (x === a.session ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('')
+                + '</select></td></tr>';
+            }).join('')
+          + '</table>'
+          + '<button type="button" class="save sub" onclick="saveSessions(\'' + esc(e.id) + '\',this)">担当の部を保存する</button>'
+          + '<p class="hint">先生の画面では、生徒の部がはじめから担当の部になります。担当を変えると、その先生の生徒（別の部を選んだ子を除く）も一緒に移ります。</p></details>';
+        return html;
+      }
+
+      function saveSessions(id, btn) {
+        var sels = document.querySelectorAll('select.asg-' + id);
+        var assign = [];
+        for (var k = 0; k < sels.length; k++) assign.push({ no: sels[k].getAttribute('data-no'), session: sels[k].value });
+        var was = btn ? btn.textContent : '';
+        if (btn) { btn.disabled = true; btn.textContent = '保存しています…'; }
+        google.script.run
+          .withSuccessHandler(function (data) { delete STU[id]; render(data); })
+          .withFailureHandler(function (err) { if (btn) { btn.disabled = false; btn.textContent = was; } alert(err.message); })
+          .saveEventSessions({ eventId: id, assign: assign }, CTX);
       }
 
       /* ---- w39 会費（現金）。参加で保存済みの生徒に出す ---- */
@@ -613,10 +730,12 @@
         for (var k = 0; k < seg.length; k++) seg[k].className = (seg[k].textContent === '不参加' ? 'no ' : '') + (seg[k] === btn ? 'on' : '');
         var more = document.getElementById('more-' + id + '-' + i);
         if (more) more.style.display = (v === '参加' || v === '未定') ? '' : 'none';
+        var ses = document.getElementById('ses-' + id + '-' + i);   // w63
+        if (ses) ses.style.display = (v === '参加' || v === '未定') ? '' : 'none';
       }
 
       function addStudent(id) {
-        STU[id].push({ id: '', name: '', grade: '', part: '', piece: '', minutes: '', fromFile: false });
+        STU[id].push({ id: '', name: '', grade: '', part: '', piece: '', minutes: '', session: '', fromFile: false });
         rerenderStudents(id);
         var inputs = document.querySelectorAll('#stu-' + id + ' .stu-name input');
         if (inputs.length) inputs[inputs.length - 1].focus();
@@ -632,7 +751,7 @@
 
       function saveStudents(id) {
         var rows = STU[id].filter(function (r) { return r.part && String(r.name || '').trim(); })
-          .map(function (r) { return { id: r.id, name: r.name, part: r.part, piece: r.piece, minutes: r.minutes }; });
+          .map(function (r) { return { id: r.id, name: r.name, part: r.part, piece: r.piece, minutes: r.minutes, session: r.session || '' }; });
         var msg = document.getElementById('smsg-' + id);
         if (!rows.length && !NOSTU[id]) {
           msg.innerHTML = '<div class="err">参加・未定・不参加を選ぶか、「参加する生徒はいません」を押してください</div>';
