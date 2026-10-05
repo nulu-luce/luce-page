@@ -270,6 +270,8 @@
       confirmNextMonth: function (input, p) { post({ api: 'confirmNextMonth', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w27: 全先生の今月（管理者）
       getAllTeachersPage: function (p) { get({ api: 'allTeachers', t: p && p.t, no: p && p.no }, ok, ng); },
+      // w67: 経営ページ（管理者だけ）
+      getKeieiPage: function (p) { get({ api: 'keiei', t: p && p.t, no: p && p.no, ym: p && p.ym, fresh: p && p.fresh ? 1 : '' }, ok, ng); },
       // w29: 担当生徒の登録内容と「違う」
       getRosterPage: function (p) { get({ api: 'roster', t: p && p.t, no: p && p.no }, ok, ng); },
       reportRosterIssue: function (input, p) { post({ api: 'reportRosterIssue', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
