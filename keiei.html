@@ -1,0 +1,590 @@
+<!-- このファイルは tools/build-site.mjs が src/keiei.html から作る。直接直さない -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>luce 経営</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="https://nulu-luce.github.io/luce-page/img/icon-180.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="https://nulu-luce.github.io/luce-page/img/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="https://nulu-luce.github.io/luce-page/img/icon-512.png" />
+    <meta name="apple-mobile-web-app-title" content="luce" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Maru+Gothic:wght@500;700&display=swap" />
+    <style>
+      :root {
+        --ground: #f7f7f4;
+        --surface: #ffffff;
+        --ink: #212726;
+        --muted: #64716e;
+        --rule: #e3e6e1;
+        --accent: #0e9ea6;
+        --accent-deep: #0a7b81;
+        --accent-soft: #e2f3f4;
+        --warn: #b3436d;
+        --warn-soft: #f6e7ee;
+        --caution: #a3620a;
+        --caution-soft: #f8efdd;
+        --ok: #2f8a3a;
+        --ok-soft: #e4f2e6;
+        --c1: #0e9ea6; --c2: #bf2a82; --c3: #308639; --c4: #833cd5; --c5: #e08256; --c6: #8d8a83;
+        --mincho: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+        --sans: "Zen Maru Gothic", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      html, body { background: var(--ground); }
+      body { margin: 0; color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+      a { color: var(--accent-deep); }
+      .wrap { max-width: 1120px; margin: 0 auto; padding: 12px 14px 56px; }
+      .hdr { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 6px 2px 10px; }
+      .hdr h1 { font-family: var(--mincho); font-size: 20px; margin: 0; letter-spacing: .04em; }
+      .hdr h1 small { font-family: var(--sans); font-size: 12px; color: var(--muted); margin-left: 8px; letter-spacing: 0; }
+      .hdr .sp { flex: 1 1 auto; }
+      .hdr .back { font-size: 13px; text-decoration: none; }
+      .msel { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+      .msel select, .msel button { font: inherit; font-size: 14px; border: 1.5px solid var(--rule); border-radius: 999px; padding: 5px 12px; background: var(--surface); color: var(--ink); }
+      .msel button { color: var(--accent-deep); }
+      .tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--rule); margin: 4px 0 14px; scrollbar-width: none; }
+      .tabs::-webkit-scrollbar { display: none; }
+      .tab { padding: 8px 12px; font-size: 14px; color: var(--muted); border-bottom: 2.5px solid transparent; white-space: nowrap; cursor: pointer; background: none; border-top: 0; border-left: 0; border-right: 0; font-family: inherit; }
+      .tab.on { color: var(--accent-deep); border-bottom-color: var(--accent); font-weight: 700; }
+      .card { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+      .card h2 { font-family: var(--mincho); font-size: 16px; margin: 0 0 8px; }
+      .card h2 small { font-family: var(--sans); font-size: 12px; color: var(--muted); margin-left: 8px; font-weight: 400; }
+      .hint { color: var(--muted); font-size: 12.5px; margin: 6px 0 0; }
+      .note { background: var(--caution-soft); color: var(--caution); border-radius: 8px; padding: 6px 10px; font-size: 13px; margin-bottom: 8px; }
+      .center { text-align: center; color: var(--muted); padding: 50px 12px; }
+      .grid { display: grid; gap: 10px; }
+      .kpis { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+      .kpi { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; padding: 11px 13px; min-width: 0; }
+      .kpi.link { cursor: pointer; }
+      .kpi .l { font-size: 12px; color: var(--muted); }
+      .kpi .v { font-size: 21px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; line-height: 1.25; margin-top: 3px; word-break: break-all; }
+      .kpi .v small { font-size: 12px; font-weight: 400; color: var(--muted); }
+      .kpi .d { font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+      .kpi.na .v { color: var(--muted); font-size: 15px; font-weight: 500; }
+      .steps { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+      .step { display: flex; gap: 9px; align-items: flex-start; background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; padding: 10px 12px; min-width: 0; }
+      .step .n { width: 22px; height: 22px; border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; background: #eceeea; color: var(--muted); }
+      .step.done .n { background: var(--ok); color: #fff; }
+      .step.now .n { background: var(--accent); color: #fff; }
+      .step .t { font-family: var(--mincho); font-size: 13px; font-weight: 600; }
+      .step .s { font-size: 12px; color: var(--muted); }
+      .step .x { font-size: 11.5px; color: var(--warn); }
+      .issue { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--rule); font-size: 13.5px; }
+      .issue:first-child { border-top: 0; }
+      .pill { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--rule); color: var(--muted); white-space: nowrap; }
+      .pill.err { border-color: #efcfc2; background: var(--warn-soft); color: var(--warn); }
+      .pill.wrn { border-color: #e8d5a8; background: var(--caution-soft); color: var(--caution); }
+      .pill.ok { border-color: #c2ddca; background: var(--ok-soft); color: var(--ok); }
+      .tbl { overflow-x: auto; }
+      table { border-collapse: collapse; width: 100%; font-size: 13px; }
+      th { text-align: left; font-weight: 600; font-size: 11.5px; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--rule); white-space: nowrap; background: #fbfbf9; }
+      td { padding: 6px 8px; border-bottom: 1px solid #eef0ec; white-space: nowrap; }
+      td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; }
+      tr.sum td { font-weight: 700; border-top: 1.5px solid var(--ink); }
+      tr.partial td { color: var(--muted); }
+      .neg { color: var(--warn); }
+      .pos { color: var(--ok); }
+      .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 8px; }
+      .chip { font-size: 12.5px; background: var(--ground); border: 1px solid var(--rule); border-radius: 8px; padding: 2px 9px; }
+      .chip b { font-size: 14px; }
+      svg.chart { width: 100%; height: auto; display: block; }
+      .legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+      .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+      .two { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+      .bars { display: flex; flex-direction: column; gap: 5px; }
+      .bar { display: grid; grid-template-columns: minmax(80px, 150px) 1fr minmax(70px, auto); gap: 8px; align-items: center; font-size: 13px; }
+      .bar .track { height: 12px; background: var(--ground); border-radius: 6px; overflow: hidden; }
+      .bar .fill { height: 100%; border-radius: 6px; background: var(--accent); }
+      .bar .val { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+      details { margin-top: 6px; font-size: 13.5px; }
+      details summary { color: var(--accent-deep); cursor: pointer; }
+      .foot { color: var(--muted); font-size: 11.5px; text-align: center; margin-top: 26px; }
+      @media (max-width: 560px) {
+        .hdr h1 { font-size: 18px; }
+        .kpi .v { font-size: 18px; }
+        .bar { grid-template-columns: minmax(64px, 100px) 1fr auto; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="hdr">
+        <h1>luce 経営<small id="who"></small></h1>
+        <div class="sp"></div>
+        <div class="msel" id="msel"></div>
+        <a class="back" id="back" href="#">ホームへ</a>
+      </header>
+      <div class="tabs" id="tabs"></div>
+      <div id="main"><div class="center">読み込んでいます…（5つのブックを読むので少し時間がかかります）</div></div>
+      <div class="foot" id="foot"></div>
+    </div>
+
+    <script>
+/*
+ * luce 講師ページ（静的版）の橋渡し。tools/build-site.mjs が各ページの先頭に埋め込む。
+ *
+ * GAS の画面では google.script.run でサーバーの関数を呼ぶ。静的ページには google.script が無いので、
+ * 同じ形のものをここで作り、中では GAS の JSON API（40_Api.js）を fetch で呼ぶ。
+ * 別ドメインからの fetch には Google の Cookie が付かない（credentials: 'omit'）ので、
+ * ブラウザがどのアカウントにログインしていても関係なく動く。
+ *
+ * https://script.google.com/macros/s/AKfycbxDM30NCEgTMLrWZ1Z3muR9gg2JWF3_mK1AVsKL-nW5gyFKnY0x2fmrvEK6FIBxtcfQ/exec はビルド時に 00_Config.js の WEBAPP_URL に置き換わる。
+ * 画面のコード（status.html / events.html）は GAS 版と同じものをそのまま使う。
+ */
+(function (w) {
+  var API_URL = 'https://script.google.com/macros/s/AKfycbxDM30NCEgTMLrWZ1Z3muR9gg2JWF3_mK1AVsKL-nW5gyFKnY0x2fmrvEK6FIBxtcfQ/exec';
+
+  function parseQuery(search) {
+    var out = {};
+    String(search || '').replace(/^\?/, '').split('&').forEach(function (kv) {
+      if (!kv) return;
+      var i = kv.indexOf('=');
+      var k = i < 0 ? kv : kv.slice(0, i);
+      var v = i < 0 ? '' : kv.slice(i + 1);
+      try { k = decodeURIComponent(k.replace(/\+/g, ' ')); } catch (err) { /* そのまま */ }
+      try { v = decodeURIComponent(v.replace(/\+/g, ' ')); } catch (err) { /* そのまま */ }
+      if (k) out[k] = v;
+    });
+    return out;
+  }
+
+  function toQuery(params) {
+    var p = params || {};
+    return Object.keys(p).filter(function (k) { return p[k] !== undefined && p[k] !== null && p[k] !== ''; })
+      .map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(String(p[k])); })
+      .join('&');
+  }
+
+  var q = parseQuery(w.location && w.location.search);
+  // token は先生の合言葉（?t=）、s は生徒ページ（ホケホケ）の家庭の合言葉（?s=。w21）
+  w.__luce = { token: q.t || '', no: q.no || '', s: q.s || '', apiUrl: API_URL, parseQuery: parseQuery, toQuery: toQuery };
+
+  function finish(promise, ok, ng) {
+    promise
+      .then(function (res) { return res.json(); })
+      .then(function (body) {
+        if (body && body.ok) ok(body.data);
+        else ng(new Error((body && body.error) || '応答が読めませんでした'));
+      }, function (err) {
+        var why = err && err.message ? err.message : String(err);
+        ng(new Error('通信に失敗しました。電波の良いところでもう一度お試しください（' + why + '）'));
+      });
+  }
+
+  function get(params, ok, ng) {
+    finish(w.fetch(API_URL + '?' + toQuery(params), { method: 'GET', credentials: 'omit', cache: 'no-store' }), ok, ng);
+  }
+
+  function post(body, ok, ng) {
+    // Content-Type を text/plain にすると preflight（OPTIONS）が飛ばない。GAS は OPTIONS に答えられない
+    finish(w.fetch(API_URL, {
+      method: 'POST', credentials: 'omit',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body)
+    }), ok, ng);
+  }
+
+  /** google.script.run と同じ形。呼ぶたびに新しいものを返す（ハンドラが次の呼び出しに残らない） */
+  function runner() {
+    var ok = function () {};
+    var ng = function (err) { if (w.console && w.console.error) w.console.error(err); };
+    var r = {
+      withSuccessHandler: function (f) { ok = f; return r; },
+      withFailureHandler: function (f) { ng = f; return r; },
+      withUserObject: function () { return r; },
+      getStatusPage: function (p) { get({ api: 'status', t: p && p.t, no: p && p.no, fresh: p && p.fresh ? '1' : '' }, ok, ng); },
+      getEventPage: function (p) { get({ api: 'events', t: p && p.t }, ok, ng); },
+      saveEventAnswer: function (eventId, answer, comment, p) {
+        post({ api: 'saveEventAnswer', t: p && p.t, eventId: eventId, answer: answer, comment: comment }, ok, ng);
+      },
+      saveStudentAnswers: function (eventId, rows, noStudents, p) {
+        post({ api: 'saveStudentAnswers', t: p && p.t, eventId: eventId, rows: rows || [], noStudents: !!noStudents }, ok, ng);
+      },
+      // w7: ホーム
+      getHomePage: function (p) { get({ api: 'home', t: p && p.t, no: p && p.no }, ok, ng); },
+      markTaskDone: function (taskId, p) { post({ api: 'markTaskDone', t: p && p.t, no: p && p.no, taskId: taskId }, ok, ng); },
+      askQuestion: function (text, p) { post({ api: 'askQuestion', t: p && p.t, no: p && p.no, text: text }, ok, ng); },
+      // w10: 部屋の空き
+      getRoomsPage: function (p) { get({ api: 'rooms', t: p && p.t, no: p && p.no, campus: p && p.campus }, ok, ng); },
+      // w11: 振替・予約の申請
+      submitRequest: function (input, p) { post({ api: 'submitRequest', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      cancelRequest: function (id, reason, p) { post({ api: 'cancelRequest', t: p && p.t, no: p && p.no, id: id, reason: reason || '' }, ok, ng); },
+      decideRequest: function (id, decision, comment, force, p) { post({ api: 'decideRequest', t: p && p.t, no: p && p.no, id: id, decision: decision, comment: comment || '', force: !!force }, ok, ng); },
+      // w12: レッスン記録
+      saveRecord: function (input, p) { post({ api: 'saveRecord', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      deleteRecord: function (input, p) { post({ api: 'deleteRecord', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w26: 今月の記録の確定
+      confirmRecords: function (input, p) { post({ api: 'confirmRecords', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w31: 現金の受け取り
+      saveCashReceipt: function (input, p) { post({ api: 'saveCashReceipt', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w37: 体験の結果（入会・検討・未入会）
+      saveTrialResult: function (input, p) { post({ api: 'saveTrialResult', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w39: イベントの会費
+      collectEventFee: function (input, p) { post({ api: 'collectEventFee', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w61: 参加率の分母をこの時点で確定（管理者）
+      fixEventTargets: function (input, p) { post({ api: 'fixEventTargets', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w63: 先生ごとの担当の部（管理者）
+      saveEventSessions: function (input, p) { post({ api: 'saveEventSessions', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w33: 締めチェック（管理者）
+      setChecklistItem: function (input, p) { post({ api: 'setChecklistItem', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w43: 翌月の確認
+      saveNextMonth: function (input, p) { post({ api: 'saveNextMonth', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      deleteNextMonth: function (input, p) { post({ api: 'deleteNextMonth', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      confirmNextMonth: function (input, p) { post({ api: 'confirmNextMonth', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w27: 全先生の今月（管理者）
+      getAllTeachersPage: function (p) { get({ api: 'allTeachers', t: p && p.t, no: p && p.no }, ok, ng); },
+      // w67: 経営ページ（管理者だけ）
+      getKeieiPage: function (p) { get({ api: 'keiei', t: p && p.t, no: p && p.no, ym: p && p.ym, fresh: p && p.fresh ? 1 : '' }, ok, ng); },
+      // w29: 担当生徒の登録内容と「違う」
+      getRosterPage: function (p) { get({ api: 'roster', t: p && p.t, no: p && p.no }, ok, ng); },
+      reportRosterIssue: function (input, p) { post({ api: 'reportRosterIssue', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w40: シフト（出勤日）の変更
+      getShiftPage: function (p) { get({ api: 'shift', t: p && p.t, no: p && p.no }, ok, ng); },
+      getShiftRooms: function (ymd, campus, p) { get({ api: 'shiftRooms', t: p && p.t, no: p && p.no, ymd: ymd, campus: campus }, ok, ng); },
+      submitShiftRequest: function (input, p) { post({ api: 'submitShiftRequest', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      cancelShiftRequest: function (id, reason, p) { post({ api: 'cancelShiftRequest', t: p && p.t, no: p && p.no, id: id, reason: reason }, ok, ng); },
+      decideShiftRequest: function (id, decision, comment, p) { post({ api: 'decideShiftRequest', t: p && p.t, no: p && p.no, id: id, decision: decision, comment: comment }, ok, ng); },
+      // w14: 管理者が質問に返す
+      answerQuestion: function (row, at, qno, text, p) { post({ api: 'answerQuestion', t: p && p.t, no: p && p.no, row: row, at: at, qno: qno, text: text }, ok, ng); },
+      // w17: ホケホケ
+      getHokePage: function (p) { get({ api: 'hoke', t: p && p.t, no: p && p.no, week: p && p.week }, ok, ng); },
+      hokeCandidates: function (rightId, p) { get({ api: 'hokeCandidates', t: p && p.t, no: p && p.no, rightId: rightId, past: p && p.past ? '1' : '' }, ok, ng); },
+      hokeSetState: function (input, p) { post({ api: 'hokeSetState', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      hokeMove: function (input, p) { post({ api: 'hokeMove', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      hokeAdd: function (input, p) { post({ api: 'hokeAdd', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      hokeCancel: function (input, p) { post({ api: 'hokeCancel', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      hokeClose: function (input, p) { post({ api: 'hokeClose', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w21: ホケホケの生徒ページ（家庭の合言葉 s）
+      getHokeParentPage: function (p) { get({ api: 'hokeParent', s: p && p.s }, ok, ng); },
+      hokeParentCandidates: function (rightId, p) { get({ api: 'hokeParentCandidates', s: p && p.s, rightId: rightId }, ok, ng); },
+      hokeParentAbsent: function (input, p) { post({ api: 'hokeParentAbsent', s: p && p.s, input: input || {} }, ok, ng); },
+      hokeParentUndo: function (input, p) { post({ api: 'hokeParentUndo', s: p && p.s, input: input || {} }, ok, ng); },
+      hokeParentMove: function (input, p) { post({ api: 'hokeParentMove', s: p && p.s, input: input || {} }, ok, ng); },
+      hokeParentCancel: function (input, p) { post({ api: 'hokeParentCancel', s: p && p.s, input: input || {} }, ok, ng); }
+    };
+    return r;
+  }
+
+  function replaceUrl(mode, state, params, hash) {
+    try {
+      w.history[mode](state || null, '', '?' + toQuery(params) + (hash ? '#' + hash : ''));
+    } catch (err) { /* 古いブラウザ */ }
+  }
+
+  var script = {
+    url: {
+      getLocation: function (cb) {
+        cb({ parameter: parseQuery(w.location && w.location.search), parameters: {}, hash: '' });
+      }
+    },
+    history: {
+      replace: function (state, params, hash) { replaceUrl('replaceState', state, params, hash); },
+      push: function (state, params, hash) { replaceUrl('pushState', state, params, hash); },
+      setChangeHandler: function () {}
+    }
+  };
+  Object.defineProperty(script, 'run', { get: runner });
+  w.google = { script: script };
+
+  /** ページの中のリンク（「イベント →」など）に合言葉を引き継ぐ */
+  function keepToken() {
+    if (!w.document || !w.document.querySelectorAll) return;
+    var as = w.document.querySelectorAll('a[data-keep-token]');
+    for (var i = 0; i < as.length; i++) {
+      var href = as[i].getAttribute('href') || '';
+      as[i].setAttribute('href', href.replace(/[?#].*$/, '') + '?' + toQuery({ t: w.__luce.token }));
+    }
+  }
+  if (w.document && w.document.addEventListener) w.document.addEventListener('DOMContentLoaded', keepToken);
+  w.__luce.keepToken = keepToken;
+})(window);
+
+    </script>
+    <script>
+      var TOKEN = window.__luce.token;
+      var CTX = { t: TOKEN };
+      var D = null;
+      var TAB = (location.hash || '#dash').slice(1);
+      var TABS = [['dash', 'ダッシュボード'], ['pl', '損益'], ['biz', '事業別'], ['flow', '生徒の動き'], ['ana', '分析']];
+      var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+      var isNum = function (v) { return typeof v === 'number' && isFinite(v); };
+      function yen(n) { return isNum(n) ? Math.round(n).toLocaleString('ja-JP') + '円' : '—'; }
+      function man(n) { return isNum(n) ? (Math.round(n / 1000) / 10).toLocaleString('ja-JP') + '万' : '—'; }
+      function pct(n) { return isNum(n) ? n + '%' : '—'; }
+      function signed(n) { return isNum(n) ? (n > 0 ? '+' : '') + Math.round(n).toLocaleString('ja-JP') : '—'; }
+      function cls(n) { return isNum(n) ? (n < 0 ? 'neg' : (n > 0 ? 'pos' : '')) : ''; }
+      function md(ymd) { var m = String(ymd || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? Number(m[2]) + '/' + Number(m[3]) : ''; }
+      function ymLabel(ym) { return ym ? ym.slice(0, 4) + '年' + Number(ym.slice(4)) + '月' : ''; }
+      function shortYm(ym) { return ym ? ym.slice(2, 4) + '/' + Number(ym.slice(4)) : ''; }
+
+      function backHref() {
+        if (window.__luce) return 'index.html?t=' + encodeURIComponent(window.__luce.token || '');
+        return '?page=status' + (TOKEN ? '&t=' + encodeURIComponent(TOKEN) : '');
+      }
+      document.getElementById('back').setAttribute('href', backHref());
+
+      function load(ym, fresh) {
+        document.getElementById('main').innerHTML = '<div class="center">読み込んでいます…（5つのブックを読むので少し時間がかかります）</div>';
+        google.script.run
+          .withSuccessHandler(render)
+          .withFailureHandler(function (err) { document.getElementById('main').innerHTML = '<div class="center">読み込めませんでした。<br>' + esc(err.message) + '</div>'; })
+          .getKeieiPage({ t: TOKEN, ym: ym || '', fresh: !!fresh });
+      }
+
+      function render(data) {
+        D = data;
+        document.getElementById('foot').textContent = (data.version || '') + (data.asOf ? '　' + data.asOf + ' に読んだ内容' + (data.cached ? '（10分は同じ内容。「読み直す」で読み直します）' : '') : '');
+        if (data.error) { document.getElementById('main').innerHTML = '<div class="center">' + esc(data.error) + '</div>'; return; }
+        if (data.unknown) { document.getElementById('main').innerHTML = '<div class="center">講師として登録されていません。</div>'; return; }
+        document.getElementById('who').textContent = (data.me && data.me.name ? data.me.name + ' さん' : '') + '・管理者だけのページ';
+        document.getElementById('msel').innerHTML = '<label>月 <select onchange="load(this.value)">'
+          + (data.months || []).map(function (m) { return '<option value="' + m + '"' + (m === data.ym ? ' selected' : '') + '>' + ymLabel(m) + (m === data.targetYm ? '（luce給与の対象月）' : '') + '</option>'; }).join('')
+          + '</select></label><button type="button" onclick="load(D.ym, true)">読み直す</button>';
+        document.getElementById('tabs').innerHTML = TABS.map(function (t) {
+          return '<button type="button" class="tab' + (t[0] === TAB ? ' on' : '') + '" onclick="showTab(\'' + t[0] + '\')">' + t[1] + '</button>';
+        }).join('');
+        showTab(TAB);
+      }
+
+      function showTab(id) {
+        TAB = id; location.hash = id;
+        var btns = document.querySelectorAll('.tab');
+        for (var i = 0; i < btns.length; i++) btns[i].className = 'tab' + (btns[i].textContent === (TABS.filter(function (t) { return t[0] === id; })[0] || [])[1] ? ' on' : '');
+        var f = { dash: renderDash, pl: renderPl, biz: renderBiz, flow: renderFlow, ana: renderAna }[id] || renderDash;
+        document.getElementById('main').innerHTML = f(D);
+        window.scrollTo(0, 0);
+      }
+
+      function notesHtml(d) {
+        if (!d.notes || !d.notes.length) return '';
+        return '<div class="note">' + d.notes.map(esc).join('<br>') + '</div>';
+      }
+      function kpi(label, value, detail, opts) {
+        opts = opts || {};
+        var na = value === '—';
+        return '<div class="kpi' + (na ? ' na' : '') + (opts.go ? ' link' : '') + '"' + (opts.go ? ' onclick="showTab(\'' + opts.go + '\')"' : '') + (opts.color ? ' style="border-top:3px solid ' + opts.color + '"' : '') + '>'
+          + '<div class="l">' + esc(label) + '</div><div class="v">' + (na ? '未集計' : value) + '</div>' + (detail ? '<div class="d">' + detail + '</div>' : '') + '</div>';
+      }
+
+      /* ---- ダッシュボード ---- */
+      function renderDash(d) {
+        var html = notesHtml(d);
+        var c = d.close || {};
+        if (c.steps) {
+          html += '<div class="card"><h2>' + esc(c.label) + '分の締め<small>進み具合</small></h2><div class="grid steps">'
+            + c.steps.map(function (s, i) {
+                return '<div class="step ' + s.state + '"><div class="n">' + (s.state === 'done' ? '✓' : (i + 1)) + '</div><div><div class="t">' + esc(s.title) + '</div><div class="s">' + esc(s.sub) + '</div>' + (s.note ? '<div class="' + (s.state === 'now' ? 'x' : 's') + '">' + esc(s.note) + '</div>' : '') + '</div></div>';
+              }).join('')
+            + '</div>';
+          if (c.checklist && c.checklist.items) {
+            var ck = c.checklist;
+            html += '<details><summary>締めチェック ' + ck.done + ' / ' + ck.total + '（ホームと同じ。✓ はホームで）</summary>'
+              + ck.items.map(function (it) { return '<div class="issue"><span class="pill ' + (it.done ? 'ok' : '') + '">' + (it.done ? '済' : esc(it.day)) + '</span><span>' + esc(it.text) + '</span></div>'; }).join('') + '</details>';
+          }
+          html += '</div>';
+        } else {
+          html += '<div class="note">' + esc(d.ymLabel) + ' は luce給与の対象月（' + esc(ymLabel(d.targetYm)) + '）ではないので、締めの進み具合・講師コストの内訳・要対応は出ません。</div>';
+        }
+        var k = d.kpi || {};
+        var s = k.sales, co = k.cost;
+        html += '<div class="grid kpis" style="margin-bottom:12px">'
+          + kpi('売上（月謝＋管理費）', s ? yen(s.total) : '—', s ? '月謝 ' + yen(s.tuition) + ' ／ 管理費 ' + yen(s.admin) + '（' + s.students + '名）' : '⑯ を回すと出ます', { go: 'biz' })
+          + kpi('講師コスト（税抜）', co && isNum(co.total) ? yen(co.total) : (co && isNum(co.grand) ? yen(co.grand) : '—'), co && isNum(co.total) ? '講師料 ' + yen(co.sub) + ' ／ 交通費 ' + yen(co.transport) + '・' + co.teachers + '名' : (co ? '総計（給与台帳_月次）・' + co.teachers + '名' : ''))
+          + kpi('粗利', isNum(k.gross) ? yen(k.gross) : '—', isNum(k.grossRate) ? '粗利率 ' + pct(k.grossRate) : '売上と講師コストの両方がそろうと出ます')
+          + kpi('在籍生徒（今）', (k.students ? k.students.total : 0) + '<small> 名</small>', k.students ? k.students.campus.slice(0, 4).map(function (x) { return esc(x.name) + ' ' + x.count; }).join('・') : '', { go: 'flow' })
+          + (k.transfer ? kpi('振込予定', yen(k.transfer.total), k.transfer.count + '名・振込日 ' + esc(k.transfer.date) + '（土日祝は前倒し）') : '')
+          + (isNum(k.cash) ? kpi('現金集金（⑦）', yen(k.cash), '先生が集めて振り込む分') : '')
+          + '</div>';
+        var is = d.issues || {};
+        if (is.forTarget) {
+          html += '<div class="card"><h2>要対応<small>luce給与 ④ と ⑬ の結果</small></h2>'
+            + '<div class="chips"><span class="chip">エラー <b>' + is.errors + '</b></span><span class="chip">警告 <b>' + is.warnings + '</b></span>'
+            + '<span class="chip">STORES 要対応 <b>' + (is.stores ? is.stores.problems : 0) + '</b> / ' + (is.stores ? is.stores.total : 0) + '</span></div>'
+            + (is.top || []).map(function (t) { return '<div class="issue"><span class="pill ' + (t.severity === 'エラー' ? 'err' : 'wrn') + '">' + esc(t.severity) + ' ' + t.count + '</span><span>' + esc(t.text) + '<small style="color:var(--muted)">（' + t.teachers + '名）</small></span></div>'; }).join('')
+            + (is.stores && is.stores.total ? '<p class="hint">STORES: ' + Object.keys(is.stores.byKind).map(function (kk) { return esc(kk) + ' ' + is.stores.byKind[kk]; }).join('・') + '</p>' : '')
+            + '<p class="hint">中身は luce給与ブックの「検証結果」「STORES照合」シートで。直し方は「④ の指摘の読み方」のページ。</p></div>';
+        }
+        var pl = d.pl && d.pl.now;
+        html += '<div class="grid kpis" style="margin-bottom:12px">'
+          + (d.biz && d.biz.rows ? d.biz.rows.slice(0, 3).map(function (b, i) { return kpi(b.name, isNum(b.sales) ? yen(b.sales) : '—', isNum(b.gross) ? '粗利 ' + yen(b.gross) + '（' + pct(b.rate) + '）' : esc(b.note), { go: 'biz', color: ['var(--c1)', 'var(--c2)', 'var(--c4)'][i] }); }).join('') : '')
+          + (pl ? kpi('営業利益（freee）' + (pl.partial ? '・締め途中' : ''), yen(pl.op), '売上 ' + yen(pl.sales) + '・利益率 ' + pct(pl.opRate), { go: 'pl', color: 'var(--accent-deep)' }) : kpi('営業利益（freee）', '—', '経営ダッシュボードにこの月がありません', { go: 'pl' }))
+          + (pl ? kpi('現預金 − 借入金', yen(pl.net), '現預金 ' + yen(pl.cash) + '・借入金 ' + yen(pl.loan), { go: 'pl', color: 'var(--c3)' }) : '')
+          + '</div>';
+        var f = d.flow || {};
+        html += '<div class="card"><h2>生徒の動き<small>' + esc(d.ymLabel) + '</small></h2><div class="chips">'
+          + '<span class="chip">入会 <b>' + f.joinCount + '</b></span><span class="chip">退会 <b>' + f.quitCount + '</b></span><span class="chip">純増 <b class="' + cls(f.net) + '">' + signed(f.net) + '</b></span>'
+          + '<span class="chip">移動 <b>' + (f.moves || []).length + '</b></span><span class="chip">体験 <b>' + (f.trials ? f.trials.count : 0) + '</b> → 入会 ' + (f.trials ? f.trials.joined : 0) + '</span></div>'
+          + '<p class="hint"><a href="#flow" onclick="showTab(\'flow\');return false;">先生ごと・一人ずつの一覧 →</a></p></div>';
+        return html;
+      }
+
+      /* ---- 損益 ---- */
+      function renderPl(d) {
+        var rows = (d.pl && d.pl.rows) || [];
+        if (!rows.length) return notesHtml(d) + '<div class="card"><h2>損益</h2><p class="hint">経営ダッシュボード（nulu 経営ダッシュボード）の「月次サマリー」が読めませんでした。</p></div>';
+        var now = d.pl.now, prev = d.pl.prev;
+        var html = notesHtml(d);
+        html += '<div class="card"><h2>' + esc(d.ymLabel) + ' の損益<small>freee の試算表（単月）' + (now && now.partial ? '・締め途中なので動きます' : '') + '</small></h2>';
+        if (now) {
+          var items = [['売上', now.sales, 'var(--c1)'], ['講師料', -now.teacher, 'var(--c2)'], ['人件費', -now.staff, 'var(--c2)'], ['地代家賃', -now.rent, 'var(--c5)'], ['その他の経費', -now.other, 'var(--c6)'], ['営業利益', now.op, now.op >= 0 ? 'var(--c3)' : 'var(--warn)']];
+          var mx = Math.max.apply(null, items.map(function (x) { return Math.abs(x[1]); })) || 1;
+          html += '<div class="bars">' + items.map(function (x) {
+            return '<div class="bar"><span>' + esc(x[0]) + '</span><div class="track"><div class="fill" style="width:' + Math.round(Math.abs(x[1]) / mx * 100) + '%;background:' + x[2] + '"></div></div><span class="val ' + cls(x[1]) + '">' + (x[1] < 0 ? '−' : '') + yen(Math.abs(x[1])) + '</span></div>';
+          }).join('') + '</div>';
+          html += '<div class="chips" style="margin-top:10px"><span class="chip">利益率 <b>' + pct(now.opRate) + '</b></span>'
+            + (prev ? '<span class="chip">前月の売上 <b>' + yen(prev.sales) + '</b>（' + signed(now.sales - prev.sales) + '）</span><span class="chip">前月の営業利益 <b>' + yen(prev.op) + '</b></span>' : '')
+            + '<span class="chip">支払利息 <b>' + yen(now.interest) + '</b></span></div>';
+        } else {
+          html += '<p class="hint">この月はまだ経営ダッシュボードにありません（毎月2日の朝に前の月が入ります）。</p>';
+        }
+        html += '<p class="hint">講師料は 20日の支払いで仕訳に入るので、締めの途中の月は小さく出ます。残高（現預金・借入金）は月末の確定値です。</p></div>';
+        var last = rows.slice(-12);
+        html += '<div class="card"><h2>月ごとの推移<small>直近 ' + last.length + 'か月</small></h2>'
+          + '<div class="legend"><span><i style="background:var(--c1)"></i>売上</span><span><i style="background:var(--c2)"></i>講師料＋人件費</span><span><i style="background:var(--c3)"></i>営業利益</span></div>'
+          + barChart(last.map(function (r) { return { label: shortYm(r.ym), vals: [r.sales, r.teacher + r.staff, r.op], partial: r.partial }; }), ['var(--c1)', 'var(--c2)', 'var(--c3)'])
+          + '<div class="tbl"><table><tr><th>月</th><th class="r">売上</th><th class="r">講師料</th><th class="r">人件費</th><th class="r">地代家賃</th><th class="r">販管費計</th><th class="r">営業利益</th><th class="r">利益率</th><th class="r">現預金</th><th class="r">借入金</th><th class="r">差引</th></tr>'
+          + last.slice().reverse().map(function (r) {
+              return '<tr' + (r.partial ? ' class="partial"' : '') + '><td>' + esc(r.label) + (r.partial ? ' <span class="pill wrn">途中</span>' : '') + '</td><td class="r">' + man(r.sales) + '</td><td class="r">' + man(r.teacher) + '</td><td class="r">' + man(r.staff) + '</td><td class="r">' + man(r.rent) + '</td><td class="r">' + man(r.sga) + '</td><td class="r ' + cls(r.op) + '">' + man(r.op) + '</td><td class="r">' + pct(r.opRate) + '</td><td class="r">' + man(r.cash) + '</td><td class="r">' + man(r.loan) + '</td><td class="r ' + cls(r.net) + '">' + man(r.net) + '</td></tr>';
+            }).join('')
+          + '</table></div><p class="hint">単位は万円。「途中」は freee の仕訳が入りきっていない月。</p></div>';
+        html += '<div class="card"><h2>残高<small>月末</small></h2>'
+          + '<div class="legend"><span><i style="background:var(--c1)"></i>現預金</span><span><i style="background:var(--c5)"></i>借入金</span><span><i style="background:var(--c6)"></i>尾西の月内最少</span></div>'
+          + lineChart(last.map(function (r) { return { label: shortYm(r.ym), vals: [r.cash, r.loan, r.minCash || null] }; }), ['var(--c1)', 'var(--c5)', 'var(--c6)'])
+          + '</div>';
+        return html;
+      }
+
+      /* ---- 事業別 ---- */
+      function renderBiz(d) {
+        var b = d.biz || { rows: [] };
+        var colors = { lesson: 'var(--c1)', chorus: 'var(--c2)', hoke: 'var(--c4)', tuning: 'var(--c3)', rental: 'var(--c5)', event: 'var(--c6)' };
+        var html = notesHtml(d);
+        if (!b.source16) html += '<div class="note">' + esc(d.ymLabel) + ' の売上（月謝＋管理費）はまだありません。luce給与 ⑯ を回すと入ります。</div>';
+        html += '<div class="grid kpis" style="margin-bottom:12px">' + b.rows.map(function (r) {
+          return kpi(r.name + (isNum(r.students) ? '・' + r.students + (r.key === 'rental' || r.key === 'event' ? '件' : '名') : ''), isNum(r.sales) ? yen(r.sales) : '—',
+            (isNum(r.cost) ? '原価 ' + yen(r.cost) : '原価 —') + (isNum(r.gross) ? ' ／ 粗利 ' + yen(r.gross) + '（' + pct(r.rate) + '）' : ''), { color: colors[r.key] });
+        }).join('') + '</div>';
+        html += '<div class="card"><h2>内訳と出どころ</h2><div class="tbl"><table><tr><th>事業</th><th class="r">売上</th><th class="r">原価</th><th class="r">粗利</th><th class="r">粗利率</th><th>出どころ・注意</th></tr>'
+          + b.rows.map(function (r) { return '<tr><td>' + esc(r.name) + '</td><td class="r">' + yen(r.sales) + '</td><td class="r">' + yen(r.cost) + '</td><td class="r ' + cls(r.gross) + '">' + yen(r.gross) + '</td><td class="r">' + pct(r.rate) + '</td><td style="white-space:normal;min-width:220px;color:var(--muted);font-size:12px">' + esc(r.note) + '</td></tr>'; }).join('')
+          + '</table></div><p class="hint">売上は税込の集金額（月謝・管理費・会費）、原価は請求書の税抜の額です。freee の損益（損益タブ）とは消費税の分と計上の時期が違います。</p>'
+          + (b.chorusExtra && b.chorusExtra.lines && b.chorusExtra.lines.length ? '<p class="hint">合唱の原価に足した合唱伴奏: ' + b.chorusExtra.lines.map(function (l) { return esc(l.name) + ' ' + l.qty + '回 ' + yen(l.amount); }).join('、') + '（請求書の「合唱演奏補佐」の行。④ の記録計算書から）</p>' : '')
+          + (b.tuning && b.tuning.found ? '<p class="hint">調律（合唱・調律シート）: ' + b.tuning.rows.map(function (r) { return esc(r.label) + ' ' + r.count + '回（備品 ' + r.schoolCount + '・生徒 ' + r.studentCount + (r.students.length ? '：' + esc(r.students.join('・')) : '') + '）'; }).join('、') + '。生徒の分だけ売上、備品は経費だけ</p>' : '')
+          + '</div>';
+        if (b.events && b.events.length) {
+          html += '<div class="card"><h2>イベント<small>' + esc(d.ymLabel) + '</small></h2><div class="tbl"><table><tr><th>日付</th><th>イベント</th><th class="r">参加</th><th class="r">売上（見込み）</th><th class="r">集金済み</th><th class="r">経費</th><th class="r">利益</th></tr>'
+            + b.events.map(function (e) { return '<tr><td>' + esc(md(e.date)) + '</td><td>' + esc(e.name) + '</td><td class="r">' + e.join + '</td><td class="r">' + yen(e.revenue) + '</td><td class="r">' + yen(e.paid) + '</td><td class="r">' + yen(e.cost) + '</td><td class="r ' + cls(e.profit) + '">' + yen(e.profit) + '</td></tr>'; }).join('')
+            + '</table></div></div>';
+        }
+        if (b.rental) {
+          var r = b.rental;
+          html += '<div class="card"><h2>レンタル（STORES）<small>' + esc(d.ymLabel) + '・決済した日の月</small></h2><div class="chips"><span class="chip">予約 <b>' + r.count + '</b>件</span><span class="chip">返金 <b>' + r.refunds + '</b>件</span><span class="chip">金額 <b>' + yen(r.sales) + '</b></span><span class="chip">手数料 <b>' + yen(r.fee) + '</b></span><span class="chip">入金 <b>' + yen(r.net) + '</b></span></div><p class="hint">部屋ごとの内訳は luce給与ブックの「STORESレンタル」シート。</p></div>';
+        }
+        return html;
+      }
+
+      /* ---- 生徒の動き ---- */
+      function renderFlow(d) {
+        var f = d.flow || {};
+        var html = notesHtml(d);
+        html += '<div class="card"><h2>' + esc(d.ymLabel) + ' の動き</h2><div class="chips">'
+          + '<span class="chip">入会 <b>' + f.joinCount + '</b></span><span class="chip">退会 <b>' + f.quitCount + '</b></span><span class="chip">純増 <b class="' + cls(f.net) + '">' + signed(f.net) + '</b></span>'
+          + '<span class="chip">先生の移動 <b>' + (f.moves || []).length + '</b></span><span class="chip">退会で減る月謝 <b>' + yen(f.lostTuition) + '</b>/月</span>'
+          + '<span class="chip">体験 <b>' + (f.trials ? f.trials.count : 0) + '</b> → 入会 ' + (f.trials ? f.trials.joined : 0) + '・検討中 ' + (f.trials ? f.trials.pending : 0) + '・未入会 ' + (f.trials ? f.trials.declined : 0) + '（入会率 ' + pct(f.trials ? f.trials.rate : null) + '）</span></div>'
+          + '<p class="hint">入会＝名簿のレッスン開始日か 新規・体験 の名簿転記日がその月。退会＝退会シートの退会日（名簿の【自動】退会日も）がその月。移動＝退会した子が別の先生の下で通っている。体験＝講師ページの体験結果（9/27 から記録）。</p></div>';
+        var bt = f.byTeacher || [];
+        html += '<div class="card"><h2>先生ごと</h2><div class="tbl"><table><tr><th>先生</th><th class="r">在籍（今）</th><th class="r">入会</th><th class="r">退会</th><th class="r">受入</th><th class="r">送出</th><th class="r">体験</th><th class="r">→入会</th></tr>'
+          + bt.map(function (t) { return '<tr><td>' + esc(t.teacher) + '</td><td class="r">' + t.students + '</td><td class="r ' + (t.joins ? 'pos' : '') + '">' + (t.joins || '') + '</td><td class="r ' + (t.quits ? 'neg' : '') + '">' + (t.quits || '') + '</td><td class="r">' + (t.moveIn || '') + '</td><td class="r">' + (t.moveOut || '') + '</td><td class="r">' + (t.trials || '') + '</td><td class="r">' + (t.trialJoined || '') + '</td></tr>'; }).join('')
+          + '</table></div></div>';
+        var list = function (title, arr, f2) {
+          if (!arr || !arr.length) return '';
+          return '<div class="card"><h2>' + title + '<small>' + arr.length + '名</small></h2><div class="tbl"><table>' + arr.map(f2).join('') + '</table></div></div>';
+        };
+        html += list('退会', f.quits, function (q) { return '<tr><td>' + esc(md(q.date)) + '</td><td>' + esc(q.name) + '</td><td>' + esc(q.teacher) + '</td><td>' + esc(q.campus) + '</td><td class="r">' + (q.tuition ? yen(q.tuition) + '/月' : '') + '</td><td style="white-space:normal;color:var(--muted);font-size:12px">' + esc(q.note) + '</td></tr>'; });
+        html += list('入会', f.joins, function (j) { return '<tr><td>' + esc(md(j.date)) + '</td><td>' + esc(j.name) + '</td><td>' + esc(j.teacher) + '</td><td>' + esc(j.campus) + '</td><td>' + esc(j.grade) + '</td><td style="color:var(--muted);font-size:12px">' + esc(j.via) + '</td></tr>'; });
+        html += list('先生の移動', f.moves, function (m) { return '<tr><td>' + esc(md(m.date)) + '</td><td>' + esc(m.name) + '</td><td>' + esc(m.from) + ' → ' + esc(m.to) + '</td><td>' + esc(m.campus) + '</td></tr>'; });
+        return html;
+      }
+
+      /* ---- 分析 ---- */
+      function renderAna(d) {
+        var a = d.ana || {};
+        var html = notesHtml(d);
+        var tr = a.trend || [];
+        html += '<div class="card"><h2>売上と講師コスト<small>直近 ' + tr.length + 'か月</small></h2>'
+          + '<div class="legend"><span><i style="background:var(--c1)"></i>売上（freee）</span><span><i style="background:var(--c2)"></i>講師コスト（給与台帳の総計）</span></div>'
+          + barChart(tr.map(function (r) { return { label: shortYm(r.ym), vals: [r.sales, r.cost], partial: r.partial }; }), ['var(--c1)', 'var(--c2)'])
+          + '<div class="tbl"><table><tr><th>月</th><th class="r">売上</th><th class="r">講師コスト</th><th class="r">差</th><th class="r">営業利益</th><th class="r">在籍</th></tr>'
+          + tr.slice().reverse().map(function (r) { var diff = isNum(r.sales) && isNum(r.cost) ? r.sales - r.cost : null; return '<tr' + (r.partial ? ' class="partial"' : '') + '><td>' + esc(r.label) + '</td><td class="r">' + man(r.sales) + '</td><td class="r">' + man(r.cost) + '</td><td class="r ' + cls(diff) + '">' + man(diff) + '</td><td class="r ' + cls(r.op) + '">' + man(r.op) + '</td><td class="r">' + (isNum(r.students) ? r.students : '—') + '</td></tr>'; }).join('')
+          + '</table></div><p class="hint">在籍の数は経営ダッシュボードが月末に写し始めた月（2026年9月）から。</p></div>';
+        var cp = a.campus || [];
+        var mxS = Math.max.apply(null, cp.map(function (c) { return c.students; }).concat([1]));
+        html += '<div class="grid two"><div class="card"><h2>校舎別<small>在籍（今）と売上（' + esc(d.ymLabel) + '）</small></h2><div class="bars">'
+          + cp.map(function (c) { return '<div class="bar"><span>' + esc(c.name) + '</span><div class="track"><div class="fill" style="width:' + Math.round(c.students / mxS * 100) + '%"></div></div><span class="val">' + c.students + '名' + (isNum(c.sales) ? '・' + man(c.sales) : '') + '</span></div>'; }).join('')
+          + '</div></div>';
+        var gr = a.grades || [];
+        var mxG = Math.max.apply(null, gr.map(function (g) { return g.count; }).concat([1]));
+        html += '<div class="card"><h2>在籍の構成<small>学年</small></h2><div class="bars">'
+          + gr.map(function (g) { return '<div class="bar"><span>' + esc(g.name) + '</span><div class="track"><div class="fill" style="width:' + Math.round(g.count / mxG * 100) + '%;background:var(--c4)"></div></div><span class="val">' + g.count + '名</span></div>'; }).join('')
+          + '</div><details><summary>レベル（多い順）</summary>' + (a.levels || []).map(function (l) { return '<div class="issue"><span class="pill">' + l.count + '</span><span>' + esc(l.name) + '</span></div>'; }).join('') + '</details></div></div>';
+        var te = a.teachers || [];
+        if (te.length) {
+          html += '<div class="card"><h2>講師別<small>' + esc(d.ymLabel) + '・売上（月謝＋管理費）と講師料</small></h2><div class="tbl"><table><tr><th>先生</th><th class="r">生徒数</th><th class="r">売上</th><th class="r">講師料（税抜）</th><th class="r">粗利</th><th class="r">粗利率</th></tr>'
+            + te.map(function (t) { return '<tr><td>' + esc(t.name) + '</td><td class="r">' + t.students + '</td><td class="r">' + yen(t.sales) + '</td><td class="r">' + yen(t.cost) + '</td><td class="r ' + cls(t.gross) + '">' + yen(t.gross) + '</td><td class="r">' + pct(t.rate) + '</td></tr>'; }).join('')
+            + '</table></div><p class="hint">⑯ の「講師別」シートの値。講師料は請求書の小計（交通費を除く）。</p></div>';
+        } else {
+          html += '<div class="card"><h2>講師別</h2><p class="hint">' + esc(d.ymLabel) + ' の ⑯ の集計ファイルがまだありません。</p></div>';
+        }
+        return html;
+      }
+
+      /* ---- グラフ（SVG）。横幅に合わせて伸びる ---- */
+      function barChart(items, colors) {
+        var W = 720, H = 220, L = 46, R = 8, T = 10, B = 28;
+        var vals = []; items.forEach(function (it) { it.vals.forEach(function (v) { if (isNum(v)) vals.push(v); }); });
+        var mx = Math.max.apply(null, vals.concat([1])), mn = Math.min.apply(null, vals.concat([0]));
+        var span = mx - mn || 1;
+        var y = function (v) { return T + (mx - v) / span * (H - T - B); };
+        var n = items.length || 1, k = (items[0] || { vals: [] }).vals.length || 1;
+        var gw = (W - L - R) / n, bw = Math.max(3, (gw * 0.72) / k);
+        var s = '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="月ごとの棒グラフ">';
+        var ticks = 4;
+        for (var i = 0; i <= ticks; i++) { var v = mn + span * i / ticks; var yy = y(v); s += '<line x1="' + L + '" y1="' + yy + '" x2="' + (W - R) + '" y2="' + yy + '" stroke="#e3e6e1"/><text x="' + (L - 4) + '" y="' + (yy + 4) + '" font-size="10" text-anchor="end" fill="#64716e">' + Math.round(v / 10000) + '万</text>'; }
+        var y0 = y(0);
+        items.forEach(function (it, i) {
+          var x0 = L + gw * i + gw * 0.14;
+          it.vals.forEach(function (v, j) {
+            if (!isNum(v)) return;
+            var yv = y(v), h = Math.abs(yv - y0);
+            s += '<rect x="' + (x0 + bw * j) + '" y="' + Math.min(yv, y0) + '" width="' + (bw - 1) + '" height="' + Math.max(h, 1) + '" fill="' + colors[j] + '"' + (it.partial ? ' opacity=".45"' : '') + ' rx="1.5"/>';
+          });
+          s += '<text x="' + (L + gw * i + gw / 2) + '" y="' + (H - 8) + '" font-size="10" text-anchor="middle" fill="#64716e">' + esc(it.label) + '</text>';
+        });
+        return s + '</svg>';
+      }
+      function lineChart(items, colors) {
+        var W = 720, H = 200, L = 52, R = 8, T = 10, B = 28;
+        var vals = []; items.forEach(function (it) { it.vals.forEach(function (v) { if (isNum(v)) vals.push(v); }); });
+        var mx = Math.max.apply(null, vals.concat([1])), mn = Math.min.apply(null, vals.concat([0]));
+        var span = mx - mn || 1;
+        var y = function (v) { return T + (mx - v) / span * (H - T - B); };
+        var n = items.length || 1, x = function (i) { return L + (W - L - R) * (n === 1 ? 0.5 : i / (n - 1)); };
+        var s = '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="残高の推移">';
+        for (var i = 0; i <= 4; i++) { var v = mn + span * i / 4; var yy = y(v); s += '<line x1="' + L + '" y1="' + yy + '" x2="' + (W - R) + '" y2="' + yy + '" stroke="#e3e6e1"/><text x="' + (L - 4) + '" y="' + (yy + 4) + '" font-size="10" text-anchor="end" fill="#64716e">' + Math.round(v / 10000) + '万</text>'; }
+        var k = (items[0] || { vals: [] }).vals.length;
+        for (var j = 0; j < k; j++) {
+          var pts = [];
+          items.forEach(function (it, i) { if (isNum(it.vals[j])) pts.push(x(i) + ',' + y(it.vals[j])); });
+          if (pts.length) s += '<polyline points="' + pts.join(' ') + '" fill="none" stroke="' + colors[j] + '" stroke-width="2.2"/>';
+          items.forEach(function (it, i) { if (isNum(it.vals[j])) s += '<circle cx="' + x(i) + '" cy="' + y(it.vals[j]) + '" r="3" fill="' + colors[j] + '"/>'; });
+        }
+        items.forEach(function (it, i) { s += '<text x="' + x(i) + '" y="' + (H - 8) + '" font-size="10" text-anchor="middle" fill="#64716e">' + esc(it.label) + '</text>'; });
+        return s + '</svg>';
+      }
+
+      load('', false);
+    </script>
+  </body>
+</html>
