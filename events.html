@@ -464,6 +464,7 @@
               : '<b>担当の部はまだ決まっていません</b>（日置さんが決めます）。生徒ごとに部を選ぶこともできます。') + '</p>'
             + '<p class="hint">生徒は基本、先生の担当の部に参加します。都合が悪い子だけ、参加を選んだあと「部」を別の日・別の部に変えてください。</p>';
         }
+        if (e.myRate) html += myRateHtml(e);   // w65: 自分の参加率（保存すると数え直す）
         if (hasAdult) {
           html += '<div class="filter">'
             + '<button type="button" class="' + (FILTER[e.id] === 'adult' ? 'on' : '') + '" onclick="setFilter(\'' + esc(e.id) + '\',\'adult\')">大人だけ</button>'
@@ -506,7 +507,7 @@
             var rr = function (o, cls) {
               return '<tr' + (cls ? ' class="' + cls + '"' : '') + '><td>' + esc(o.teacher) + '</td><td class="num">' + o.target
                 + '<small>（園' + o.kinder + '・小' + o.school + '）</small></td><td class="num">' + o.join
-                + (o.other ? '<small>年少〜小6以外 ' + o.other + '</small>' : '') + '</td><td class="num">' + o.undecided
+                + (o.other ? '<small>うち対象外 ' + o.other + '</small>' : '') + '</td><td class="num">' + o.undecided
                 + '</td><td class="num"><b>' + pct(o.rate) + '</b></td>' + '</tr>';
             };
             html += '<details open><summary>参加率（参加した全員 ÷ 園児・小学生の生徒数）　全体 ' + pct(e.rates.total.rate) + '（' + e.rates.total.join + ' / ' + e.rates.total.target + '名）</summary>'
@@ -517,8 +518,8 @@
                 : '<p class="hint"><b>まだ確定していません</b>（' + esc(e.ratesAsOf || '') + ' の名簿で数えています。入会・退会で動きます）。</p>')
               + '<button type="button" class="none" onclick="fixTargets(\'' + esc(e.id) + '\',this,' + (e.ratesFixed ? 'true' : 'false') + ')">'
               + (e.ratesFixed ? '今の名簿で確定し直す' : 'この時点の名簿で対象を確定する') + '</button>'
-              + '<p class="hint">対象は名簿で在籍している生徒（休会中・退会が決まっている子・入会が決まった子も含む）のうち、学年が 年少〜小6 の子です。'
-              + '参加は、その先生が「参加」で登録した全員（中学生以上・大人・ベビーも）なので、100% を超える先生もいます。</p></details>';
+              + '<p class="hint">生徒数は名簿で在籍している生徒（休会中・退会が決まっている子・入会が決まった子も含む）のうち、学年が 年少〜小6 の子です（予約制の子は入れません）。'
+              + '参加は、その先生が「参加」で登録した全員（中学生以上・大人・ベビー・予約制の子も）なので、100% を超える先生もいます。「対象外」は生徒数に入っていない子の参加です。</p></details>';
           }
           if (e.households && e.households.length) {
             var warn = e.households.filter(function (h) { return h.note; });
@@ -555,6 +556,17 @@
           + '</div>';
         return '<div class="stu' + (hide ? ' hidden' : '') + '" id="stu-' + esc(e.id) + '-' + i + '">' + name
           + '<div class="seg small">' + seg + '</div>' + sesHtml(e, r, i) + more + feeHtml(e, r, i) + '</div>';
+      }
+
+      /* ---- w65: 先生の自分の参加率（自分の行だけ） ---- */
+      function myRateHtml(e) {
+        var o = e.myRate;
+        return '<div class="tally myrate"><span>あなたの参加率 <b>' + (o.rate === null || o.rate === undefined ? '—' : o.rate + '%') + '</b></span>'
+          + '<span>参加 <b>' + o.join + '</b>名' + (o.other ? '（うち対象外 ' + o.other + '）' : '') + '</span>'
+          + '<span>生徒数 <b>' + o.target + '</b>名（園' + o.kinder + '・小' + o.school + '）</span>'
+          + (o.undecided ? '<span>未定 <b>' + o.undecided + '</b>名</span>' : '') + '</div>'
+          + '<p class="hint" style="margin-top:6px">参加率 ＝ 「参加」で保存した生徒（中学生以上・大人・ベビー・予約制の子も）÷ 生徒数（在籍している 年少〜小6。予約制の子は入れません）。100% を超えることもあります。'
+          + (o.fixed ? '生徒数は ' + esc(o.asOf) + ' に確定した人数です。' : '生徒数は今の名簿で数えています（あとで確定します）。') + '</p>';
       }
 
       /* ---- w63: 部（クリスマス会のように日・時間帯で分かれるイベント） ---- */
