@@ -524,6 +524,21 @@
   .week .dd[open] > summary .d { font-weight: 600; }
   .week .dd .stu { padding: 2px 0 8px; }
   .week .dd .meta { padding: 2px 0 8px; }
+  /* w70: 見守り（休みが続いている生徒・検討のままの体験・今月の回数） */
+  .card.absent { border: 1.5px solid var(--caution); }
+  .absent .ar { border-top: 1px solid var(--rule); padding: 8px 0; }
+  .absent .ar:first-of-type { border-top: 0; padding-top: 2px; }
+  .absent .ar .n { font-weight: 600; }
+  .absent .ar .n small { font-weight: 700; color: var(--caution); margin-left: 8px; }
+  .absent .ar .ds { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .card.consider { border: 1.5px solid var(--caution); }
+  .consider .ta .th .late { font-size: 12px; font-weight: 700; color: var(--caution); }
+  .consider .tb { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+  .consider .tb button { font: inherit; font-size: 14px; font-weight: 700; padding: 8px 16px; border-radius: 999px; border: 1.5px solid var(--accent); background: #fff; color: var(--accent); }
+  .counts .mc { padding: 6px 0; }
+  .counts .mc + .mc { border-top: 1px solid var(--rule); }
+  .counts .mc .ml { font-weight: 600; margin-bottom: 2px; }
+  .counts .chips { margin-top: 4px; }
 
 </style>
   </head>
@@ -854,7 +869,7 @@
           if (!HOKE.data && !HOKE.loading) loadHoke(HOKE.week);
           return;
         }
-        box.innerHTML = trialAskHtml(data) + pendingQuestionsHtml(data) + pendingHtml(data) + pendingShiftsHtml(data) + confirmAdminHtml(data) + nextAdminHtml(data) + nextIssuesHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + eventPLHtml(data) + allCardHtml(data) + confirmCardHtml(data) + nextCardHtml(data) + todayHtml(data) + bookStudentsHtml(data) + trialsHtml(data) + roomsCardHtml() + requestsHtml(data) + shiftCardHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
+        box.innerHTML = trialAskHtml(data) + consideringHtml(data) + pendingQuestionsHtml(data) + pendingHtml(data) + pendingShiftsHtml(data) + confirmAdminHtml(data) + nextAdminHtml(data) + nextIssuesHtml(data) + shiftTodayHtml(data) + checklistHtml(data) + eventPLHtml(data) + allCardHtml(data) + confirmCardHtml(data) + nextCardHtml(data) + todayHtml(data) + absentHtml(data) + monthCountsHtml(data) + bookStudentsHtml(data) + trialsHtml(data) + roomsCardHtml() + requestsHtml(data) + shiftCardHtml(data) + rosterCardHtml(data) + docsHtml(data) + noticesHtml(data) + eventPlanHtml(data) + tasksHtml(data) + faqHtml(data);
       }
 
       function kindBadge(k) {
@@ -1450,6 +1465,63 @@
           + (mail ? '<div class="ti"><b>メール</b><a href="mailto:' + esc(mail) + '">' + esc(mail) + '</a></div>' : '')
           + (t.route ? '<div class="ti"><b>入会経緯</b>' + esc(t.route) + '</div>' : '')
           + (memo.length ? '<div class="ti"><b>事前情報</b>' + linkify(memo.join('\n')) + '</div>' : '');
+      }
+
+      /* ---- w70 見守り: 休みが続いている生徒・検討のままの体験・今月の回数 ---- */
+      function absentHtml(data) {
+        var items = data.absent || [];
+        if (!items.length) return '';
+        return '<div class="card absent"><h2>休みが続いている生徒<small>' + items.length + '人</small></h2>'
+          + items.map(function (x) {
+            return '<div class="ar"><div class="n">' + esc(x.studentName) + ' さん<small>' + x.count + '回続けてお休み</small></div>'
+              + '<div class="ds">' + x.lines.map(esc).join('　') + '</div></div>';
+          }).join('')
+          + '<p class="hint">事前キャンセル・当日欠席が続いています（休講は数えません）。ご家庭に声をかけてみてください。出席を押せばここから消えます。日置にも届いています。</p></div>';
+      }
+      function consideringHtml(data) {
+        var cs = data.considering || [];
+        if (!cs.length) return '';
+        return '<div class="card consider"><h2>検討のままの体験<small>' + cs.length + '件</small></h2>'
+          + cs.map(function (c) {
+            return '<div class="ta" id="cs_' + esc(c.key) + '"><div class="th"><span class="d">' + esc(c.dateJa) + '</span>'
+              + (c.campus ? '<span class="c">' + esc(c.campus) + '</span>' : '') + '<span class="late">' + c.days + '日たちました</span></div>'
+              + '<div class="tn">' + esc(c.name) + ' さん' + (c.grade ? '<span class="g">' + esc(c.grade) + '</span>' : '') + '</div>'
+              + '<div class="tb"><button onclick="considerResult(\'' + esc(c.key) + '\', \'入会\', this)">入会した</button>'
+              + '<button onclick="considerResult(\'' + esc(c.key) + '\', \'未入会\', this)">未入会だった</button></div></div>';
+          }).join('')
+          + '<p class="hint">「検討」のまま2週間たった体験です。お返事があれば押してください。まだなら、ご家庭にひと声かけてみてください（押さなくても大丈夫です）。</p></div>';
+      }
+      function considerResult(key, result, btn) {
+        var box = btn && btn.parentNode;
+        if (box) Array.prototype.forEach.call(box.getElementsByTagName('button'), function (b) { b.disabled = true; });
+        if (btn) btn.textContent = '送信中…';
+        google.script.run
+          .withSuccessHandler(function (res) {
+            HOME.considering = (HOME.considering || []).filter(function (c) { return c.key !== key; });
+            if (res && res.trialResults) HOME.trialResults = res.trialResults;
+            renderHome(HOME);
+          })
+          .withFailureHandler(function (err) {
+            if (box) Array.prototype.forEach.call(box.getElementsByTagName('button'), function (b) { b.disabled = false; });
+            if (btn) btn.textContent = result;
+            alert('記録できませんでした。' + err.message);
+          })
+          .saveTrialResult({ key: key, result: result }, { t: TOKEN, no: STATE.teacherNo || '' });
+      }
+      function monthCountsHtml(data) {
+        var ms = data.monthCounts || [];
+        if (!ms.length) return '';
+        var chip = function (label, n, cls) { return '<span class="chip' + (cls ? ' ' + cls : '') + '">' + label + ' <b>' + n + '</b></span>'; };
+        return '<div class="card counts"><h2>今月の回数<small>記録から</small></h2>'
+          + ms.map(function (m) {
+            var any = m.attend + m.dayAbsent + m.cancel + m.closed + m.moves + m.books;
+            return '<div class="mc"><div class="ml">' + esc(m.label) + (any ? '' : '<small style="font-weight:400;color:var(--muted);margin-left:8px">まだ記録がありません</small>') + '</div>'
+              + (any ? '<div class="chips">' + chip('出席', m.attend, 'ok') + chip('当日欠席', m.dayAbsent, 'ok') + chip('事前キャンセル', m.cancel) + chip('休講', m.closed)
+                + (m.moves ? chip('振替', m.moves) : '') + (m.books ? chip('予約', m.books) : '')
+                + chip('出勤', m.days + '日' + (m.byCampus.length > 1 ? '（' + m.byCampus.map(function (c) { return c.campus.replace(/校$/, '') + ' ' + c.days; }).join('・') + '）' : '')) + '</div>' : '')
+              + '</div>';
+          }).join('')
+          + '<p class="hint">講師ページで押した記録を数えたものです（出席・当日欠席が報酬のある回）。報酬の額は月報の請求書が正です。出勤の日数は出席か当日欠席のあった日（校舎は部屋から）。</p></div>';
       }
 
       /* ---- w37 体験の結果（入会・検討・未入会）。押すまでいちばん上に出る ---- */
