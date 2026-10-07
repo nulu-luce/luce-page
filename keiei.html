@@ -505,6 +505,13 @@
         html += list('退会', f.quits, function (q) { return '<tr><td>' + esc(md(q.date)) + '</td><td>' + esc(q.name) + '</td><td>' + esc(q.teacher) + '</td><td>' + esc(q.campus) + '</td><td class="r">' + (q.tuition ? yen(q.tuition) + '/月' : '') + '</td><td style="white-space:normal;color:var(--muted);font-size:12px">' + esc(q.note) + '</td></tr>'; });
         html += list('入会', f.joins, function (j) { return '<tr><td>' + esc(md(j.date)) + '</td><td>' + esc(j.name) + '</td><td>' + esc(j.teacher) + '</td><td>' + esc(j.campus) + '</td><td>' + esc(j.grade) + '</td><td style="color:var(--muted);font-size:12px">' + esc(j.via) + '</td></tr>'; });
         html += list('先生の移動', f.moves, function (m) { return '<tr><td>' + esc(md(m.date)) + '</td><td>' + esc(m.name) + '</td><td>' + esc(m.from) + ' → ' + esc(m.to) + '</td><td>' + esc(m.campus) + '</td></tr>'; });
+        // w70: 検討のままの体験（2週間以上は印）
+        var cs = f.considering || [];
+        if (cs.length) {
+          html += '<div class="card"><h2>検討のままの体験<small>' + cs.length + '名・2週間以上 ' + (f.consideringLong || 0) + '名</small></h2><div class="tbl"><table>'
+            + cs.map(function (c) { return '<tr' + (c.long ? ' class="partial"' : '') + '><td>' + esc(md(c.ymd)) + '</td><td>' + esc(c.name) + '</td><td>' + esc(c.teacher) + '</td><td>' + esc(c.campus) + '</td><td>' + esc(c.grade) + '</td><td class="r ' + (c.long ? 'neg' : '') + '">' + c.days + '日</td></tr>'; }).join('')
+            + '</table></div><p class="hint">体験結果が「検討」のまま決まっていない子（月を問わず）。2週間以上の子は担当の先生の講師ページにも出ます（入会／未入会を押すとここから消える）。</p></div>';
+        }
         return html;
       }
 
