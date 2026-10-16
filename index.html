@@ -373,6 +373,21 @@
       .unrec { background: var(--caution-soft); color: var(--caution); border-radius: 8px; padding: 6px 10px; font-size: 13.5px; margin: 0 0 8px; }
       /* w42: 昨日まで（日ごとに開く）と 予約・特別レッスンのカード */
       .unrecb { display: inline-block; margin-left: 8px; font-size: 12px; font-weight: 600; color: var(--caution); background: var(--caution-soft); border-radius: 999px; padding: 1px 8px; }
+      /* w79: まとめて出席（日ごとに チェック → 1回で記録） */
+      .bulkhead { margin-top: 8px; display: flex; justify-content: flex-end; }
+      .bopen { font: inherit; font-size: 13px; color: var(--accent); background: none; border: 1.5px solid var(--accent); border-radius: 999px; padding: 4px 12px; }
+      .bulk { background: var(--accent-soft); border-radius: 12px; padding: 8px 10px; margin-top: 8px; display: grid; gap: 6px; }
+      .bulk .bbar, .bulk .bact { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+      .bulk .bsel, .bulk .bcancel { font: inherit; font-size: 12.5px; border-radius: 999px; border: 1px solid var(--rule); background: var(--surface); color: var(--muted); padding: 3px 10px; }
+      .bulk select { font: inherit; font-size: 13px; border-radius: 8px; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); padding: 4px 6px; }
+      .bulk .bgo { font: inherit; font-size: 14px; font-weight: 700; border-radius: 999px; border: 0; background: var(--accent); color: #fff; padding: 7px 14px; }
+      .bulk .bgo:disabled { opacity: .6; }
+      .bulk .bhint { font-size: 12px; color: var(--muted); flex-basis: 100%; }
+      .stu .bname { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+      .stu .bname input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); flex: none; }
+      .stu .bst { font-size: 11.5px; color: var(--muted); border: 1px solid var(--rule); border-radius: 999px; padding: 0 7px; white-space: nowrap; }
+      .stu .bst.on { color: var(--accent); border-color: var(--accent); }
+      .stu .bst.on.pay0 { color: var(--caution); border-color: var(--caution); }
       /* w43: 翌月の確認 */
       .nlist { display: grid; gap: 6px; margin: 8px 0; }
       .nrow { border-top: 1px solid var(--rule); padding-top: 6px; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; justify-content: space-between; }
@@ -653,6 +668,7 @@
       decideRequest: function (id, decision, comment, force, p) { post({ api: 'decideRequest', t: p && p.t, no: p && p.no, id: id, decision: decision, comment: comment || '', force: !!force }, ok, ng); },
       // w12: レッスン記録
       saveRecord: function (input, p) { post({ api: 'saveRecord', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      saveRecords: function (input, p) { post({ api: 'saveRecords', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },   // w79
       deleteRecord: function (input, p) { post({ api: 'deleteRecord', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w26: 今月の記録の確定
       confirmRecords: function (input, p) { post({ api: 'confirmRecords', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
@@ -919,6 +935,7 @@
               + (r.note ? '<span class="badge">' + esc(r.note) + '</span>' : '') + '</div>';
           }).join('');
           if (today.students.length) {
+            html += bulkBarHtml(data, today);   // w79: まとめて出席
             html += '<div class="stu">' + today.students.map(function (s) { return studentRowHtml(data, today, s, true); }).join('') + '</div>';
           }
         }
@@ -930,15 +947,17 @@
             return d.students.filter(function (s) { var r = (data.records || {})[recKey(d.ymd, s)]; return !(r && r.attend); }).length;
           };
           var pastUn = past.reduce(function (a, d) { return a + unrecOf(d); }, 0);
-          html += '<details><summary>昨日まで（' + past.length + '日'
+          var bulkPast = past.some(function (d) { return d.ymd === BULK.ymd; });   // w79: まとめて出席の最中の日は開いたまま描き直す
+          html += '<details' + (bulkPast ? ' open' : '') + '><summary>昨日まで（' + past.length + '日'
             + (wide ? '・' + esc(data.pastFrom.slice(5).replace('-', '/')) + ' から' : '') + '）'
             + (pastUn ? '<span class="unrecb">押していない ' + pastUn + ' 人</span>' : '') + '</summary>'
             + (wide ? '<div class="meta" style="margin:4px 0 8px">確定のため、今月の初めまで出しています。日を押すと生徒が出ます</div>' : '')
             + past.map(function (d) {
             var un = unrecOf(d);
-            return '<details class="dd"><summary><div class="d"><div>' + esc(d.label) + '</div><div>'
+            return '<details class="dd"' + (d.ymd === BULK.ymd ? ' open' : '') + '><summary><div class="d"><div>' + esc(d.label) + '</div><div>'
               + '<span class="rest">' + d.students.length + '名</span>'
               + (un ? '<span class="unrecb">押していない ' + un + ' 人</span>' : '') + '</div></div></summary>'
+              + bulkBarHtml(data, d)
               + '<div class="stu">' + d.students.map(function (s) { return studentRowHtml(data, d, s, true); }).join('') + '</div></details>';
           }).join('') + '</details>';
         }
@@ -1128,12 +1147,21 @@
       }
       function studentRowHtml(data, day, s, withRec) {
         var multi = (day.rooms || []).length > 1 || s.kind === '振替' || s.kind === '予約';
-        var html = '<div class="t">' + esc(s.time || (s.extra ? '—' : '')) + '</div><div>' + esc(s.name) + kindBadge(s.kind) + (s.extra ? '<span class="badge extra">予定外</span>' : '')
-          + (s.note ? '<span class="lv"> ' + esc(s.note) + '</span>' : '') + '</div>'
-          + '<div class="lv">' + esc(s.level) + (s.min ? ' ' + esc(s.min) + '分' : '') + (multi ? '<br>' + esc(s.room) : '') + '</div>';
-        if (!withRec) return html;
+        var nameHtml = esc(s.name) + kindBadge(s.kind) + (s.extra ? '<span class="badge extra">予定外</span>' : '')
+          + (s.note ? '<span class="lv"> ' + esc(s.note) + '</span>' : '');
         var key = recKey(day.ymd, s);
         var r = (data.records || {})[key] || {};
+        if (withRec && BULK.ymd === day.ymd) {
+          // w79: まとめて出席の最中は、名前の前にチェック、いまの出欠を小さく。ピルとメモは出さない（終わるか「やめる」で戻る）
+          var pay0b = r.attend === '事前キャンセル' || r.attend === '休講';
+          return '<div class="t">' + esc(s.time || (s.extra ? '—' : '')) + '</div>'
+            + '<div class="bname"><label><input type="checkbox"' + (BULK.sel[key] ? ' checked' : '') + ' onchange="bulkToggle(this, \'' + esc(day.ymd) + '\', \'' + esc(key) + '\')"> ' + nameHtml + '</label>'
+            + '<span class="bst' + (r.attend ? ' on' + (pay0b ? ' pay0' : '') : '') + '">' + esc(r.attend || 'まだ') + '</span></div>'
+            + '<div class="lv">' + esc(s.level) + (s.min ? ' ' + esc(s.min) + '分' : '') + (multi ? '<br>' + esc(s.room) : '') + '</div>';
+        }
+        var html = '<div class="t">' + esc(s.time || (s.extra ? '—' : '')) + '</div><div>' + nameHtml + '</div>'
+          + '<div class="lv">' + esc(s.level) + (s.min ? ' ' + esc(s.min) + '分' : '') + (multi ? '<br>' + esc(s.room) : '') + '</div>';
+        if (!withRec) return html;
         var opts = data.attendOptions || ['出席', '当日欠席', '事前キャンセル', '休講'];
         var pills = opts.map(function (a) {
           var pay0 = a === '事前キャンセル' || a === '休講';
@@ -1170,6 +1198,86 @@
             alert('記録できませんでした。' + err.message);
           })
           .saveRecord(input, { t: TOKEN, no: STATE.teacherNo || '' });
+      }
+
+      /* ---- w79: まとめて出席（日ごとに「まとめて出席」→ 生徒にチェック → 1回で記録）---- */
+      var BULK = { ymd: '', sel: {} };
+      function bulkDay(ymd) {
+        var all = (HOME.schedule || []).concat(HOME.past || []);
+        return all.filter(function (d) { return d.ymd === ymd; })[0] || null;
+      }
+      function bulkCount() {
+        return Object.keys(BULK.sel).filter(function (k) { return BULK.sel[k]; }).length;
+      }
+      function bulkBarHtml(data, day) {
+        var students = day.students || [];
+        if (students.length < 2) return '';
+        if (BULK.ymd !== day.ymd) {
+          var un = students.filter(function (s) { var r = (data.records || {})[recKey(day.ymd, s)]; return !(r && r.attend); }).length;
+          return '<div class="bulkhead"><button type="button" class="bopen" onclick="bulkOpen(\'' + esc(day.ymd) + '\')">まとめて出席' + (un ? '（まだ ' + un + ' 人）' : '') + '</button></div>';
+        }
+        var opts = data.attendOptions || ['出席', '当日欠席', '事前キャンセル', '休講'];
+        var n = bulkCount();
+        return '<div class="bulk">'
+          + '<div class="bbar"><button type="button" class="bsel" onclick="bulkAll(\'' + esc(day.ymd) + '\', true)">全部選ぶ</button>'
+          + '<button type="button" class="bsel" onclick="bulkAll(\'' + esc(day.ymd) + '\', false)">全部外す</button>'
+          + '<span class="bhint">まだ押していない生徒に最初からチェックが入っています。付けない生徒は外してください</span></div>'
+          + '<div class="bact"><select id="batt_' + esc(day.ymd) + '" onchange="bulkLabel(\'' + esc(day.ymd) + '\')">' + opts.map(function (a) { return '<option' + (a === '出席' ? ' selected' : '') + '>' + esc(a) + '</option>'; }).join('') + '</select>'
+          + '<button type="button" class="bgo" id="bgo_' + esc(day.ymd) + '" onclick="bulkApply(\'' + esc(day.ymd) + '\')">' + esc(bulkLabelText(n, '出席')) + '</button>'
+          + '<button type="button" class="bcancel" onclick="bulkClose()">やめる</button></div></div>';
+      }
+      function bulkLabelText(n, attend) { return 'チェックした ' + n + ' 人を ' + attend + ' にする'; }
+      function bulkLabel(ymd) {
+        var btn = document.getElementById('bgo_' + ymd), sel = document.getElementById('batt_' + ymd);
+        if (btn && !btn.disabled) btn.textContent = bulkLabelText(bulkCount(), sel ? sel.value : '出席');
+      }
+      function bulkOpen(ymd) {
+        var day = bulkDay(ymd);
+        if (!day) return;
+        BULK = { ymd: ymd, sel: {} };
+        day.students.forEach(function (s) {
+          var key = recKey(ymd, s);
+          var r = (HOME.records || {})[key] || {};
+          if (!r.attend) BULK.sel[key] = true;   // まだ押していない生徒を既定でオン（押してある生徒は外しておく）
+        });
+        renderHome(HOME);
+      }
+      function bulkClose() { BULK = { ymd: '', sel: {} }; renderHome(HOME); }
+      function bulkToggle(cb, ymd, key) { BULK.sel[key] = !!cb.checked; bulkLabel(ymd); }
+      function bulkAll(ymd, on) {
+        var day = bulkDay(ymd);
+        if (!day) return;
+        BULK.sel = {};
+        day.students.forEach(function (s) { if (on) BULK.sel[recKey(ymd, s)] = true; });
+        renderHome(HOME);
+      }
+      function bulkApply(ymd) {
+        var day = bulkDay(ymd);
+        if (!day) return;
+        var sel = document.getElementById('batt_' + ymd);
+        var attend = sel ? sel.value : '出席';
+        var items = [];
+        day.students.forEach(function (s) {
+          var key = recKey(ymd, s);
+          if (!BULK.sel[key]) return;
+          var cur = (HOME.records || {})[key] || {};
+          items.push({ ymd: ymd, studentId: s.id || '', studentName: s.name, hm: s.time || '', room: s.room || '', kind: s.kind || '', attend: attend, memo: cur.memo || '' });
+        });
+        if (!items.length) { alert('生徒にチェックを入れてください'); return; }
+        var btn = document.getElementById('bgo_' + ymd);
+        if (btn) { btn.disabled = true; btn.textContent = items.length + ' 人を記録しています…'; }
+        google.script.run
+          .withSuccessHandler(function (res) {
+            HOME.records = (res && res.records) || HOME.records;
+            if (res && res.confirm) HOME.confirm = res.confirm;
+            BULK = { ymd: '', sel: {} };
+            renderHome(HOME);
+          })
+          .withFailureHandler(function (err) {
+            if (btn) { btn.disabled = false; btn.textContent = bulkLabelText(bulkCount(), attend); }
+            alert('まとめて記録できませんでした。' + err.message);
+          })
+          .saveRecords({ items: items }, { t: TOKEN, no: STATE.teacherNo || '' });
       }
 
       /* ---- w27 全先生の今月（管理者）。押したときだけ luce給与ブックの給与台帳を読む ---- */
