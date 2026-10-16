@@ -910,8 +910,9 @@
         if (!data.hasSchedule) {
           html += '<div class="meta">予定はまだ書き出されていません（日置が luce給与の「予定シートを書き出す」を実行すると出ます）</div>';
         } else if (!today.rooms.length && !today.students.length) {
-          html += '<div class="meta empty-today">今日のレッスンはありません</div>';
+          html += '<div class="meta empty-today">今日のレッスンはありません' + (today.shiftOff ? '（' + esc(today.shiftOff) + '）' : '') + '</div>';
         } else {
+          if (today.shiftOff) html += '<div class="meta">' + esc(today.shiftOff) + '。承認済みの振替・予約だけ出しています</div>';
           html += today.rooms.map(function (r) {
             return '<div class="room"><b>' + esc(r.room) + '</b>' + (r.campus ? '<span class="meta">' + esc(r.campus) + '</span>' : '')
               + '<span class="time">' + esc(r.lesson) + '</span><span class="meta">（部屋は ' + esc(r.block) + '）</span>'
@@ -2253,19 +2254,66 @@
       }
 
       /* ---- w40 シフト（出勤日）の変更 ---- */
-      var SHIFTD = { loaded: false, loading: false, days: [], end: '', error: '' };
+      var SHIFTD = { loaded: false, loading: false, days: [], end: '', error: '', groups: [] };
       var SHF = { off: '', on: '', hm: '16:00', campus: '', room: '', reason: '講師都合', memo: '', rooms: null, roomMsg: '', open: false };
+      /* w77: まとめ行（ソルフェージュ）の申請の入力。key が空なら何も選んでいない */
+      var SHG = { key: '', off: '', on: '', reason: '講師都合', memo: '' };
 
       function shiftCardHtml(data) {
         var rs = data.shiftRequests || [];
         var open = rs.filter(function (q) { return q.status === '申請中'; }).length;
         var html = '<div class="card" id="shiftCard"><h2>シフト（出勤日）の変更' + (open ? '<small>承認待ち ' + open + '件</small>' : '') + '</h2>';
         html += rs.length ? rs.map(shiftReqHtml).join('') : '<div class="meta">いま出している申請はありません</div>';
-        html += '<details id="shiftForm"' + (SHF.open ? ' open' : '') + '><summary>申請する</summary>' + shiftFormHtml(data) + '</details>'
-          + '<p class="hint">「この日を休む」「この日に出勤日を足す」を、今年度（' + esc(data.shiftEnd || '') + 'まで）のどの日でも申請できます。'
+        html += '<details id="shiftForm"' + (SHF.open ? ' open' : '') + '><summary>申請する</summary>' + shiftFormHtml(data) + '</details>';
+        html += shiftGroupsHtml(data);
+        html += '<p class="hint">「この日を休む」「この日に出勤日を足す」を、今年度（' + esc(data.shiftEnd || '') + 'まで）のどの日でも申請できます。'
           + '承認されるとシフト表が書き換わり、1時間ほどで稼働表と部屋カレンダーに反映されます。'
           + '<b>休む日の生徒は、別に振替の申請が必要です。</b>毎週の曜日を変えるご相談は日置さんへ直接お願いします。</p></div>';
         return html;
+      }
+
+      /* w77: まとめ行（ソルフェージュ）の日を変える欄。getShiftPage の groups がある先生だけ出る */
+      function shiftGroupsHtml(data) {
+        var gs = (SHIFTD.loaded && SHIFTD.groups) || [];
+        if (!gs.length) return '';
+        return gs.map(function (g) {
+          var mine = SHG.key === g.key;
+          var html = '<details class="sgroup"' + (mine && (SHG.off || SHG.on) ? ' open' : '') + '><summary>' + esc(g.label) + ' の日を変える</summary><div class="rf">';
+          if (g.error) html += '<div class="meta ng">' + esc(g.error) + '</div>';
+          html += '<div class="meta">この先の日: ' + (g.days.length ? g.days.map(function (d) { return esc(d.label); }).join('・') : 'まだ入っていません') + '</div>';
+          var offOpts = '<option value="">休まない</option>' + g.days.map(function (d) {
+            return '<option value="' + esc(d.ymd) + '"' + (mine && d.ymd === SHG.off ? ' selected' : '') + '>' + esc(d.label) + ' ' + esc(d.hm) + ' ' + esc(d.room) + '</option>';
+          }).join('');
+          html += '<label>休む日<select onchange="shiftGroupSet(\'' + esc(g.key) + '\', \'off\', this.value)">' + offOpts + '</select></label>';
+          html += '<label>足す日（' + esc(g.hm) + ' ' + esc(g.room) + '）<input type="date" value="' + esc(mine ? SHG.on : '') + '" min="' + esc(data.today || '') + '" max="' + esc(data.shiftEnd || '') + '" onchange="shiftGroupSet(\'' + esc(g.key) + '\', \'on\', this.value)"></label>';
+          html += '<label>理由<select onchange="shiftGroupSet(\'' + esc(g.key) + '\', \'reason\', this.value)">' + (data.reasons || ['講師都合', '生徒都合', 'その他']).map(function (r) {
+            return '<option value="' + esc(r) + '"' + (mine && r === SHG.reason ? ' selected' : '') + '>' + esc(r) + '</option>';
+          }).join('') + '</select></label>';
+          html += '<label>メモ（任意）<input value="' + esc(mine ? SHG.memo : '') + '" oninput="shiftGroupSet(\'' + esc(g.key) + '\', \'memo\', this.value)" placeholder="ホールの都合で など"></label>';
+          html += '<div class="btns"><button class="p" onclick="sendShiftGroup(\'' + esc(g.key) + '\')">申請する</button></div>';
+          html += '<div class="meta">承認されると、月シフト表の「' + esc(g.label) + '」の行と luce給与の「部屋カレンダー 追加」の行が両方書き換わり、部屋カレンダーと「今日のレッスン」に反映されます。</div>';
+          return html + '</div></details>';
+        }).join('');
+      }
+
+      function shiftGroupSet(key, name, v) {
+        if (SHG.key !== key) SHG = { key: key, off: '', on: '', reason: '講師都合', memo: '' };
+        SHG[name] = v;
+      }
+
+      function sendShiftGroup(key) {
+        if (SHG.key !== key) SHG = { key: key, off: '', on: '', reason: '講師都合', memo: '' };
+        if (!SHG.off && !SHG.on) { alert('休む日か、足す日のどちらかを選んでください'); return; }
+        if (SHG.off && !SHG.on && !confirm('この日を休むだけで、別の日を足しません。よろしいですか？')) return;
+        google.script.run
+          .withSuccessHandler(function () {
+            SHG = { key: '', off: '', on: '', reason: '講師都合', memo: '' };
+            SHIFTD.loaded = false;
+            alert('申請しました。日置さんが承認すると、月シフト表と部屋カレンダーに反映されます。');
+            load();
+          })
+          .withFailureHandler(function (err) { alert('申請できませんでした。' + err.message); })
+          .submitShiftRequest({ group: key, offYmd: SHG.off, onYmd: SHG.on, reason: SHG.reason, memo: SHG.memo }, { t: TOKEN, no: STATE.teacherNo || '' });
       }
 
       function shiftReqHtml(q) {
@@ -2307,11 +2355,11 @@
         SHIFTD.loading = true; SHF.open = true; renderHome(HOME);
         google.script.run
           .withSuccessHandler(function (res) {
-            SHIFTD = { loaded: true, loading: false, days: (res && res.days) || [], end: (res && res.end) || '', error: (res && res.error) || '' };
+            SHIFTD = { loaded: true, loading: false, days: (res && res.days) || [], end: (res && res.end) || '', error: (res && res.error) || '', groups: (res && res.groups) || [] };
             renderHome(HOME);
           })
           .withFailureHandler(function (err) {
-            SHIFTD = { loaded: true, loading: false, days: [], end: '', error: '読めませんでした。' + err.message };
+            SHIFTD = { loaded: true, loading: false, days: [], end: '', error: '読めませんでした。' + err.message, groups: [] };
             renderHome(HOME);
           })
           .getShiftPage({ t: TOKEN, no: STATE.teacherNo || '' });
@@ -2378,7 +2426,7 @@
             + '<div class="sub">' + esc(q.reason || '') + (q.memo ? ' ／ ' + esc(q.memo) : '') + '　（' + esc(q.at) + ' 申請）</div>'
             + '<div class="btns"><button class="p" onclick="decideShift(\'' + esc(q.id) + '\', \'ok\')">承認</button>'
             + '<button class="no" onclick="decideShift(\'' + esc(q.id) + '\', \'ng\')">却下</button></div></div>';
-        }).join('') + '<p class="hint">承認するとマンツーシフトの月シフト表が書き換わり、1時間ほどで稼働表と部屋カレンダーに反映されます。</p></div>';
+        }).join('') + '<p class="hint">承認するとマンツーシフトの月シフト表が書き換わり、1時間ほどで稼働表と部屋カレンダーに反映されます。ソルフェージュ（ホール）の日は luce給与の「部屋カレンダー 追加」の行も一緒に書き換わります。</p></div>';
       }
 
       function decideShift(id, decision) {
