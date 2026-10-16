@@ -87,6 +87,7 @@
         </table></div>
         <ul>
           <li>もう一度同じものを押すと消えます。押し間違えても大丈夫です。</li>
+          <li><b>まとめて押す</b>こともできます。生徒が2人以上いる日には「まとめて出席」のボタンが出ます。押すと生徒の名前の前にチェックが出る（まだ押していない生徒には最初から入っています）ので、付けない生徒だけ外して「チェックした ◯ 人を 出席 にする」を押してください。出席のほかに 当日欠席・休講 などもまとめて付けられます（「昨日まで」の日でも同じ）。</li>
           <li>メモは自由です（「発表会の曲を決めた」など）。日置さんも見られます。</li>
           <li>昨日までの分（7日前まで）は「昨日まで」の一覧から付け直せます。月末の3日前から翌月5日まで（「今月の記録の確定」が出ている間）は、その月の1日まで出るので、月の初めの押し忘れもここから付けられます。</li>
           <li><b>翌朝、月報（曜日シート）の出欠に ○ が自動で入ります。</b> 月末にもう一度付け直す必要はありません。先に自分で ○ を付けてあれば、そのままです。</li>
@@ -292,6 +293,7 @@
       decideRequest: function (id, decision, comment, force, p) { post({ api: 'decideRequest', t: p && p.t, no: p && p.no, id: id, decision: decision, comment: comment || '', force: !!force }, ok, ng); },
       // w12: レッスン記録
       saveRecord: function (input, p) { post({ api: 'saveRecord', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      saveRecords: function (input, p) { post({ api: 'saveRecords', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },   // w79
       deleteRecord: function (input, p) { post({ api: 'deleteRecord', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w26: 今月の記録の確定
       confirmRecords: function (input, p) { post({ api: 'confirmRecords', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
