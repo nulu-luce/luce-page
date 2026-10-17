@@ -1048,7 +1048,9 @@
               + (NEXTF.kind === '担当講師の変更'
                 ? '<div><label>新しい担当の先生</label><select id="nx_detail"><option value="">選んでください</option>' + (data.teacherNames || []).map(function (nm) { return '<option>' + esc(nm) + '</option>'; }).join('') + '</select></div>'
                 : NEXTF.kind === '曜日・時刻の変更'
-                ? '<div><label>新しい曜日・開始時刻（校舎が変わるときだけ校舎も）</label><div class="pills"><select id="nx_wd"><option value="">曜日</option>' + '月火水木金土日'.split('').map(function (w) { return '<option>' + w + '</option>'; }).join('') + '</select> <input id="nx_hm" type="time" style="width:auto"> <input id="nx_campus" placeholder="校舎（変わるときだけ）" style="width:auto"></div></div>'
+                ? '<div><label>新しい曜日・開始時刻（校舎が変わるときだけ校舎も）</label><div class="pills"><select id="nx_wd"><option value="">曜日</option>' + '月火水木金土日'.split('').map(function (w) { return '<option>' + w + '</option>'; }).join('') + '</select> <input id="nx_hm" type="time" style="width:auto"> <select id="nx_campus"><option value="">校舎（変わるときだけ）</option>' + (n.campuses || []).map(function (c) { return '<option>' + esc(c) + '</option>'; }).join('') + '</select></div></div>'
+                : NEXTF.kind === 'レベル（コース）変更' && (data.levelOptions || []).length
+                ? '<div><label>新しいレベル（コース）</label><select id="nx_detail"><option value="">選んでください</option>' + data.levelOptions.map(function (lv) { return '<option>' + esc(lv) + '</option>'; }).join('') + '</select><div class="hint">一覧に無いコースは補足に書いて日置に相談してください</div></div>'
                 : '<div><label>内容' + (NEXTF.kind === 'レベル（コース）変更' ? '' : '（任意）') + '</label><input id="nx_detail" placeholder="' + esc(nextHint(NEXTF.kind)) + '"></div>')
               + '<div><label>補足（任意）</label><input id="nx_memo" placeholder="' + (NEXTF.kind === '担当講師の変更' ? '例: 11月から3か月限定。木 15:30 のまま' : '例: ご家庭の都合で3か月お休み') + '"></div>'
               + '<div><button type="button" class="send p" id="nx_send" onclick="nextSave()">入れる</button> '
@@ -1066,7 +1068,8 @@
         var g = function (id) { var el = document.getElementById(id); return el ? el.value : ''; };
         var st = g('nx_student');
         var student = (HOME.students || []).filter(function (x) { return (x.id || x.name) === st; })[0];
-        var detail = NEXTF.kind === '曜日・時刻の変更' ? [g('nx_wd'), g('nx_hm'), g('nx_campus').trim()].filter(function (x) { return !!x; }).join(' ') : g('nx_detail').trim();   // w82
+        var detail = NEXTF.kind === '曜日・時刻の変更' ? [g('nx_wd'), g('nx_hm'), g('nx_campus')].filter(function (x) { return !!x; }).join(' ') : g('nx_detail').trim();   // w82
+        if (NEXTF.kind === '曜日・時刻の変更' && (!g('nx_wd') || !g('nx_hm'))) { alert('新しい曜日と開始時刻を選んでください'); return; }
         var input = { ym: (HOME.next || {}).ym, studentId: student ? student.id : '', studentName: student ? student.name : (st === '__other' ? g('nx_sname').trim() : ''),
           kind: NEXTF.kind, detail: detail, memo: g('nx_memo').trim() };
         if (!input.studentName) { alert('生徒を選んでください'); return; }
@@ -1143,7 +1146,9 @@
           + '<label>校舎<input id="rt_campus" value="' + esc(v.campus || '') + '"></label>'
           + '<label>曜日<select id="rt_weekday"><option value=""></option>' + opt(d.weekdays, v.weekday) + '</select></label>'
           + '<label>開始<input id="rt_start" type="time" value="' + esc(v.start || '') + '"></label>'
-          + '<label>レベル<input id="rt_level" value="' + esc(v.level || '') + '"></label>'
+          + '<label>レベル' + ((HOME.levelOptions || []).length
+            ? '<select id="rt_level">' + (v.level && HOME.levelOptions.indexOf(v.level) < 0 ? '<option selected>' + esc(v.level) + '</option>' : '<option value=""></option>') + opt(HOME.levelOptions, v.level) + '</select>'
+            : '<input id="rt_level" value="' + esc(v.level || '') + '">') + '</label>'
           + '<label>徴収方法<select id="rt_pay"><option value=""></option>' + opt(d.payWays, v.pay) + '</select></label>'
           + '<label>レッスン開始日<input id="rt_startYmd" type="date" value="' + esc(v.startYmd || '') + '"></label>'
           + '</div>';
