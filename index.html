@@ -400,6 +400,16 @@
       .nrow .nn { font-weight: 600; display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
       .nrow .nn .meta { font-weight: 400; }
       .nrow .ns { flex-basis: 100%; color: var(--muted); font-size: 13px; }
+      /* w82: 担当講師の変更のフォームと、仕組みの見張り */
+      .rtf { margin: 6px 0 4px; padding: 8px 10px; border: 1px dashed var(--rule); border-radius: 10px; flex-basis: 100%; }
+      .rtf .rtg { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px 10px; margin: 6px 0; }
+      .rtf label { display: flex; flex-direction: column; font-size: 12.5px; color: var(--muted); gap: 2px; }
+      .rtf input, .rtf select { font: inherit; font-size: 14px; padding: 4px 6px; border: 1px solid var(--rule); border-radius: 8px; background: #fff; }
+      .rtf .rtc { flex-direction: row; align-items: center; gap: 6px; margin: 6px 0; }
+      .rtf .rtb { margin-top: 6px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+      .rtf .warn { color: #b3261e; }
+      .card.health .hl { margin: 6px 0 0 18px; padding: 0; font-size: 13.5px; }
+      .card.health.bad h2 { color: #b3261e; }
       .nbtns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
       .badge.ok { background: var(--ok-soft, #e8f4ec); color: var(--ok, #2f7d4f); }
       .blist { display: grid; gap: 6px; }
@@ -693,6 +703,9 @@
       saveNextMonth: function (input, p) { post({ api: 'saveNextMonth', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       deleteNextMonth: function (input, p) { post({ api: 'deleteNextMonth', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       confirmNextMonth: function (input, p) { post({ api: 'confirmNextMonth', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w82: 担当講師の変更 → 新規・体験 に1行（管理者）
+      rosterTransferPreview: function (input, p) { get({ api: 'rosterTransferPreview', t: p && p.t, no: p && p.no, row: input && input.row }, ok, ng); },
+      addRosterTransfer: function (input, p) { post({ api: 'addRosterTransfer', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w27: 全先生の今月（管理者）
       getAllTeachersPage: function (p) { get({ api: 'allTeachers', t: p && p.t, no: p && p.no }, ok, ng); },
       // w67: 経営ページ（管理者だけ）
@@ -896,7 +909,7 @@
         if (!document.getElementById('admin').innerHTML) renderAdmin(data);   // 今月の状況より先に、講師シートから出す
         // w75/w76: カードは id → HTML の表にし、設定シート「カードの順番」（data.cardOrder。空なら 00_Config の既定）に書いた id を先頭から、残りは今までの順。
         // 管理者だけのカード（承認待ち・回答待ち・今日の稼働・締めチェックなど）は並べ替えの前に、今までの順で出す
-        var admin = [['pendingQuestions', pendingQuestionsHtml(data)], ['pending', pendingHtml(data)], ['pendingShifts', pendingShiftsHtml(data)], ['confirmAdmin', confirmAdminHtml(data)], ['nextAdmin', nextAdminHtml(data)], ['nextIssues', nextIssuesHtml(data)], ['shiftToday', shiftTodayHtml(data)], ['checklist', checklistHtml(data)], ['eventPL', eventPLHtml(data)], ['allCard', allCardHtml(data)]];
+        var admin = [['pendingQuestions', pendingQuestionsHtml(data)], ['pending', pendingHtml(data)], ['pendingShifts', pendingShiftsHtml(data)], ['confirmAdmin', confirmAdminHtml(data)], ['nextAdmin', nextAdminHtml(data)], ['nextIssues', nextIssuesHtml(data)], ['health', healthHtml(data)], ['shiftToday', shiftTodayHtml(data)], ['checklist', checklistHtml(data)], ['eventPL', eventPLHtml(data)], ['allCard', allCardHtml(data)]];
         var cards;
         if (data.hoke) {   // w17: 成瀬先生のホケホケ。今日のレッスン・部屋の空き・申請の代わりに
           if (!HOKE.data && !HOKE.loading && data.hokeData && !data.hokeData.error) { HOKE.data = data.hokeData; HOKE.week = 0; }   // w19: ホームと一緒に来た今週のぶん
@@ -999,8 +1012,12 @@
         if (!n.show) return '';
         var kinds = n.kinds || [];
         var items = n.items || [];
-        var html = '<div class="card nextm"><h2>翌月の確認<small>' + esc(n.label || '') + '・' + (n.until || 23) + '日まで</small></h2>';
-        html += '<div class="meta">翌月から<b>レベル（コース）が変わる</b>・<b>休会する</b>・<b>休会から戻る</b>・<b>今月で退会する</b>・<b>別の先生に移る</b>生徒がいれば入れてください。'
+        var html = '<div class="card nextm"><h2>翌月の確認<small>' + esc(n.label || '') + (n.adminOnly ? '・管理者' : '・' + (n.until || 23) + '日まで') + '</small></h2>';
+        if (n.adminOnly) {
+          // w82: 期間（15〜23日）の外。管理者だけが見ている。先生から直接聞いた変更をここから入れる
+          html += '<div class="meta warn">15〜23日の外なので先生には出ていません。管理者はいつでも入れられます。先生から直接聞いた変更は、上でその先生を選んでここから入れると、翌月の変更に正しい形で入ります（手書きの ■ になりません）。</div>';
+        }
+        html += '<div class="meta">翌月から<b>レベル（コース）が変わる</b>・<b>休会する</b>・<b>休会から戻る</b>・<b>今月で退会する</b>・<b>別の先生に移る</b>' + (n.scheduleKind ? '・<b>曜日や時刻が変わる</b>' : '') + '生徒がいれば入れてください。'
           + '変更のある生徒だけで大丈夫です。日置が名簿を直します。</div>';
         if (items.length) {
           html += '<div class="nlist">' + items.map(function (x) {
@@ -1030,6 +1047,8 @@
               }).join('') + '</div></div>'
               + (NEXTF.kind === '担当講師の変更'
                 ? '<div><label>新しい担当の先生</label><select id="nx_detail"><option value="">選んでください</option>' + (data.teacherNames || []).map(function (nm) { return '<option>' + esc(nm) + '</option>'; }).join('') + '</select></div>'
+                : NEXTF.kind === '曜日・時刻の変更'
+                ? '<div><label>新しい曜日・開始時刻（校舎が変わるときだけ校舎も）</label><div class="pills"><select id="nx_wd"><option value="">曜日</option>' + '月火水木金土日'.split('').map(function (w) { return '<option>' + w + '</option>'; }).join('') + '</select> <input id="nx_hm" type="time" style="width:auto"> <input id="nx_campus" placeholder="校舎（変わるときだけ）" style="width:auto"></div></div>'
                 : '<div><label>内容' + (NEXTF.kind === 'レベル（コース）変更' ? '' : '（任意）') + '</label><input id="nx_detail" placeholder="' + esc(nextHint(NEXTF.kind)) + '"></div>')
               + '<div><label>補足（任意）</label><input id="nx_memo" placeholder="' + (NEXTF.kind === '担当講師の変更' ? '例: 11月から3か月限定。木 15:30 のまま' : '例: ご家庭の都合で3か月お休み') + '"></div>'
               + '<div><button type="button" class="send p" id="nx_send" onclick="nextSave()">入れる</button> '
@@ -1047,8 +1066,9 @@
         var g = function (id) { var el = document.getElementById(id); return el ? el.value : ''; };
         var st = g('nx_student');
         var student = (HOME.students || []).filter(function (x) { return (x.id || x.name) === st; })[0];
+        var detail = NEXTF.kind === '曜日・時刻の変更' ? [g('nx_wd'), g('nx_hm'), g('nx_campus').trim()].filter(function (x) { return !!x; }).join(' ') : g('nx_detail').trim();   // w82
         var input = { ym: (HOME.next || {}).ym, studentId: student ? student.id : '', studentName: student ? student.name : (st === '__other' ? g('nx_sname').trim() : ''),
-          kind: NEXTF.kind, detail: g('nx_detail').trim(), memo: g('nx_memo').trim() };
+          kind: NEXTF.kind, detail: detail, memo: g('nx_memo').trim() };
         if (!input.studentName) { alert('生徒を選んでください'); return; }
         if (!input.kind) { alert('種類を選んでください'); return; }
         var btn = document.getElementById('nx_send'); btn.disabled = true; btn.textContent = '送信中…';
@@ -1081,15 +1101,78 @@
           + '　変更 ' + n.items.length + ' 件（名簿に未反映 ' + n.unhandled + ' 件）</div>';
         if (n.items.length) {
           html += '<div class="nlist">' + n.items.map(function (x) {
+            var isRT = x.kind === '担当講師の変更';   // w82: 管理者が 新規・体験 に1行足せる
             return '<div class="nrow"><div class="nn">' + esc(x.name) + '<span class="meta">' + esc(x.sname) + '</span>'
-              + '<span class="badge">' + esc(x.kind) + '</span>' + (x.detail ? '<span class="meta">' + esc(x.detail) + '</span>' : '')
-              + (x.state ? '<span class="badge ok">' + esc(x.state) + '</span>' : '') + '</div>'
-              + (x.memo ? '<div class="ns">' + esc(x.memo) + '</div>' : '') + '</div>';
+              + '<span class="badge">' + esc(x.kind) + '</span>' + (x.detail ? '<span class="meta">' + (isRT ? '→ ' : '') + esc(x.detail) + '</span>' : '')
+              + (x.state ? '<span class="badge ok">' + esc(x.state) + '</span>' : '')
+              + (isRT && !x.state && RT.row !== x.row ? '<button class="offbtn" onclick="rtOpen(' + x.row + ')">新規・体験に行を足す</button>' : '') + '</div>'
+              + (x.memo ? '<div class="ns">' + esc(x.memo) + '</div>' : '')
+              + (isRT && RT.row === x.row ? rtFormHtml() : '') + '</div>';
           }).join('') + '</div>';
         }
         if (n.pending.length) html += '<div class="cnames">まだの先生: ' + esc(n.pending.join('、')) + '</div>';
         html += '<p class="hint">先生の回答は 稼働表New の「翌月の変更」に自動で入り、適用日の朝4時台に名簿へ入ります（状態「変更シートに記入済み」）。'
-          + '「手で入れてください」と届いたものだけ、名簿か「翌月の変更」を直して、講師運営ブックの「翌月の確認」の「状態」に「反映済み」と入れてください。</p></div>';
+          + '「手で入れてください」と届いたものだけ、名簿か「翌月の変更」を直して、講師運営ブックの「翌月の確認」の「状態」に「反映済み」と入れてください。'
+          + '先生から直接聞いた変更は、上でその先生を選んで「翌月の確認」カードから入れてください（管理者はいつでも入れられ、手書きの ■ になりません）。</p></div>';
+        return html;
+      }
+
+      /* ---- w82 担当講師の変更 → 管理者が 新規・体験 に1行足す（名簿の元の行を写す。連絡先は画面に出さない） ---- */
+      var RT = { row: 0, loading: false, data: null, error: '' };
+      function rtOpen(row) {
+        RT = { row: row, loading: true, data: null, error: '' };
+        renderHome(HOME);
+        google.script.run
+          .withSuccessHandler(function (d) { RT.loading = false; RT.data = d; renderHome(HOME); })
+          .withFailureHandler(function (err) { RT.loading = false; RT.error = err.message; renderHome(HOME); })
+          .rosterTransferPreview({ row: row }, { t: TOKEN, no: STATE.teacherNo || '' });
+      }
+      function rtClose() { RT = { row: 0, loading: false, data: null, error: '' }; renderHome(HOME); }
+      function rtFormHtml() {
+        if (RT.loading) return '<div class="rtf meta">名簿を読んでいます…</div>';
+        if (RT.error) return '<div class="rtf"><span class="meta">読めませんでした。' + esc(RT.error) + '</span> <button class="offbtn" onclick="rtClose()">閉じる</button></div>';
+        var d = RT.data;
+        if (!d) return '';
+        var v = d.view || {};
+        var opt = function (list, cur) { return (list || []).map(function (w) { return '<option' + (w === cur ? ' selected' : '') + '>' + esc(w) + '</option>'; }).join(''); };
+        var h = '<div class="rtf">';
+        h += '<div class="meta">' + esc(v.student || '') + (v.sid ? '（' + esc(v.sid) + '）' : '') + ' を ' + esc(d.item.name) + ' 先生 → <b>' + esc(v.newTeacher || '') + '</b> 先生へ。'
+          + (d.hasSource ? esc(d.sourceFrom) + ' の元の行を写します（かな・連絡先・生年月日はそのまま。ここには出しません）' : '名簿に元の行が無いので、下の値だけで足します') + '</div>';
+        if (d.dup) h += '<div class="meta warn">新規・体験 にもう同じ行があります。足しません。</div>';
+        h += '<div class="rtg">'
+          + '<label>校舎<input id="rt_campus" value="' + esc(v.campus || '') + '"></label>'
+          + '<label>曜日<select id="rt_weekday"><option value=""></option>' + opt(d.weekdays, v.weekday) + '</select></label>'
+          + '<label>開始<input id="rt_start" type="time" value="' + esc(v.start || '') + '"></label>'
+          + '<label>レベル<input id="rt_level" value="' + esc(v.level || '') + '"></label>'
+          + '<label>徴収方法<select id="rt_pay"><option value=""></option>' + opt(d.payWays, v.pay) + '</select></label>'
+          + '<label>レッスン開始日<input id="rt_startYmd" type="date" value="' + esc(v.startYmd || '') + '"></label>'
+          + '</div>';
+        h += '<label class="rtc"><input type="checkbox" id="rt_retire"' + (d.oldQuit ? ' disabled' : ' checked') + '> 元の先生の行を月末で退会にする（翌月の変更に 退会日）' + (d.oldQuit ? '（元の行はもう退会です）' : '') + '</label>';
+        if (d.dryRun) h += '<div class="meta">いまは「書く予定の1行」を Chat とログに出すだけです（ROSTER_TRANSFER_DRY_RUN）。中身がよければ false にします。</div>';
+        h += '<div class="rtb"><button class="cbtn" id="rt_send" onclick="rtSend()"' + (d.dup ? ' disabled' : '') + '>' + (d.dryRun ? '書く予定を確かめる' : '新規・体験に足す') + '</button> <button class="offbtn" onclick="rtClose()">やめる</button></div>';
+        return h + '</div>';
+      }
+      function rtSend() {
+        var g = function (id) { var el = document.getElementById(id); return el ? el.value : ''; };
+        var retire = !!((document.getElementById('rt_retire') || {}).checked);
+        var input = { row: RT.row, campus: g('rt_campus').trim(), weekday: g('rt_weekday'), start: g('rt_start'), level: g('rt_level').trim(), pay: g('rt_pay'), startYmd: g('rt_startYmd'), retireOld: retire };
+        if (RT.data && !RT.data.dryRun && !confirm('稼働表New の 新規・体験 に1行足します。よろしいですか。')) return;
+        var btn = document.getElementById('rt_send'); if (btn) { btn.disabled = true; btn.textContent = '送信中…'; }
+        google.script.run
+          .withSuccessHandler(function (res) { alert(res && res.note ? res.note : '済みました'); if (res && res.nextSummary) HOME.nextSummary = res.nextSummary; rtClose(); })
+          .withFailureHandler(function (err) { if (btn) { btn.disabled = false; btn.textContent = '新規・体験に足す'; } alert('できませんでした。' + err.message); })
+          .addRosterTransfer(input, { t: TOKEN, no: STATE.teacherNo || '' });
+      }
+
+      /* ---- w82 仕組みの見張り（毎朝の結果。管理者だけ） ---- */
+      function healthHtml(data) {
+        var h = data.admin ? data.health : null;
+        if (!h) return '';
+        var issues = h.issues || [];
+        var html = '<div class="card health' + (issues.length ? ' bad' : '') + '"><h2>仕組みの見張り<small>' + esc(h.at || '') + '</small></h2>';
+        if (!issues.length) html += '<div class="cst ok">異常なし（予定の同期・予定の写し・体験の結果まち・トリガー・月報反映）</div>';
+        else html += '<div class="cst no">おかしいところ ' + issues.length + ' 件</div><ul class="hl">' + issues.map(function (x) { return '<li>' + esc(x.text) + '</li>'; }).join('') + '</ul>';
+        html += '<p class="hint">毎朝 7時台に見て、おかしいときだけ日置の Chat に届きます。正常な日は何も届きません。すぐ見るならエディタから runHealthCheckNow。</p></div>';
         return html;
       }
 
