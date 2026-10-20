@@ -114,7 +114,7 @@
       .cash .cst.no { color: var(--caution); }
       .cash button { font: inherit; font-size: 13px; padding: 5px 11px; border-radius: 999px; border: 1.5px solid var(--accent); background: var(--surface); color: var(--accent); white-space: nowrap; }
       .cash button.no { border-color: var(--rule); color: var(--muted); }
-      /* w38 現金であずかったもの（予約制のレッスン料・入会金・体験レッスン料・イベント会費） */
+      /* w38 現金であずかったもの（予約制のレッスン料・入会金・体験レッスン料・イベント会費。w83: 特別レッスン料） */
       .cash .csec { font-size: 12.5px; font-weight: 700; color: var(--muted); letter-spacing: .06em; border-top: 1px solid var(--rule); margin-top: 10px; padding: 8px 0 2px; }
       .cash .csec small { font-weight: 400; margin-left: 8px; color: var(--ink); }
       .cash .crow { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: baseline; padding: 5px 0; border-top: 1px dotted var(--rule); }
@@ -2846,10 +2846,17 @@
         if (!targets.length && !BOOK_ROWS.length && !items.length) return '';
         var map = STATE.cash || {};
         var got = 0, pending = 0;
+        // w83: 下の「ほかにあずかったもの」が明細に写ると、その生徒は上の表にも出る（同じお金が2か所に見える）。写った分だと分かるように注記
+        var bk = cashKindNames().BOOKING, fromItems = {};
+        items.forEach(function (x) { if (x.kind !== bk && x.synced && x.key) fromItems[x.key] = (fromItems[x.key] || 0) + (Number(x.amount) || 0); });
         var rows = targets.map(function (r, i) {
           var c = map[cashKey(r)];
           var stt, btn;
-          if (r.cashCheck) { got++; stt = '<span class="cst ok">明細に ✓ 済</span>'; btn = ''; }
+          if (r.cashCheck) {
+            got++; stt = '<span class="cst ok">明細に ✓ 済</span>'; btn = '';
+            var fi = fromItems[cashKey(r)] || 0;
+            if (fi > 0) stt += '<small>' + (fi >= Number(r.cashSub) ? '下の「ほかにあずかったもの」が明細に写った分です（同じお金）' : 'うち ' + esc(yen(fi)) + ' は下の「ほかにあずかったもの」が写った分') + '</small>';
+          }
           else if (c) {
             got++;
             stt = '<span class="cst ok">受け取った' + (c.ymd ? '（' + esc(cashMd(c.ymd)) + '）' : '') + '</span><small>' + (c.synced ? '明細に写しました' : '翌朝、明細に写ります') + '</small>';
@@ -2898,7 +2905,7 @@
       /* ---- w38 入会金・体験レッスン料・イベント会費 ---- */
       function cashKindNames() {
         var n = (STATE.cashKinds && STATE.cashKinds.names) || {};
-        return { ENROLL: n.ENROLL || '入会金', TRIAL: n.TRIAL || '体験レッスン料', BOOKING: n.BOOKING || '予約レッスン料', EVENT: n.EVENT || 'イベント会費' };
+        return { ENROLL: n.ENROLL || '入会金', TRIAL: n.TRIAL || '体験レッスン料', BOOKING: n.BOOKING || '予約レッスン料', EVENT: n.EVENT || 'イベント会費', SPECIAL: n.SPECIAL || '特別レッスン料' };
       }
       function cashStudents(st) {
         var out = [], seen = {};
@@ -2929,7 +2936,7 @@
         var names = cashKindNames();
         if (!CASHF.open) {
           return '<div class="cadd"><button type="button" class="add" onclick="cashfOpen(true)">＋ あずかったものを足す</button>'
-            + '<small>入会金・体験レッスン料・イベント会費</small></div>';
+            + '<small>入会金・体験レッスン料・イベント会費・特別レッスン料</small></div>';
         }
         var k = CASHF.kind;
         var cfg = STATE.cashKinds || {};
@@ -2945,11 +2952,15 @@
           for (var n = 1; n <= max; n++) opts += '<option value="' + n + '"' + (Number(CASHF.count) === n ? ' selected' : '') + '>' + n + '回</option>';
           body = '<div class="crowf"><label>有料の回数</label><div><select id="cf_count" onchange="cashfCount(this.value)">' + opts + '</select>'
             + '<b>' + esc(yen(fee * (Number(CASHF.count) || 1))) + '</b><small>1回目は無料。2回目以降 ' + esc(yen(fee)) + '／回</small></div></div>';
+        } else if (k === names.SPECIAL) {
+          // w83: 特別レッスン料。金額はコースで変わるので先生が入れる。他の先生の生徒は「一覧にない生徒」で名前を
+          body = '<div class="crowf"><label>金額</label><div><input id="cf_amount" type="number" inputmode="numeric" min="0" step="100" value="' + (Number(CASHF.amount) || '') + '" onchange="cashfAmount(this.value)"><small>円（受け取った額）</small></div></div>'
+            + '<div class="crowf"><label>いつ・何分</label><div><input id="cf_detail" type="text" maxlength="40" value="' + esc(CASHF.detail || '') + '" placeholder="9/23 60分 など"><small>他の先生の生徒は「一覧にない生徒」で名前を入れてください</small></div></div>';
         } else {
           body = '<div class="crowf"><label>金額</label><div><input id="cf_amount" type="number" inputmode="numeric" min="0" step="100" value="' + (Number(CASHF.amount) || '') + '" onchange="cashfAmount(this.value)"><small>円</small></div></div>'
             + '<div class="crowf"><label>何の会費</label><div><input id="cf_detail" type="text" maxlength="40" value="' + esc(CASHF.detail || '') + '" placeholder="大人会・クリスマス会など"></div></div>';
         }
-        return '<div class="cform"><div class="crowf"><label>種類</label><div>' + chip(names.ENROLL) + chip(names.TRIAL) + chip(names.EVENT) + '</div></div>'
+        return '<div class="cform"><div class="crowf"><label>種類</label><div>' + chip(names.ENROLL) + chip(names.TRIAL) + chip(names.EVENT) + chip(names.SPECIAL) + '</div></div>'
           + '<div class="crowf"><label>生徒</label><div><select id="cf_student"><option value="">選んでください</option>'
           + list.map(function (x) { return '<option value="' + esc(x.key) + '">' + esc(x.name) + '</option>'; }).join('')
           + '<option value="__other">一覧にない生徒</option></select>'
