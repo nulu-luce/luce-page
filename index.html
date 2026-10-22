@@ -673,6 +673,7 @@
       },
       // w7: ホーム
       getHomePage: function (p) { get({ api: 'home', t: p && p.t, no: p && p.no }, ok, ng); },
+      getHomeAdminPage: function (p) { get({ api: 'homeAdmin', t: p && p.t, no: p && p.no }, ok, ng); },   // w85
       markTaskDone: function (taskId, p) { post({ api: 'markTaskDone', t: p && p.t, no: p && p.no, taskId: taskId }, ok, ng); },
       askQuestion: function (text, p) { post({ api: 'askQuestion', t: p && p.t, no: p && p.no, text: text }, ok, ng); },
       // w10: 部屋の空き
@@ -889,13 +890,33 @@
             return;
           }
           google.script.run
-            .withSuccessHandler(function (data) { HOME = data || {}; try { renderHome(HOME); } finally { after(); } })
+            .withSuccessHandler(function (data) { HOME = data || {}; try { renderHome(HOME); if (HOME.adminDeferred) loadHomeAdmin(no); } finally { after(); } })   // w85: 管理者のカードは後から
             .withFailureHandler(function (err) {
               box.innerHTML = '<div class="card"><div class="banner err">今日の予定を読み込めませんでした。' + esc(err.message) + '</div></div>';
               after();
             })
             .getHomePage({ no: no || '', t: TOKEN });
         } catch (err) { box.innerHTML = ''; after(); }
+      }
+
+      /* w85: 管理者だけの重いカードは、ホームが出たあとに別の往復で読む（先生のホームが軽くなる） */
+      function loadHomeAdmin(no) {
+        if (!window.google || !google.script || !google.script.run || typeof google.script.run.getHomeAdminPage !== 'function') { HOME.adminDeferred = false; return; }
+        var merge = function (d) { Object.keys(d || {}).forEach(function (k) { HOME[k] = d[k]; }); };
+        google.script.run
+          .withSuccessHandler(function (d) {
+            if (!d || d.error) HOME.adminError = (d && d.error) || '読み込めませんでした'; else merge(d);
+            HOME.adminDeferred = false;
+            try { renderHome(HOME); } catch (e) { if (window.console) console.error(e); }
+          })
+          .withFailureHandler(function (err) { HOME.adminDeferred = false; HOME.adminError = err.message; try { renderHome(HOME); } catch (e) {} })
+          .getHomeAdminPage({ no: no || '', t: TOKEN });
+      }
+      function adminLoadingHtml(data) {
+        if (!data.admin) return '';
+        if (data.adminDeferred) return '<div class="card pending" id="adminLoading"><div class="meta">管理者のカード（確定のまとめ・翌月の確認のまとめ・今日の稼働・締めチェック・イベント損益）を読み込み中…</div></div>';
+        if (data.adminError) return '<div class="card pending"><div class="banner err">管理者のカードを読み込めませんでした。' + esc(data.adminError) + '</div></div>';
+        return '';
       }
 
       function renderHome(data) {
@@ -909,7 +930,7 @@
         if (!document.getElementById('admin').innerHTML) renderAdmin(data);   // 今月の状況より先に、講師シートから出す
         // w75/w76: カードは id → HTML の表にし、設定シート「カードの順番」（data.cardOrder。空なら 00_Config の既定）に書いた id を先頭から、残りは今までの順。
         // 管理者だけのカード（承認待ち・回答待ち・今日の稼働・締めチェックなど）は並べ替えの前に、今までの順で出す
-        var admin = [['pendingQuestions', pendingQuestionsHtml(data)], ['pending', pendingHtml(data)], ['pendingShifts', pendingShiftsHtml(data)], ['confirmAdmin', confirmAdminHtml(data)], ['nextAdmin', nextAdminHtml(data)], ['nextIssues', nextIssuesHtml(data)], ['health', healthHtml(data)], ['shiftToday', shiftTodayHtml(data)], ['checklist', checklistHtml(data)], ['eventPL', eventPLHtml(data)], ['allCard', allCardHtml(data)]];
+        var admin = [['pendingQuestions', pendingQuestionsHtml(data)], ['pending', pendingHtml(data)], ['pendingShifts', pendingShiftsHtml(data)], ['confirmAdmin', confirmAdminHtml(data)], ['nextAdmin', nextAdminHtml(data)], ['nextIssues', nextIssuesHtml(data)], ['health', healthHtml(data)], ['adminLoading', adminLoadingHtml(data)], ['shiftToday', shiftTodayHtml(data)], ['checklist', checklistHtml(data)], ['eventPL', eventPLHtml(data)], ['allCard', allCardHtml(data)]];
         var cards;
         if (data.hoke) {   // w17: 成瀬先生のホケホケ。今日のレッスン・部屋の空き・申請の代わりに
           if (!HOKE.data && !HOKE.loading && data.hokeData && !data.hokeData.error) { HOKE.data = data.hokeData; HOKE.week = 0; }   // w19: ホームと一緒に来た今週のぶん
