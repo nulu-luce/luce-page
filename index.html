@@ -930,7 +930,7 @@
         if (!document.getElementById('admin').innerHTML) renderAdmin(data);   // 今月の状況より先に、講師シートから出す
         // w75/w76: カードは id → HTML の表にし、設定シート「カードの順番」（data.cardOrder。空なら 00_Config の既定）に書いた id を先頭から、残りは今までの順。
         // 管理者だけのカード（承認待ち・回答待ち・今日の稼働・締めチェックなど）は並べ替えの前に、今までの順で出す
-        var admin = [['pendingQuestions', pendingQuestionsHtml(data)], ['pending', pendingHtml(data)], ['pendingShifts', pendingShiftsHtml(data)], ['confirmAdmin', confirmAdminHtml(data)], ['nextAdmin', nextAdminHtml(data)], ['nextIssues', nextIssuesHtml(data)], ['health', healthHtml(data)], ['adminLoading', adminLoadingHtml(data)], ['shiftToday', shiftTodayHtml(data)], ['checklist', checklistHtml(data)], ['eventPL', eventPLHtml(data)], ['allCard', allCardHtml(data)]];
+        var admin = [['pendingQuestions', pendingQuestionsHtml(data)], ['pending', pendingHtml(data)], ['pendingShifts', pendingShiftsHtml(data)], ['confirmAdmin', confirmAdminHtml(data)], ['nextAdmin', nextAdminHtml(data)], ['nextIssues', nextIssuesHtml(data)], ['health', healthHtml(data)], ['adminLoading', adminLoadingHtml(data)], ['shiftToday', shiftTodayHtml(data)], ['checklist', checklistHtml(data)], ['eventPL', eventPLHtml(data)], ['allCard', allCardHtml(data)], ['loadTime', loadTimeHtml(data)]];
         var cards;
         if (data.hoke) {   // w17: 成瀬先生のホケホケ。今日のレッスン・部屋の空き・申請の代わりに
           if (!HOKE.data && !HOKE.loading && data.hokeData && !data.hokeData.error) { HOKE.data = data.hokeData; HOKE.week = 0; }   // w19: ホームと一緒に来た今週のぶん
@@ -1200,6 +1200,20 @@
         else html += '<div class="cst no">おかしいところ ' + issues.length + ' 件</div><ul class="hl">' + issues.map(function (x) { return '<li>' + esc(x.text) + '</li>'; }).join('') + '</ul>';
         html += '<p class="hint">毎朝 7時台に見て、おかしいときだけ日置の Chat に届きます。正常な日は何も届きません。すぐ見るならエディタから runHealthCheckNow。</p></div>';
         return html;
+      }
+
+      /* ---- w86: 読み込みにかかった時間（管理者だけ。サーバー側の ms。どこが重いかを実行数の画面を開かずに見る） ---- */
+      function loadTimeHtml(data) {
+        if (!data.admin || !data.ms) return '';
+        var sec = function (n) { return (Math.round((Number(n) || 0) / 100) / 10).toFixed(1) + '秒'; };
+        var parts = function (m) {
+          return Object.keys(m || {}).filter(function (k) { return k !== 'total' && Number(m[k]) >= 100; })
+            .sort(function (a, b) { return m[b] - m[a]; }).slice(0, 4).map(function (k) { return k + ' ' + sec(m[k]); }).join('・');
+        };
+        var html = '<div class="card health"><div class="meta">読み込み（サーバー側）: ホーム本体 ' + sec(data.ms.total) + (parts(data.ms) ? '（' + esc(parts(data.ms)) + '）' : '');
+        if (data.adminMs) html += '　管理者カード ' + sec(data.adminMs.total) + (parts(data.adminMs) ? '（' + esc(parts(data.adminMs)) + '）' : '');
+        else if (data.adminDeferred) html += '　管理者カード 読み込み中…';
+        return html + '</div></div>';
       }
 
       /* ---- w53 「翌月の変更」の処理メモ（■ 名簿に入らなかった ／ ※ 入ったけれど確認が要る）。管理者だけ・あるときだけ ---- */
