@@ -1001,7 +1001,7 @@
           html += '<details' + (bulkPast ? ' open' : '') + '><summary>昨日まで（' + past.length + '日'
             + (wide ? '・' + esc(data.pastFrom.slice(5).replace('-', '/')) + ' から' : '') + '）'
             + (pastUn ? '<span class="unrecb">押していない ' + pastUn + ' 人</span>' : '') + '</summary>'
-            + (wide ? '<div class="meta" style="margin:4px 0 8px">確定のため、今月の初めまで出しています。日を押すと生徒が出ます</div>' : '')
+            + (wide ? '<div class="meta" style="margin:4px 0 8px">今月の分はいつでも付けられます' + (data.confirm && data.confirm.show ? '（確定の期間なので前の月の初めまで出しています）' : '（前の月の分は月末の3日前から翌月5日まで）') + '。日を押すと生徒が出ます</div>' : '')
             + past.map(function (d) {
             var un = unrecOf(d);
             return '<details class="dd"' + (d.ymd === BULK.ymd ? ' open' : '') + '><summary><div class="d"><div>' + esc(d.label) + '</div><div>'
