@@ -1836,15 +1836,26 @@
           + '<p class="hint">体験が終わったら押してください（押すまでここに出ます）。「検討」はお返事待ちのときに。押し間違えても、日置に言えば直せます。</p></div>';
       }
 
-      /* ---- w43: 「入会」を押したら レッスン開始日・支払い方法・コース を続けて聞く ---- */
+      /* ---- w43: 「入会」を押したら レッスン開始日・支払い方法・コース を続けて聞く。
+         w90: コースはテンプレの選択肢（HOME.levelOptions。翌月の確認と同じ）から選ぶ（一覧が無ければ自由入力）、
+         決まったレッスンの 曜日・開始時刻・校舎 も選べる（校舎は体験の校舎が最初から選ばれている） ---- */
       var TRIALJ = { key: '' };
       function trialJoin(key) { TRIALJ.key = key; renderHome(HOME); var el = document.getElementById('tj_form'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' }); }
       function trialJoinFormHtml(t) {
         var ways = ['クレジット（STORES）', '現金'];
+        var levels = HOME.levelOptions || [];
+        var campuses = HOME.campuses || (HOME.next && HOME.next.campuses) || ['北園校', '稲沢校', '瀬部校', '中村校'];
+        var sel = function (id, first, items, cur) {
+          return '<select id="' + id + '"><option value="">' + first + '</option>' + items.map(function (v) { return '<option' + (v === cur ? ' selected' : '') + '>' + esc(v) + '</option>'; }).join('') + '</select>';
+        };
         return '<div class="rform" id="tj_form" style="margin-top:8px">'
           + '<div><b>' + esc(t.name) + ' さん 入会</b>（分かるものだけで大丈夫です）</div>'
           + '<div class="inline"><div><label>レッスン開始日</label><input type="date" id="tj_start"></div>'
-          + '<div><label>コース</label><input id="tj_course" placeholder="例: 初級１(30分)"></div></div>'
+          + '<div><label>コース</label>' + (levels.length ? sel('tj_course', '選んでください', levels, '') : '<input id="tj_course" placeholder="例: 初級１(30分)">') + '</div></div>'
+          + '<div><label>決まったレッスンの曜日・開始時刻・校舎</label><div class="pills">'
+          + sel('tj_wd', '曜日', '月火水木金土日'.split(''), '') + ' '
+          + '<select id="tj_hm"><option value="">開始時刻</option>' + timeOptions('') + '</select> '
+          + sel('tj_campus', '校舎', campuses, t.campus || '') + '</div></div>'
           + '<div><label>月謝の支払い方法</label><div class="pills" id="tj_pays">' + ways.map(function (w) {
             return '<button type="button" onclick="tjPay(this)">' + esc(w) + '</button>';
           }).join('') + '</div></div>'
@@ -1862,7 +1873,8 @@
         google.script.run
           .withSuccessHandler(function (res) { TRIALJ.key = ''; HOME.trialResults = (res && res.trialResults) || []; renderHome(HOME); })
           .withFailureHandler(function (err) { btn.disabled = false; btn.textContent = '入会で送る'; alert('送れませんでした。' + err.message); })
-          .saveTrialResult({ key: key, result: '入会', start: g('tj_start'), pay: on ? on.textContent : '', course: g('tj_course').trim() }, { t: TOKEN, no: STATE.teacherNo || '' });
+          .saveTrialResult({ key: key, result: '入会', start: g('tj_start'), pay: on ? on.textContent : '', course: g('tj_course').trim(),
+            weekday: g('tj_wd'), hm: g('tj_hm'), campus: g('tj_campus') }, { t: TOKEN, no: STATE.teacherNo || '' });   // w90: 曜日・開始時刻・校舎
       }
 
       function sendTrialResult(key, result, btn) {
