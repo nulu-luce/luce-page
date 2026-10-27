@@ -239,6 +239,7 @@
       },
       // w7: ホーム
       getHomePage: function (p) { get({ api: 'home', t: p && p.t, no: p && p.no }, ok, ng); },
+      getHomeAdminPage: function (p) { get({ api: 'homeAdmin', t: p && p.t, no: p && p.no }, ok, ng); },   // w85
       markTaskDone: function (taskId, p) { post({ api: 'markTaskDone', t: p && p.t, no: p && p.no, taskId: taskId }, ok, ng); },
       askQuestion: function (text, p) { post({ api: 'askQuestion', t: p && p.t, no: p && p.no, text: text }, ok, ng); },
       // w10: 部屋の空き
@@ -249,6 +250,7 @@
       decideRequest: function (id, decision, comment, force, p) { post({ api: 'decideRequest', t: p && p.t, no: p && p.no, id: id, decision: decision, comment: comment || '', force: !!force }, ok, ng); },
       // w12: レッスン記録
       saveRecord: function (input, p) { post({ api: 'saveRecord', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      saveRecords: function (input, p) { post({ api: 'saveRecords', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },   // w79
       deleteRecord: function (input, p) { post({ api: 'deleteRecord', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w26: 今月の記録の確定
       confirmRecords: function (input, p) { post({ api: 'confirmRecords', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
@@ -260,6 +262,7 @@
       collectEventFee: function (input, p) { post({ api: 'collectEventFee', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w61: 参加率の分母をこの時点で確定（管理者）
       fixEventTargets: function (input, p) { post({ api: 'fixEventTargets', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      refreshEventTargetGrades: function (input, p) { post({ api: 'refreshEventTargetGrades', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w63: 先生ごとの担当の部（管理者）
       saveEventSessions: function (input, p) { post({ api: 'saveEventSessions', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w33: 締めチェック（管理者）
@@ -268,6 +271,9 @@
       saveNextMonth: function (input, p) { post({ api: 'saveNextMonth', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       deleteNextMonth: function (input, p) { post({ api: 'deleteNextMonth', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       confirmNextMonth: function (input, p) { post({ api: 'confirmNextMonth', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w82: 担当講師の変更 → 新規・体験 に1行（管理者）
+      rosterTransferPreview: function (input, p) { get({ api: 'rosterTransferPreview', t: p && p.t, no: p && p.no, row: input && input.row }, ok, ng); },
+      addRosterTransfer: function (input, p) { post({ api: 'addRosterTransfer', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w27: 全先生の今月（管理者）
       getAllTeachersPage: function (p) { get({ api: 'allTeachers', t: p && p.t, no: p && p.no }, ok, ng); },
       // w67: 経営ページ（管理者だけ）
@@ -493,9 +499,9 @@
             + '</div>';
           if (e.studentRows && e.studentRows.length) {
             html += '<details open><summary>参加生徒の一覧（' + e.studentRows.length + '件）</summary>'
-              + '<table><tr><th>講師</th><th>生徒</th><th>参加</th>' + (hasSessions(e) ? '<th>部</th>' : '') + '<th>曲目</th><th>分</th>' + (e.fee ? '<th>会費</th>' : '') + '</tr>'
+              + '<table><tr><th>講師</th><th>生徒</th><th>学年</th><th>参加</th>' + (hasSessions(e) ? '<th>部</th>' : '') + '<th>曲目</th><th>分</th>' + (e.fee ? '<th>会費</th>' : '') + '</tr>'
               + e.studentRows.map(function (r) {
-                  return '<tr><td>' + esc(r.teacher) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.part)
+                  return '<tr><td>' + esc(r.teacher) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.grade || '') + '</td><td>' + esc(r.part)
                     + (hasSessions(e) ? '</td><td>' + esc(r.session) + (r.moved ? ' <small class="sibwarn">※担当と違う部</small>' : '') : '')
                     + '</td><td>' + esc(r.piece) + '</td><td>' + esc(r.minutes) + '</td>'
                     + (e.fee ? '<td>' + (r.paid ? '済 ' + esc(mdOf(r.paid)) + (e.sibFee ? ' ' + yen(r.fee) : '') : (r.part === '参加' ? '未' + (e.sibFee && r.due ? ' ' + yen(r.due) : '') : ''))
@@ -520,6 +526,10 @@
                 : '<p class="hint"><b>まだ確定していません</b>（' + esc(e.ratesAsOf || '') + ' の名簿で数えています。入会・退会で動きます）。</p>')
               + '<button type="button" class="none" onclick="fixTargets(\'' + esc(e.id) + '\',this,' + (e.ratesFixed ? 'true' : 'false') + ')">'
               + (e.ratesFixed ? '今の名簿で確定し直す' : 'この時点の名簿で対象を確定する') + '</button>'
+              + (e.ratesFixed
+                ? ' <button type="button" class="none" onclick="refreshGrades(\'' + esc(e.id) + '\',this)">学年だけ今の名簿から入れ直す</button>'
+                  + '<p class="hint">上の「参加生徒の一覧」の学年は、確定した一覧（イベント運営ブックの「参加率の対象」シート）の学年です。名簿の学年を直したら「学年だけ今の名簿から入れ直す」を押してください（生徒の顔ぶれは変わりません。シートの学年のセルを直接直しても同じです）。</p>'
+                : '')
               + '<p class="hint">生徒数は名簿で在籍している生徒（休会中・退会が決まっている子・入会が決まった子も含む）のうち、学年が 年少〜小6 の子です（予約制の子は入れません）。'
               + '参加は、その先生が「参加」で登録した全員（中学生以上・大人・ベビー・予約制の子も）なので、100% を超える先生もいます。「対象外」は生徒数に入っていない子の参加です。</p></details>';
           }
@@ -706,6 +716,16 @@
             alert(err.message);
           })
           .collectEventFee({ eventId: id, studentId: r.id || '', studentName: r.name, received: !!received, amount: amount || '' }, CTX);
+      }
+
+      /* ---- w91: 確定した一覧の学年だけを今の名簿から入れ直す（管理者。顔ぶれは変えない） ---- */
+      function refreshGrades(id, btn) {
+        var was = btn ? btn.textContent : '';
+        if (btn) { btn.disabled = true; btn.textContent = '入れ直しています…'; }
+        google.script.run
+          .withSuccessHandler(function (data) { if (data && data.note) alert(data.note); render(data); })
+          .withFailureHandler(function (err) { if (btn) { btn.disabled = false; btn.textContent = was; } alert(err.message); })
+          .refreshEventTargetGrades({ eventId: id }, CTX);
       }
 
       /* ---- w61: 参加率の分母を確定（管理者） ---- */
