@@ -10,6 +10,7 @@
     <link rel="icon" type="image/png" sizes="192x192" href="https://nulu-luce.github.io/luce-page/img/icon-192.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="https://nulu-luce.github.io/luce-page/img/icon-512.png" />
     <meta name="apple-mobile-web-app-title" content="luce" />
+    <meta name="robots" content="noindex, nofollow" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Maru+Gothic:wght@500;700&display=swap" />
     <style>
@@ -663,7 +664,7 @@
       withSuccessHandler: function (f) { ok = f; return r; },
       withFailureHandler: function (f) { ng = f; return r; },
       withUserObject: function () { return r; },
-      getStatusPage: function (p) { get({ api: 'status', t: p && p.t, no: p && p.no, fresh: p && p.fresh ? '1' : '' }, ok, ng); },
+      getStatusPage: function (p) { get({ api: 'status', t: p && p.t, no: p && p.no, fresh: p && p.fresh ? '1' : '', ym: (p && p.ym) || '' }, ok, ng); },
       getEventPage: function (p) { get({ api: 'events', t: p && p.t }, ok, ng); },
       saveEventAnswer: function (eventId, answer, comment, p) {
         post({ api: 'saveEventAnswer', t: p && p.t, eventId: eventId, answer: answer, comment: comment }, ok, ng);
@@ -696,6 +697,7 @@
       collectEventFee: function (input, p) { post({ api: 'collectEventFee', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w61: 参加率の分母をこの時点で確定（管理者）
       fixEventTargets: function (input, p) { post({ api: 'fixEventTargets', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      refreshEventTargetGrades: function (input, p) { post({ api: 'refreshEventTargetGrades', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w63: 先生ごとの担当の部（管理者）
       saveEventSessions: function (input, p) { post({ api: 'saveEventSessions', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w33: 締めチェック（管理者）
@@ -847,6 +849,8 @@
           + '<button class="reload" onclick="loadStatus(STATE.teacherNo || \'\', false)">今月の状況を読む</button></div>';
       }
 
+      var STATUS_YM = '';   // w94: 画面で選んだ月（空なら luce給与の対象月＝締めている月）
+      function pickMonth(ym) { STATUS_YM = ym || ''; loadStatus(STATE.teacherNo || '', false); }
       function loadStatus(no, fresh) {
         try {
           if (!window.google || !google.script || !google.script.run) {
@@ -868,7 +872,7 @@
           google.script.run
             .withSuccessHandler(function (data) { clearTimers(); render(data); })
             .withFailureHandler(function (err) { clearTimers(); renderCenter('読み込めませんでした。\n' + err.message); })
-            .getStatusPage({ no: no || '', t: TOKEN, fresh: !!fresh });
+            .getStatusPage({ no: no || '', t: TOKEN, fresh: !!fresh, ym: STATUS_YM });   // w94
         } catch (err) {
           clearTimers();
           renderCenter('読み込めませんでした。\n' + err.message);
@@ -1432,14 +1436,14 @@
         if (!day || day.shiftOff || data.hoke) return '';
         if (!(day.students || []).length && !(day.rooms || []).length) return '';
         var p = shiftOffPending(day.ymd);
-        if (p) return '<div class="offq pending">' + (isToday ? '今日' : esc(day.label || day.ymd)) + ' の休みを申請中です（日置の承認待ち。承認されるとこの日の予定が消えます）</div>';
+        if (p) return '<div class="offq pending">' + (isToday ? '今日' : esc(day.label || day.ymd)) + ' の休みを申請中です（自動で反映できなかったので日置が確認します。反映されるとこの日の予定が消えます）</div>';
         return '<div class="offq"><button type="button" class="offbtn" onclick="shiftOffQuick(\'' + esc(day.ymd) + '\', ' + (isToday ? 'true' : 'false') + ')">'
           + (isToday ? '今日は休み（シフトの申請）' : 'この日は休みだった（申請）') + '</button></div>';
       }
       function shiftOffQuick(ymd, isToday) {
         var md = String(ymd).slice(5).replace('-', '/');
         var label = isToday ? '今日（' + md + '）' : md;
-        if (!confirm(label + ' をシフトの「休み」として申請します。日置が承認すると、この日の予定（生徒）が講師ページから消え、「押していない生徒」にも数えません。付けた記録は消えません。よろしいですか？')) return;
+        if (!confirm(label + ' をシフトの「休み」にします。送るとすぐに月シフト表が書き換わり、この日の予定（生徒）が講師ページから消え、「押していない生徒」にも数えません。付けた記録は消えません。よろしいですか？')) return;
         google.script.run
           .withSuccessHandler(function () { loadHome(STATE.teacherNo || ''); })
           .withFailureHandler(function (err) { alert('申請できませんでした。' + err.message); })
@@ -2284,7 +2288,7 @@
         html += live.length ? live.map(reqHtml).join('') : '<div class="meta">いま出している申請はありません</div>';
         if (done.length) html += '<details class="reqdone"><summary>済んだ申請（' + done.length + '件）</summary>' + done.map(reqHtml).join('') + '</details>';
         html += '</div><details id="reqForm"' + (REQF.open ? ' open' : '') + '><summary>申請する</summary>' + formHtml(data) + '</details>'
-          + '<p class="hint">振替は元の日が過ぎてからでも出せます。承認されると部屋が押さえられ、当日の「今日のレッスン」に出て、メールでお知らせします。済んだ振替は当日を過ぎると一覧から消えます。</p></div>';
+          + '<p class="hint">振替は元の日が過ぎてからでも出せます。送るとすぐに部屋が押さえられ（承認待ちはありません）、当日の「今日のレッスン」に出ます。済んだ振替は当日を過ぎると一覧から消えます。</p></div>';
         return html;
       }
 
@@ -2553,7 +2557,7 @@
         html += '<details id="shiftForm"' + (SHF.open ? ' open' : '') + '><summary>申請する</summary>' + shiftFormHtml(data) + '</details>';
         html += shiftGroupsHtml(data);
         html += '<p class="hint">「この日を休む」「この日に出勤日を足す」を、今年度（' + esc(data.shiftEnd || '') + 'まで）のどの日でも申請できます。'
-          + '承認されるとシフト表が書き換わり、1時間ほどで稼働表と部屋カレンダーに反映されます。'
+          + '送るとすぐにシフト表が書き換わり（承認待ちはありません）、1時間ほどで稼働表と部屋カレンダーに反映されます。'
           + '<b>休む日の生徒は、別に振替の申請が必要です。</b>毎週の曜日を変えるご相談は日置さんへ直接お願いします。</p></div>';
         return html;
       }
@@ -2577,7 +2581,7 @@
           }).join('') + '</select></label>';
           html += '<label>メモ（任意）<input value="' + esc(mine ? SHG.memo : '') + '" oninput="shiftGroupSet(\'' + esc(g.key) + '\', \'memo\', this.value)" placeholder="ホールの都合で など"></label>';
           html += '<div class="btns"><button class="p" onclick="sendShiftGroup(\'' + esc(g.key) + '\')">申請する</button></div>';
-          html += '<div class="meta">承認されると、月シフト表の「' + esc(g.label) + '」の行と luce給与の「部屋カレンダー 追加」の行が両方書き換わり、部屋カレンダーと「今日のレッスン」に反映されます。</div>';
+          html += '<div class="meta">送るとすぐに、月シフト表の「' + esc(g.label) + '」の行と luce給与の「部屋カレンダー 追加」の行が両方書き換わり、部屋カレンダーと「今日のレッスン」に反映されます。</div>';
           return html + '</div></details>';
         }).join('');
       }
@@ -2592,10 +2596,10 @@
         if (!SHG.off && !SHG.on) { alert('休む日か、足す日のどちらかを選んでください'); return; }
         if (SHG.off && !SHG.on && !confirm('この日を休むだけで、別の日を足しません。よろしいですか？')) return;
         google.script.run
-          .withSuccessHandler(function () {
+          .withSuccessHandler(function (res) {
             SHG = { key: '', off: '', on: '', reason: '講師都合', memo: '' };
             SHIFTD.loaded = false;
-            alert('申請しました。日置さんが承認すると、月シフト表と部屋カレンダーに反映されます。');
+            alert(res && res.status === '承認' ? '受け付けました。月シフト表と部屋カレンダー 追加に反映しました。' : '申請しました。自動で反映できなかったので、日置が確認してから反映します。');   // w93
             load();
           })
           .withFailureHandler(function (err) { alert('申請できませんでした。' + err.message); })
@@ -2684,10 +2688,10 @@
         if (SHF.on && !SHF.room) { alert('足す日の部屋を選んでください'); return; }
         if (SHF.off && !SHF.on && !confirm('この日を休むだけで、出勤日を足しません。今年度の回数が1回減りますがよろしいですか？')) return;
         google.script.run
-          .withSuccessHandler(function () {
+          .withSuccessHandler(function (res) {
             SHF = { off: '', on: '', hm: '16:00', campus: '', room: '', reason: '講師都合', memo: '', rooms: null, roomMsg: '', open: false };
             SHIFTD.loaded = false;
-            alert('申請しました。日置さんが承認するとシフト表に反映されます。');
+            alert(res && res.status === '承認' ? '受け付けました。月シフト表に反映しました（稼働表と部屋カレンダーには1時間ほどで）。' : '申請しました。自動で反映できなかったので、日置が確認してから反映します。');   // w93
             load();
           })
           .withFailureHandler(function (err) { alert('申請できませんでした。' + err.message); })
@@ -2742,6 +2746,12 @@
         }
         var st = data.status || {};
         var html = '';
+        // w94: 月の切り替え（翌月分のファイルができたあとも、締めている月を見られる）
+        if (data.months && data.months.length > 1) {
+          html += '<div class="pills" style="margin:4px 0 8px">' + data.months.map(function (m) {
+            return '<button type="button" class="' + (m.current ? 'on' : '') + '" onclick="pickMonth(\'' + esc(m.yyyymm) + '\')">' + esc(m.label) + (m.target ? '（締めている月）' : '') + '</button>';
+          }).join('') + '</div>';
+        }
         if (data.notice) html += '<div class="banner info">' + esc(data.notice) + '</div>';
         html += summaryHtml(data, st);
         html += doneHtml(st);
