@@ -10,6 +10,7 @@
     <link rel="icon" type="image/png" sizes="192x192" href="https://nulu-luce.github.io/luce-page/img/icon-hoke-192.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="https://nulu-luce.github.io/luce-page/img/icon-hoke-512.png" />
     <meta name="apple-mobile-web-app-title" content="ホケホケ" />
+    <meta name="robots" content="noindex, nofollow" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Maru+Gothic:wght@500;700&display=swap" />
     <style>
@@ -178,7 +179,7 @@
       withSuccessHandler: function (f) { ok = f; return r; },
       withFailureHandler: function (f) { ng = f; return r; },
       withUserObject: function () { return r; },
-      getStatusPage: function (p) { get({ api: 'status', t: p && p.t, no: p && p.no, fresh: p && p.fresh ? '1' : '' }, ok, ng); },
+      getStatusPage: function (p) { get({ api: 'status', t: p && p.t, no: p && p.no, fresh: p && p.fresh ? '1' : '', ym: (p && p.ym) || '' }, ok, ng); },
       getEventPage: function (p) { get({ api: 'events', t: p && p.t }, ok, ng); },
       saveEventAnswer: function (eventId, answer, comment, p) {
         post({ api: 'saveEventAnswer', t: p && p.t, eventId: eventId, answer: answer, comment: comment }, ok, ng);
@@ -188,6 +189,7 @@
       },
       // w7: ホーム
       getHomePage: function (p) { get({ api: 'home', t: p && p.t, no: p && p.no }, ok, ng); },
+      getHomeAdminPage: function (p) { get({ api: 'homeAdmin', t: p && p.t, no: p && p.no }, ok, ng); },   // w85
       markTaskDone: function (taskId, p) { post({ api: 'markTaskDone', t: p && p.t, no: p && p.no, taskId: taskId }, ok, ng); },
       askQuestion: function (text, p) { post({ api: 'askQuestion', t: p && p.t, no: p && p.no, text: text }, ok, ng); },
       // w10: 部屋の空き
@@ -198,6 +200,7 @@
       decideRequest: function (id, decision, comment, force, p) { post({ api: 'decideRequest', t: p && p.t, no: p && p.no, id: id, decision: decision, comment: comment || '', force: !!force }, ok, ng); },
       // w12: レッスン記録
       saveRecord: function (input, p) { post({ api: 'saveRecord', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      saveRecords: function (input, p) { post({ api: 'saveRecords', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },   // w79
       deleteRecord: function (input, p) { post({ api: 'deleteRecord', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w26: 今月の記録の確定
       confirmRecords: function (input, p) { post({ api: 'confirmRecords', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
@@ -207,14 +210,24 @@
       saveTrialResult: function (input, p) { post({ api: 'saveTrialResult', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w39: イベントの会費
       collectEventFee: function (input, p) { post({ api: 'collectEventFee', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w61: 参加率の分母をこの時点で確定（管理者）
+      fixEventTargets: function (input, p) { post({ api: 'fixEventTargets', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      refreshEventTargetGrades: function (input, p) { post({ api: 'refreshEventTargetGrades', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w63: 先生ごとの担当の部（管理者）
+      saveEventSessions: function (input, p) { post({ api: 'saveEventSessions', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w33: 締めチェック（管理者）
       setChecklistItem: function (input, p) { post({ api: 'setChecklistItem', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w43: 翌月の確認
       saveNextMonth: function (input, p) { post({ api: 'saveNextMonth', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       deleteNextMonth: function (input, p) { post({ api: 'deleteNextMonth', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       confirmNextMonth: function (input, p) { post({ api: 'confirmNextMonth', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w82: 担当講師の変更 → 新規・体験 に1行（管理者）
+      rosterTransferPreview: function (input, p) { get({ api: 'rosterTransferPreview', t: p && p.t, no: p && p.no, row: input && input.row }, ok, ng); },
+      addRosterTransfer: function (input, p) { post({ api: 'addRosterTransfer', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
       // w27: 全先生の今月（管理者）
       getAllTeachersPage: function (p) { get({ api: 'allTeachers', t: p && p.t, no: p && p.no }, ok, ng); },
+      // w67: 経営ページ（管理者だけ）
+      getKeieiPage: function (p) { get({ api: 'keiei', t: p && p.t, no: p && p.no, ym: p && p.ym, fresh: p && p.fresh ? 1 : '' }, ok, ng); },
       // w29: 担当生徒の登録内容と「違う」
       getRosterPage: function (p) { get({ api: 'roster', t: p && p.t, no: p && p.no }, ok, ng); },
       reportRosterIssue: function (input, p) { post({ api: 'reportRosterIssue', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
