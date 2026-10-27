@@ -10,6 +10,7 @@
     <link rel="icon" type="image/png" sizes="192x192" href="https://nulu-luce.github.io/luce-page/img/icon-192.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="https://nulu-luce.github.io/luce-page/img/icon-512.png" />
     <meta name="apple-mobile-web-app-title" content="luce" />
+    <meta name="robots" content="noindex, nofollow" />
     <style>
       :root {
         --ground: #f7f7f4;
@@ -229,7 +230,7 @@
       withSuccessHandler: function (f) { ok = f; return r; },
       withFailureHandler: function (f) { ng = f; return r; },
       withUserObject: function () { return r; },
-      getStatusPage: function (p) { get({ api: 'status', t: p && p.t, no: p && p.no, fresh: p && p.fresh ? '1' : '' }, ok, ng); },
+      getStatusPage: function (p) { get({ api: 'status', t: p && p.t, no: p && p.no, fresh: p && p.fresh ? '1' : '', ym: (p && p.ym) || '' }, ok, ng); },
       getEventPage: function (p) { get({ api: 'events', t: p && p.t }, ok, ng); },
       saveEventAnswer: function (eventId, answer, comment, p) {
         post({ api: 'saveEventAnswer', t: p && p.t, eventId: eventId, answer: answer, comment: comment }, ok, ng);
