@@ -2836,8 +2836,8 @@
 
       function renderAdmin(data) {
         var box = document.getElementById('admin');
-        var kl = document.getElementById('keieiLink');   // w67: 経営ページは管理者だけ
-        if (kl && data.admin) kl.hidden = false;
+        var kl = document.getElementById('keieiLink');   // w67: 経営ページは管理者だけ。w100: 経営まとめ（スプシ3枚＋月1回の Chat）に置き換えたので出さない（ページ自体は残してある）
+        if (kl) kl.hidden = true;
         if (!data.admin || !(data.teachers || []).length) return;   // 読めなかったときは前の選択肢を残す
         var opts = data.teachers.map(function (t) {
           var sel = t.no === data.teacherNo ? ' selected' : '';
