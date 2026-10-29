@@ -1,24 +1,842 @@
-<!doctype html>
-<html lang="ja">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex, nofollow">
-<meta name="referrer" content="no-referrer">
-<title>luce 講師ページ</title>
-<script>location.replace("https://app.pianoschool-luce.com/events.html" + location.search + location.hash);</script>
-<style>
-  :root { color-scheme: light dark; }
-  body { margin: 0; padding: 32px 16px; font: 16px/1.7 -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; background: #fff; color: #333; }
-  @media (prefers-color-scheme: dark) { body { background: #1d1d1f; color: #eee; } a { color: #8ab4f8; } }
-  main { max-width: 32rem; margin: 0 auto; }
-</style>
-</head>
-<body>
-<main>
-  <p>ページの場所が新しくなりました。自動で開かないときは、<a id="go" href="https://app.pianoschool-luce.com/events.html">こちら</a>を押してください。</p>
-  <p>ホーム画面に追加している方は、新しいページでもう一度追加すると次から直接開きます。</p>
-</main>
-<script>document.getElementById('go').href = "https://app.pianoschool-luce.com/events.html" + location.search + location.hash;</script>
-</body>
+<!-- このファイルは tools/build-site.mjs が src/events.html から作る。直接直さない -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>luce 講師ページ</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="https://nulu-luce.github.io/luce-page/img/icon-180.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="https://nulu-luce.github.io/luce-page/img/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="https://nulu-luce.github.io/luce-page/img/icon-512.png" />
+    <meta name="apple-mobile-web-app-title" content="luce" />
+    <meta name="robots" content="noindex, nofollow" />
+    <style>
+      :root {
+        --ground: #f7f7f4;
+        --surface: #ffffff;
+        --ink: #212726;
+        --muted: #64716e;
+        --rule: #e3e6e1;
+        --accent: #0e9ea6;
+        --accent-soft: #e2f3f4;
+        --warn: #b3436d;
+        --ok: #2f8a3a;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--ground);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+        font-size: 16px;
+        line-height: 1.7;
+      }
+      .wrap { max-width: 560px; margin: 0 auto; padding: 16px 14px 48px; }
+      header { padding: 6px 2px 14px; }
+      h1 { font-size: 19px; margin: 0; }
+      .who { color: var(--muted); font-size: 13px; }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 14px;
+      }
+      .card h2 { font-size: 17px; margin: 0 0 2px; }
+      .meta { color: var(--muted); font-size: 14px; }
+      .meta b { color: var(--ink); font-weight: 600; }
+      .note { margin: 8px 0 0; font-size: 14.5px; white-space: pre-wrap; }
+      .badge {
+        display: inline-block; font-size: 12px; padding: 1px 9px;
+        border-radius: 999px; vertical-align: 2px; margin-left: 6px;
+      }
+      .badge.open { background: var(--accent-soft); color: var(--accent); }
+      .badge.closed { background: #f1e6ec; color: var(--warn); }
+
+      .seg { display: flex; gap: 8px; margin: 14px 0 10px; }
+      .seg button {
+        flex: 1; padding: 12px 0; font-size: 15px; border-radius: 10px;
+        border: 1.5px solid var(--rule); background: var(--surface); color: var(--ink);
+        font-family: inherit;
+      }
+      .seg button.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+      .seg button:disabled { opacity: .5; }
+
+      textarea {
+        width: 100%; min-height: 56px; font: inherit; font-size: 15px;
+        border: 1.5px solid var(--rule); border-radius: 10px; padding: 9px 11px;
+        background: var(--surface); color: var(--ink);
+      }
+      textarea:focus { outline: none; border-color: var(--accent); }
+
+      .save {
+        margin-top: 10px; width: 100%; padding: 13px 0; font-size: 16px; font-weight: 700;
+        border: none; border-radius: 10px; background: var(--accent); color: #fff; font-family: inherit;
+      }
+      .save:disabled { opacity: .55; }
+      .saved { color: var(--ok); font-size: 13.5px; margin-top: 8px; text-align: center; }
+      .err { color: var(--warn); font-size: 13.5px; margin-top: 8px; text-align: center; white-space: pre-wrap; }
+
+      .tally { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+      .tally span {
+        font-size: 13px; background: var(--ground); border: 1px solid var(--rule);
+        border-radius: 8px; padding: 2px 9px;
+      }
+      .tally b { font-size: 15px; }
+      details { margin-top: 8px; font-size: 14px; }
+      details summary { color: var(--accent); }
+      table { border-collapse: collapse; width: 100%; margin-top: 6px; font-size: 13.5px; }
+      td, th { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--rule); }
+      th { color: var(--muted); font-weight: 600; }
+
+      .sec { margin-top: 16px; border-top: 1px dashed var(--rule); padding-top: 12px; }
+      .sec h3 { font-size: 15px; margin: 0 0 4px; }
+      .hint { color: var(--muted); font-size: 12.5px; margin: 0 0 8px; white-space: pre-wrap; }
+      .filter { display: flex; gap: 6px; margin: 6px 0 10px; }
+      .filter button {
+        font-size: 12.5px; padding: 4px 10px; border-radius: 999px; font-family: inherit;
+        border: 1px solid var(--rule); background: var(--surface); color: var(--muted);
+      }
+      .filter button.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+      .stu { border: 1px solid var(--rule); border-radius: 10px; padding: 9px 10px; margin-bottom: 8px; background: #fbfbf9; }
+      .stu.hidden { display: none; }
+      .stu-name { font-size: 15px; font-weight: 600; }
+      .stu-name small { color: var(--muted); font-weight: 400; font-size: 12.5px; margin-left: 6px; }
+      .stu-name input { width: 100%; font: inherit; font-size: 15px; border: 1.5px solid var(--rule); border-radius: 8px; padding: 6px 9px; }
+      .seg.small { margin: 8px 0 0; gap: 6px; }
+      .seg.small button { padding: 8px 0; font-size: 14px; }
+      .seg.small button.no.on { border-color: var(--muted); background: #eeefec; color: var(--ink); }
+      /* w39 会費（現金で集める） */
+      .fee { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; font-size: 13.5px; font-weight: 600; }
+      .fee small { font-weight: 400; color: var(--muted); }
+      .fee.paid { color: var(--ok, #2f7d4f); }
+      .fee button { font: inherit; font-size: 13px; font-weight: 700; padding: 5px 12px; border-radius: 999px; border: 1.5px solid var(--accent); background: var(--surface); color: var(--accent); margin-left: auto; }
+      .fee button.undo { border-color: var(--rule); color: var(--muted); font-weight: 400; }
+      .fee .fbtn { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; justify-content: flex-end; }
+      .fee .fbtn button { margin-left: 0; }
+      .fee button.alt { border-color: var(--rule); color: var(--ink); font-weight: 500; }
+      .fee .sib { flex-basis: 100%; font-weight: 400; color: var(--muted); font-size: 12.5px; }
+      .sibwarn { color: var(--warn); }
+      table.rate td.num, table.rate th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+      table.rate td.num small { display: block; white-space: nowrap; color: var(--muted); font-size: 11px; line-height: 1.3; }   /* w63: 注記は数字の下に（狭い画面で横にはみ出さない） */
+      table.rate td:first-child { word-break: keep-all; }   /* 名前は姓と名の間でだけ折り返す */
+      table.rate tr.sum td { border-top: 1.5px solid var(--ink); font-weight: 700; }
+      /* w63 部 */
+      .ses { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; font-size: 13.5px; }
+      .ses select, .asg select { font: inherit; font-size: 14px; border: 1.5px solid var(--rule); border-radius: 8px; padding: 5px 8px; background: var(--surface); color: var(--ink); }
+      .ses select:focus, .asg select:focus { outline: none; border-color: var(--accent); }
+      .ses .moved { color: var(--warn); font-size: 12.5px; }
+      .mine { margin: 0 0 6px; font-size: 14px; }
+      .asg td { vertical-align: middle; }
+      .asg select { width: 100%; }
+      .save.sub { background: var(--surface); color: var(--accent); border: 1.5px solid var(--accent); }
+      .more { display: flex; gap: 6px; margin-top: 8px; }
+      .more input { font: inherit; font-size: 14px; border: 1.5px solid var(--rule); border-radius: 8px; padding: 7px 9px; background: var(--surface); }
+      .more input.piece { flex: 1; min-width: 0; }
+      .more input.min { width: 72px; text-align: right; }
+      .more input:focus { outline: none; border-color: var(--accent); }
+      .add { width: 100%; margin-top: 4px; padding: 10px 0; font-size: 14px; font-family: inherit;
+        border: 1.5px dashed var(--rule); border-radius: 10px; background: var(--surface); color: var(--accent); }
+      .none { width: 100%; margin-top: 8px; padding: 10px 0; font-size: 14px; font-family: inherit;
+        border: 1.5px solid var(--rule); border-radius: 10px; background: var(--surface); color: var(--muted); }
+      .none.on { border-color: var(--muted); background: #eeefec; color: var(--ink); font-weight: 700; }
+      .center { text-align: center; color: var(--muted); padding: 42px 12px; }
+      .center b { color: var(--ink); }
+      .foot { color: var(--muted); font-size: 11.5px; text-align: center; margin-top: 26px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>luce 講師ページ</h1>
+        <div class="who" id="who">読み込んでいます…</div>
+      </header>
+      <div id="main"><div class="center">読み込んでいます…</div></div>
+      <div class="foot" id="foot"></div>
+    </div>
+
+    <script>
+/*
+ * luce 講師ページ（静的版）の橋渡し。tools/build-site.mjs が各ページの先頭に埋め込む。
+ *
+ * GAS の画面では google.script.run でサーバーの関数を呼ぶ。静的ページには google.script が無いので、
+ * 同じ形のものをここで作り、中では GAS の JSON API（40_Api.js）を fetch で呼ぶ。
+ * 別ドメインからの fetch には Google の Cookie が付かない（credentials: 'omit'）ので、
+ * ブラウザがどのアカウントにログインしていても関係なく動く。
+ *
+ * https://script.google.com/macros/s/AKfycbxDM30NCEgTMLrWZ1Z3muR9gg2JWF3_mK1AVsKL-nW5gyFKnY0x2fmrvEK6FIBxtcfQ/exec はビルド時に 00_Config.js の WEBAPP_URL に置き換わる。
+ * 画面のコード（status.html / events.html）は GAS 版と同じものをそのまま使う。
+ */
+(function (w) {
+  var API_URL = 'https://script.google.com/macros/s/AKfycbxDM30NCEgTMLrWZ1Z3muR9gg2JWF3_mK1AVsKL-nW5gyFKnY0x2fmrvEK6FIBxtcfQ/exec';
+
+  function parseQuery(search) {
+    var out = {};
+    String(search || '').replace(/^\?/, '').split('&').forEach(function (kv) {
+      if (!kv) return;
+      var i = kv.indexOf('=');
+      var k = i < 0 ? kv : kv.slice(0, i);
+      var v = i < 0 ? '' : kv.slice(i + 1);
+      try { k = decodeURIComponent(k.replace(/\+/g, ' ')); } catch (err) { /* そのまま */ }
+      try { v = decodeURIComponent(v.replace(/\+/g, ' ')); } catch (err) { /* そのまま */ }
+      if (k) out[k] = v;
+    });
+    return out;
+  }
+
+  function toQuery(params) {
+    var p = params || {};
+    return Object.keys(p).filter(function (k) { return p[k] !== undefined && p[k] !== null && p[k] !== ''; })
+      .map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(String(p[k])); })
+      .join('&');
+  }
+
+  var q = parseQuery(w.location && w.location.search);
+  // token は先生の合言葉（?t=）、s は生徒ページ（ホケホケ）の家庭の合言葉（?s=。w21）
+  w.__luce = { token: q.t || '', no: q.no || '', s: q.s || '', apiUrl: API_URL, parseQuery: parseQuery, toQuery: toQuery };
+
+  function finish(promise, ok, ng) {
+    promise
+      .then(function (res) { return res.json(); })
+      .then(function (body) {
+        if (body && body.ok) ok(body.data);
+        else ng(new Error((body && body.error) || '応答が読めませんでした'));
+      }, function (err) {
+        var why = err && err.message ? err.message : String(err);
+        ng(new Error('通信に失敗しました。電波の良いところでもう一度お試しください（' + why + '）'));
+      });
+  }
+
+  function get(params, ok, ng) {
+    finish(w.fetch(API_URL + '?' + toQuery(params), { method: 'GET', credentials: 'omit', cache: 'no-store' }), ok, ng);
+  }
+
+  function post(body, ok, ng) {
+    // Content-Type を text/plain にすると preflight（OPTIONS）が飛ばない。GAS は OPTIONS に答えられない
+    finish(w.fetch(API_URL, {
+      method: 'POST', credentials: 'omit',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body)
+    }), ok, ng);
+  }
+
+  /** google.script.run と同じ形。呼ぶたびに新しいものを返す（ハンドラが次の呼び出しに残らない） */
+  function runner() {
+    var ok = function () {};
+    var ng = function (err) { if (w.console && w.console.error) w.console.error(err); };
+    var r = {
+      withSuccessHandler: function (f) { ok = f; return r; },
+      withFailureHandler: function (f) { ng = f; return r; },
+      withUserObject: function () { return r; },
+      getStatusPage: function (p) { get({ api: 'status', t: p && p.t, no: p && p.no, fresh: p && p.fresh ? '1' : '', ym: (p && p.ym) || '' }, ok, ng); },
+      getEventPage: function (p) { get({ api: 'events', t: p && p.t }, ok, ng); },
+      saveEventAnswer: function (eventId, answer, comment, p) {
+        post({ api: 'saveEventAnswer', t: p && p.t, eventId: eventId, answer: answer, comment: comment }, ok, ng);
+      },
+      saveStudentAnswers: function (eventId, rows, noStudents, p) {
+        post({ api: 'saveStudentAnswers', t: p && p.t, eventId: eventId, rows: rows || [], noStudents: !!noStudents }, ok, ng);
+      },
+      // w7: ホーム
+      getHomePage: function (p) { get({ api: 'home', t: p && p.t, no: p && p.no }, ok, ng); },
+      getHomeAdminPage: function (p) { get({ api: 'homeAdmin', t: p && p.t, no: p && p.no }, ok, ng); },   // w85
+      markTaskDone: function (taskId, p) { post({ api: 'markTaskDone', t: p && p.t, no: p && p.no, taskId: taskId }, ok, ng); },
+      askQuestion: function (text, p) { post({ api: 'askQuestion', t: p && p.t, no: p && p.no, text: text }, ok, ng); },
+      // w10: 部屋の空き
+      getRoomsPage: function (p) { get({ api: 'rooms', t: p && p.t, no: p && p.no, campus: p && p.campus }, ok, ng); },
+      // w11: 振替・予約の申請
+      submitRequest: function (input, p) { post({ api: 'submitRequest', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      cancelRequest: function (id, reason, p) { post({ api: 'cancelRequest', t: p && p.t, no: p && p.no, id: id, reason: reason || '' }, ok, ng); },
+      decideRequest: function (id, decision, comment, force, p) { post({ api: 'decideRequest', t: p && p.t, no: p && p.no, id: id, decision: decision, comment: comment || '', force: !!force }, ok, ng); },
+      // w12: レッスン記録
+      saveRecord: function (input, p) { post({ api: 'saveRecord', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      saveRecords: function (input, p) { post({ api: 'saveRecords', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },   // w79
+      deleteRecord: function (input, p) { post({ api: 'deleteRecord', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w26: 今月の記録の確定
+      confirmRecords: function (input, p) { post({ api: 'confirmRecords', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w31: 現金の受け取り
+      saveCashReceipt: function (input, p) { post({ api: 'saveCashReceipt', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w37: 体験の結果（入会・検討・未入会）
+      saveTrialResult: function (input, p) { post({ api: 'saveTrialResult', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w39: イベントの会費
+      collectEventFee: function (input, p) { post({ api: 'collectEventFee', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w61: 参加率の分母をこの時点で確定（管理者）
+      fixEventTargets: function (input, p) { post({ api: 'fixEventTargets', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      refreshEventTargetGrades: function (input, p) { post({ api: 'refreshEventTargetGrades', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w63: 先生ごとの担当の部（管理者）
+      saveEventSessions: function (input, p) { post({ api: 'saveEventSessions', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w33: 締めチェック（管理者）
+      setChecklistItem: function (input, p) { post({ api: 'setChecklistItem', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w43: 翌月の確認
+      saveNextMonth: function (input, p) { post({ api: 'saveNextMonth', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      deleteNextMonth: function (input, p) { post({ api: 'deleteNextMonth', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      confirmNextMonth: function (input, p) { post({ api: 'confirmNextMonth', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w82: 担当講師の変更 → 新規・体験 に1行（管理者）
+      rosterTransferPreview: function (input, p) { get({ api: 'rosterTransferPreview', t: p && p.t, no: p && p.no, row: input && input.row }, ok, ng); },
+      addRosterTransfer: function (input, p) { post({ api: 'addRosterTransfer', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w27: 全先生の今月（管理者）
+      getAllTeachersPage: function (p) { get({ api: 'allTeachers', t: p && p.t, no: p && p.no }, ok, ng); },
+      // w67: 経営ページ（管理者だけ）
+      getKeieiPage: function (p) { get({ api: 'keiei', t: p && p.t, no: p && p.no, ym: p && p.ym, fresh: p && p.fresh ? 1 : '' }, ok, ng); },
+      // w29: 担当生徒の登録内容と「違う」
+      getRosterPage: function (p) { get({ api: 'roster', t: p && p.t, no: p && p.no }, ok, ng); },
+      reportRosterIssue: function (input, p) { post({ api: 'reportRosterIssue', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w40: シフト（出勤日）の変更
+      getShiftPage: function (p) { get({ api: 'shift', t: p && p.t, no: p && p.no }, ok, ng); },
+      getShiftRooms: function (ymd, campus, p) { get({ api: 'shiftRooms', t: p && p.t, no: p && p.no, ymd: ymd, campus: campus }, ok, ng); },
+      submitShiftRequest: function (input, p) { post({ api: 'submitShiftRequest', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      cancelShiftRequest: function (id, reason, p) { post({ api: 'cancelShiftRequest', t: p && p.t, no: p && p.no, id: id, reason: reason }, ok, ng); },
+      decideShiftRequest: function (id, decision, comment, p) { post({ api: 'decideShiftRequest', t: p && p.t, no: p && p.no, id: id, decision: decision, comment: comment }, ok, ng); },
+      // w14: 管理者が質問に返す
+      answerQuestion: function (row, at, qno, text, p) { post({ api: 'answerQuestion', t: p && p.t, no: p && p.no, row: row, at: at, qno: qno, text: text }, ok, ng); },
+      // w17: ホケホケ
+      getHokePage: function (p) { get({ api: 'hoke', t: p && p.t, no: p && p.no, week: p && p.week }, ok, ng); },
+      hokeCandidates: function (rightId, p) { get({ api: 'hokeCandidates', t: p && p.t, no: p && p.no, rightId: rightId, past: p && p.past ? '1' : '' }, ok, ng); },
+      hokeSetState: function (input, p) { post({ api: 'hokeSetState', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      hokeMove: function (input, p) { post({ api: 'hokeMove', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      hokeAdd: function (input, p) { post({ api: 'hokeAdd', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      hokeCancel: function (input, p) { post({ api: 'hokeCancel', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      hokeClose: function (input, p) { post({ api: 'hokeClose', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w21: ホケホケの生徒ページ（家庭の合言葉 s）
+      getHokeParentPage: function (p) { get({ api: 'hokeParent', s: p && p.s }, ok, ng); },
+      hokeParentCandidates: function (rightId, p) { get({ api: 'hokeParentCandidates', s: p && p.s, rightId: rightId }, ok, ng); },
+      hokeParentAbsent: function (input, p) { post({ api: 'hokeParentAbsent', s: p && p.s, input: input || {} }, ok, ng); },
+      hokeParentUndo: function (input, p) { post({ api: 'hokeParentUndo', s: p && p.s, input: input || {} }, ok, ng); },
+      hokeParentMove: function (input, p) { post({ api: 'hokeParentMove', s: p && p.s, input: input || {} }, ok, ng); },
+      hokeParentCancel: function (input, p) { post({ api: 'hokeParentCancel', s: p && p.s, input: input || {} }, ok, ng); }
+    };
+    return r;
+  }
+
+  function replaceUrl(mode, state, params, hash) {
+    try {
+      w.history[mode](state || null, '', '?' + toQuery(params) + (hash ? '#' + hash : ''));
+    } catch (err) { /* 古いブラウザ */ }
+  }
+
+  var script = {
+    url: {
+      getLocation: function (cb) {
+        cb({ parameter: parseQuery(w.location && w.location.search), parameters: {}, hash: '' });
+      }
+    },
+    history: {
+      replace: function (state, params, hash) { replaceUrl('replaceState', state, params, hash); },
+      push: function (state, params, hash) { replaceUrl('pushState', state, params, hash); },
+      setChangeHandler: function () {}
+    }
+  };
+  Object.defineProperty(script, 'run', { get: runner });
+  w.google = { script: script };
+
+  /** ページの中のリンク（「イベント →」など）に合言葉を引き継ぐ */
+  function keepToken() {
+    if (!w.document || !w.document.querySelectorAll) return;
+    var as = w.document.querySelectorAll('a[data-keep-token]');
+    for (var i = 0; i < as.length; i++) {
+      var href = as[i].getAttribute('href') || '';
+      as[i].setAttribute('href', href.replace(/[?#].*$/, '') + '?' + toQuery({ t: w.__luce.token }));
+    }
+  }
+  if (w.document && w.document.addEventListener) w.document.addEventListener('DOMContentLoaded', keepToken);
+  w.__luce.keepToken = keepToken;
+})(window);
+
+    </script>
+    <script>
+      var STATE = null;
+      var esc = function (s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+      };
+
+      // 合言葉はサーバー側（doGet）が埋め込む。GAS は中身を iframe で出すので、
+      // 画面の JavaScript から元の URL（?t=…）は見えない
+      var TOKEN = window.__luce.token;
+      var CTX = { t: TOKEN };
+
+      function load() {
+        google.script.run
+          .withSuccessHandler(render)
+          .withFailureHandler(function (err) { renderCenter('読み込めませんでした。\n' + err.message); })
+          .getEventPage(CTX);
+      }
+
+      function renderCenter(msg) {
+        document.getElementById('main').innerHTML =
+          '<div class="center">' + esc(msg).replace(/\n/g, '<br>') + '</div>';
+      }
+
+      function render(data) {
+        STATE = data;
+        document.getElementById('foot').textContent = data.version || '';
+        if (data.error) {
+          document.getElementById('who').textContent = data.email || '';
+          renderCenter(data.error);
+          return;
+        }
+        if (data.unknown) {
+          document.getElementById('who').textContent = data.email || '（メール不明）';
+          renderCenter('このメールアドレスは講師として登録されていません。\n' +
+            '<b>' + (data.email || '') + '</b>\nこの画面ごと管理者（日置）へお知らせください。');
+          return;
+        }
+        document.getElementById('who').textContent =
+          data.me.name + ' さん（' + data.me.no + '）' + (data.me.admin ? '・管理者' : '');
+
+        if (!data.events.length) {
+          renderCenter('いま受け付けているイベントはありません。');
+          return;
+        }
+        document.getElementById('main').innerHTML = data.events.map(cardHtml).join('');
+      }
+
+      function cardHtml(e) {
+        var help = '';
+        if (e.help) {
+          var seg = ['出席', '欠席', '未定'].map(function (v) {
+            return '<button type="button" ' + (e.open ? '' : 'disabled ')
+              + 'class="' + (e.myAnswer === v ? 'on' : '') + '" '
+              + 'onclick="pick(\'' + esc(e.id) + '\',\'' + v + '\',this)">' + v + '</button>';
+          }).join('');
+          help = (e.students ? '<div class="sec"><h3>先生ご自身の出欠</h3></div>' : '')
+            + '<div class="seg">' + seg + '</div>'
+            + '<textarea id="cm-' + esc(e.id) + '" placeholder="ひとこと（任意）" '
+            + (e.open ? '' : 'disabled ') + '>' + esc(e.myComment) + '</textarea>'
+            + (e.open
+                ? '<button class="save" id="sv-' + esc(e.id) + '" onclick="save(\'' + esc(e.id) + '\')">保存する</button>'
+                : '')
+            + '<div id="msg-' + esc(e.id) + '"></div>';
+        }
+
+        var admin = '';
+        if (e.tally) {
+          admin = '<div class="tally">'
+            + ['出席', '欠席', '未定', '未回答'].map(function (k) {
+                return '<span>' + k + ' <b>' + e.tally[k] + '</b></span>';
+              }).join('')
+            + '</div>';
+          if (e.answers && e.answers.length) {
+            admin += '<details><summary>先生の回答の一覧（' + e.answers.length + '件）</summary>'
+              + '<table><tr><th>講師</th><th>回答</th><th>ひとこと</th></tr>'
+              + e.answers.map(function (a) {
+                  return '<tr><td>' + esc(a.name) + '</td><td>' + esc(a.answer)
+                    + '</td><td>' + esc(a.comment) + '</td></tr>';
+                }).join('')
+              + '</table></details>';
+          }
+        }
+
+        return '<div class="card" id="card-' + esc(e.id) + '">'
+          + '<h2>' + esc(e.name)
+          + '<span class="badge ' + (e.open ? 'open' : 'closed') + '">'
+          + (e.open ? '募集中' : '締切') + '</span></h2>'
+          + '<div class="meta"><b>' + esc(e.dateJa) + '</b>'
+          + (e.time ? ' ' + esc(e.time) : '') + (e.place ? '｜' + esc(e.place) : '')
+          + (hasSessions(e) ? '<br>部: ' + esc(e.sessions.join('・')) : '')
+          + (e.deadline ? '<br>回答締切 ' + esc(e.deadlineJa) : '') + '</div>'
+          + (e.note ? '<p class="note">' + esc(e.note) + '</p>' : '')
+          + (e.students ? studentsHtml(e) : '')
+          + help
+          + admin
+          + '</div>';
+      }
+
+      /* ---- 生徒の参加登録 ---- */
+      var STU = {};      // イベントID → 画面上の行（編集中の値）
+      var NOSTU = {};    // イベントID → 「参加する生徒はいません」
+      var FILTER = {};   // イベントID → 'adult' | 'all'
+
+      function studentsHtml(e) {
+        if (!STU[e.id]) {
+          STU[e.id] = (e.myStudents || []).map(function (r) {
+            // w59: 会費の状態（fee・paid）と見込み・きょうだいも持つ（w39 からここで落としていたので「集金済み」が出ていなかった）
+            return { id: r.id, name: r.name, grade: r.grade, part: r.part, piece: r.piece, minutes: r.minutes, fromFile: r.fromFile,
+              fee: r.fee || 0, paid: r.paid || '', due: r.due || 0, siblings: r.siblings || [],
+              session: r.session || '' };   // w63: 担当と違う部で参加するときの部（担当どおりなら空）
+          });
+          NOSTU[e.id] = !!e.noStudents;
+          FILTER[e.id] = FILTER[e.id] || 'all';
+        }
+        var rows = STU[e.id];
+        var hasAdult = rows.some(function (r) { return /大人/.test(r.grade); });
+        var html = '<div class="sec"><h3>参加する生徒</h3>'
+          + '<p class="hint">生徒ごとに 参加・未定・不参加 を選び、参加なら曲目と演奏時間（分）を入れてください。'
+          + '決まったところから何度でも保存できます。'
+          + (e.studentError ? '\n' + esc(e.studentError) + '\n一覧に出ない生徒は「一覧にない生徒を足す」で入れてください。' : '')
+          + '</p>';
+        if (hasSessions(e)) {
+          html += '<p class="mine">' + (e.mySession
+              ? 'あなたの担当の部: <b>' + esc(e.mySession) + '</b>'
+              : '<b>担当の部はまだ決まっていません</b>（日置さんが決めます）。生徒ごとに部を選ぶこともできます。') + '</p>'
+            + '<p class="hint">生徒は基本、先生の担当の部に参加します。都合が悪い子だけ、参加を選んだあと「部」を別の日・別の部に変えてください。</p>';
+        }
+        if (e.myRate) html += myRateHtml(e);   // w65: 自分の参加率（保存すると数え直す）
+        if (hasAdult) {
+          html += '<div class="filter">'
+            + '<button type="button" class="' + (FILTER[e.id] === 'adult' ? 'on' : '') + '" onclick="setFilter(\'' + esc(e.id) + '\',\'adult\')">大人だけ</button>'
+            + '<button type="button" class="' + (FILTER[e.id] === 'all' ? 'on' : '') + '" onclick="setFilter(\'' + esc(e.id) + '\',\'all\')">全員</button>'
+            + '</div>';
+        }
+        html += '<div id="stu-' + esc(e.id) + '">' + rows.map(function (r, i) { return stuRowHtml(e, r, i); }).join('') + '</div>';
+        if (e.open) {
+          html += '<button type="button" class="add" onclick="addStudent(\'' + esc(e.id) + '\')">＋ 一覧にない生徒を足す</button>'
+            + '<button type="button" class="none ' + (NOSTU[e.id] ? 'on' : '') + '" id="none-' + esc(e.id) + '" onclick="toggleNone(\'' + esc(e.id) + '\')">参加する生徒はいません</button>'
+            + '<button class="save" id="ssv-' + esc(e.id) + '" onclick="saveStudents(\'' + esc(e.id) + '\')">生徒の登録を保存する</button>'
+            + '<div id="smsg-' + esc(e.id) + '"></div>';
+        }
+        if (hasSessions(e) && e.mySession) html += rosterHtml(e);
+        if (e.studentTally) {
+          var t = e.studentTally;
+          html += '<div class="tally">'
+            + '<span>参加 <b>' + t['参加'] + '</b>名</span><span>未定 <b>' + t['未定'] + '</b>名</span>'
+            + '<span>不参加 <b>' + t['不参加'] + '</b>名</span><span>演奏 合計 <b>' + t.minutes + '</b>分</span>'
+            + '<span>回答した先生 <b>' + t.answered + '</b> / 未回答 <b>' + t.notAnswered + '</b></span>'
+            + (e.fee ? (e.sibFee
+                ? '<span>会費 <b>' + yen(e.fee) + '</b>（きょうだい ' + yen(e.sibFee) + '）・参加 ' + t['参加'] + '名 ＝ 見込み <b>' + yen(e.dueTotal || 0) + '</b></span>'
+                : '<span>会費 <b>' + yen(e.fee) + '</b> ×参加 ' + t['参加'] + '名 ＝ <b>' + yen(e.fee * t['参加']) + '</b></span>') : '')
+            + '</div>';
+          if (e.studentRows && e.studentRows.length) {
+            html += '<details open><summary>参加生徒の一覧（' + e.studentRows.length + '件）</summary>'
+              + '<table><tr><th>講師</th><th>生徒</th><th>学年</th><th>参加</th>' + (hasSessions(e) ? '<th>部</th>' : '') + '<th>曲目</th><th>分</th>' + (e.fee ? '<th>会費</th>' : '') + '</tr>'
+              + e.studentRows.map(function (r) {
+                  return '<tr><td>' + esc(r.teacher) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.grade || '') + '</td><td>' + esc(r.part)
+                    + (hasSessions(e) ? '</td><td>' + esc(r.session) + (r.moved ? ' <small class="sibwarn">※担当と違う部</small>' : '') : '')
+                    + '</td><td>' + esc(r.piece) + '</td><td>' + esc(r.minutes) + '</td>'
+                    + (e.fee ? '<td>' + (r.paid ? '済 ' + esc(mdOf(r.paid)) + (e.sibFee ? ' ' + yen(r.fee) : '') : (r.part === '参加' ? '未' + (e.sibFee && r.due ? ' ' + yen(r.due) : '') : ''))
+                      + (r.sibling ? ' <small>きょうだい</small>' : '') + '</td>' : '') + '</tr>';
+                }).join('')
+              + '</table></details>';
+          }
+          if (hasSessions(e)) html += sessionAdminHtml(e);
+          if (e.rates && e.rates.rows && e.rates.rows.length) {
+            var pct = function (v) { return v === null || v === undefined ? '—' : v + '%'; };
+            var rr = function (o, cls) {
+              return '<tr' + (cls ? ' class="' + cls + '"' : '') + '><td>' + esc(o.teacher) + '</td><td class="num">' + o.target
+                + '<small>（園' + o.kinder + '・小' + o.school + '）</small></td><td class="num">' + o.join
+                + (o.other ? '<small>うち対象外 ' + o.other + '</small>' : '') + '</td><td class="num">' + o.undecided
+                + '</td><td class="num"><b>' + pct(o.rate) + '</b></td>' + '</tr>';
+            };
+            html += '<details open><summary>参加率（参加した全員 ÷ 園児・小学生の生徒数）　全体 ' + pct(e.rates.total.rate) + '（' + e.rates.total.join + ' / ' + e.rates.total.target + '名）</summary>'
+              + '<table class="rate"><tr><th>講師</th><th>生徒数</th><th>参加</th><th>未定</th><th>参加率</th></tr>'
+              + e.rates.rows.map(function (o) { return rr(o, ''); }).join('') + rr(e.rates.total, 'sum') + '</table>'
+              + (e.ratesFixed
+                ? '<p class="hint"><b>対象は ' + esc(e.ratesAsOf || '') + ' に確定</b>した一覧です（そのあとの入会・退会では変わりません）。確定し直すときは下のボタン。</p>'
+                : '<p class="hint"><b>まだ確定していません</b>（' + esc(e.ratesAsOf || '') + ' の名簿で数えています。入会・退会で動きます）。</p>')
+              + '<button type="button" class="none" onclick="fixTargets(\'' + esc(e.id) + '\',this,' + (e.ratesFixed ? 'true' : 'false') + ')">'
+              + (e.ratesFixed ? '今の名簿で確定し直す' : 'この時点の名簿で対象を確定する') + '</button>'
+              + (e.ratesFixed
+                ? ' <button type="button" class="none" onclick="refreshGrades(\'' + esc(e.id) + '\',this)">学年だけ今の名簿から入れ直す</button>'
+                  + '<p class="hint">上の「参加生徒の一覧」の学年は、確定した一覧（イベント運営ブックの「参加率の対象」シート）の学年です。名簿の学年を直したら「学年だけ今の名簿から入れ直す」を押してください（生徒の顔ぶれは変わりません。シートの学年のセルを直接直しても同じです）。</p>'
+                : '')
+              + '<p class="hint">生徒数は名簿で在籍している生徒（休会中・退会が決まっている子・入会が決まった子も含む）のうち、学年が 年少〜小6 の子です（予約制の子は入れません）。'
+              + '参加は、その先生が「参加」で登録した全員（中学生以上・大人・ベビー・予約制の子も）なので、100% を超える先生もいます。「対象外」は生徒数に入っていない子の参加です。</p></details>';
+          }
+          if (e.households && e.households.length) {
+            var warn = e.households.filter(function (h) { return h.note; });
+            html += '<details' + (warn.length ? ' open' : '') + '><summary>きょうだいで参加（' + e.households.length + '家庭' + (warn.length ? '・要確認 ' + warn.length : '') + '）</summary>'
+              + e.households.map(function (h) {
+                  return '<div class="' + (h.note ? 'sibwarn' : '') + '">' + esc(h.names.join('・')) + '　集金 ' + h.paid + '/' + h.count
+                    + (h.note ? '　' + esc(h.note) : '') + '</div>';
+                }).join('')
+              + '<p class="hint">名簿のメールアドレスか電話番号が同じで、姓も同じ生徒をきょうだいとみなしています。家庭で最初に集めた子が会費、あとから集めるきょうだいは きょうだい会費 です。</p></details>';
+          }
+          if (e.noStudentTeachers && e.noStudentTeachers.length) {
+            html += '<p class="hint">参加する生徒はいません: ' + esc(e.noStudentTeachers.join('・')) + '</p>';
+          }
+        }
+        return html + '</div>';
+      }
+
+      function stuRowHtml(e, r, i) {
+        var hide = FILTER[e.id] === 'adult' && r.fromFile && !/大人/.test(r.grade) && !r.part;
+        var name = r.fromFile
+          ? '<div class="stu-name">' + esc(r.name) + (r.grade ? '<small>' + esc(r.grade) + '</small>' : '') + '</div>'
+          : '<div class="stu-name"><input placeholder="生徒の名前" value="' + esc(r.name) + '" '
+            + (e.open ? '' : 'disabled ') + 'oninput="STU[\'' + esc(e.id) + '\'][' + i + '].name=this.value"></div>';
+        var seg = ['参加', '未定', '不参加'].map(function (v) {
+          return '<button type="button" ' + (e.open ? '' : 'disabled ')
+            + 'class="' + (v === '不参加' ? 'no ' : '') + (r.part === v ? 'on' : '') + '" '
+            + 'onclick="pickPart(\'' + esc(e.id) + '\',' + i + ',\'' + v + '\',this)">' + v + '</button>';
+        }).join('');
+        var more = '<div class="more" id="more-' + esc(e.id) + '-' + i + '" style="' + (r.part === '参加' || r.part === '未定' ? '' : 'display:none') + '">'
+          + '<input class="piece" placeholder="曲目" value="' + esc(r.piece) + '" ' + (e.open ? '' : 'disabled ')
+          + 'oninput="STU[\'' + esc(e.id) + '\'][' + i + '].piece=this.value">'
+          + '<input class="min" type="number" inputmode="numeric" placeholder="分" value="' + esc(r.minutes) + '" ' + (e.open ? '' : 'disabled ')
+          + 'oninput="STU[\'' + esc(e.id) + '\'][' + i + '].minutes=this.value">'
+          + '</div>';
+        return '<div class="stu' + (hide ? ' hidden' : '') + '" id="stu-' + esc(e.id) + '-' + i + '">' + name
+          + '<div class="seg small">' + seg + '</div>' + sesHtml(e, r, i) + more + feeHtml(e, r, i) + '</div>';
+      }
+
+      /* ---- w65: 先生の自分の参加率（自分の行だけ） ---- */
+      function myRateHtml(e) {
+        var o = e.myRate;
+        return '<div class="tally myrate"><span>あなたの参加率 <b>' + (o.rate === null || o.rate === undefined ? '—' : o.rate + '%') + '</b></span>'
+          + '<span>参加 <b>' + o.join + '</b>名' + (o.other ? '（うち対象外 ' + o.other + '）' : '') + '</span>'
+          + '<span>生徒数 <b>' + o.target + '</b>名（園' + o.kinder + '・小' + o.school + '）</span>'
+          + (o.undecided ? '<span>未定 <b>' + o.undecided + '</b>名</span>' : '') + '</div>'
+          + '<p class="hint" style="margin-top:6px">参加率 ＝ 「参加」で保存した生徒（中学生以上・大人・ベビー・予約制の子も）÷ 生徒数（在籍している 年少〜小6。予約制の子は入れません）。100% を超えることもあります。'
+          + (o.fixed ? '生徒数は ' + esc(o.asOf) + ' に確定した人数です。' : '生徒数は今の名簿で数えています（あとで確定します）。') + '</p>';
+      }
+
+      /* ---- w63: 部（クリスマス会のように日・時間帯で分かれるイベント） ---- */
+      function hasSessions(e) { return !!(e && e.sessions && e.sessions.length); }
+
+      // 生徒ごとの部。担当どおりなら空で持ち、担当と違う部を選んだときだけ部の名前を送る
+      function sesHtml(e, r, i) {
+        if (!hasSessions(e)) return '';
+        var cur = r.session || e.mySession || '';
+        var show = r.part === '参加' || r.part === '未定';
+        return '<div class="ses" id="ses-' + esc(e.id) + '-' + i + '" style="' + (show ? '' : 'display:none') + '">'
+          + '<label>部 <select ' + (e.open ? '' : 'disabled ') + 'onchange="pickSession(\'' + esc(e.id) + '\',' + i + ',this.value)">'
+          + (cur ? '' : '<option value="">部を選んでください</option>')
+          + e.sessions.map(function (x) {
+              return '<option value="' + esc(x) + '"' + (x === cur ? ' selected' : '') + '>' + esc(x) + (x === e.mySession ? '（担当）' : '') + '</option>';
+            }).join('')
+          + '</select></label>'
+          + (r.session && r.session !== e.mySession ? '<span class="moved">担当と違う部で参加</span>' : '')
+          + '</div>';
+      }
+
+      function pickSession(id, i, v) {
+        var ev = eventOf(id);
+        if (!ev || !STU[id] || !STU[id][i]) return;
+        STU[id][i].session = v === ev.mySession ? '' : v;
+        var box = document.getElementById('ses-' + id + '-' + i);
+        if (box) box.outerHTML = sesHtml(ev, STU[id][i], i);
+      }
+
+      function eventOf(id) {
+        var ev = null;
+        (STATE.events || []).forEach(function (x) { if (x.id === id) ev = x; });
+        return ev;
+      }
+
+      // 先生の担当の部に来る生徒（他の先生から来る子も）。当日の受付用
+      function rosterHtml(e) {
+        var ro = e.sessionRoster || [];
+        var g = ro.filter(function (x) { return x.guest; }).length;
+        return '<details><summary>' + esc(e.mySession) + ' に参加する生徒（' + ro.length + '名' + (g ? '・うち他の部の先生の生徒 ' + g + '名' : '') + '）</summary>'
+          + (ro.length
+              ? '<table><tr><th>生徒</th><th>担当の先生</th></tr>' + ro.map(function (x) {
+                  return '<tr><td>' + esc(x.name) + (x.guest ? ' <small class="sibwarn">他の部の先生の生徒</small>' : '') + '</td><td>' + esc(x.teacher) + '</td></tr>';
+                }).join('') + '</table>'
+              : '<p class="hint">まだいません。</p>')
+          + '<p class="hint">「参加」で保存された生徒です。他の先生の生徒も、この部で参加する子は載ります。当日の受付に使えます。</p></details>';
+      }
+
+      // 管理者: 部ごとの人数・担当と違う部の子・先生ごとの担当の部
+      function sessionAdminHtml(e) {
+        var html = '';
+        var tal = e.sessionTally || [];
+        html += '<details open><summary>部ごとの人数</summary><table class="rate"><tr><th>部</th><th>参加</th><th>未定</th><th>担当の先生</th></tr>'
+          + tal.map(function (t) {
+              return '<tr><td>' + (t.session ? esc(t.session) : '<span class="sibwarn">部が決まっていない</span>') + '</td><td class="num">' + t.join
+                + (t.guests ? '<small>うち他の部から ' + t.guests + '</small>' : '') + '</td><td class="num">' + t.undecided
+                + '</td><td>' + (t.session ? (t.teachers.length ? esc(t.teachers.join('・')) : '<span class="sibwarn">まだいません</span>') : '') + '</td></tr>';
+            }).join('')
+          + '</table><p class="hint">参加は「参加」で保存された生徒。担当の部と違う部を選んだ子は、選んだ部で数えます（「他の部から」は、先生の担当がほかの部の子）。</p></details>';
+        var mv = e.moved || [];
+        if (mv.length) {
+          html += '<details><summary>担当と違う部で参加（' + mv.length + '名）</summary><table><tr><th>生徒</th><th>先生</th><th>担当の部 → 参加する部</th></tr>'
+            + mv.map(function (m) {
+                return '<tr><td>' + esc(m.name) + (m.part === '未定' ? ' <small>未定</small>' : '') + '</td><td>' + esc(m.teacher) + '</td><td>'
+                  + (m.from ? esc(m.from) : '担当なし') + ' → <b>' + esc(m.to) + '</b></td></tr>';
+              }).join('')
+            + '</table></details>';
+        }
+        var asg = e.sessionAssign || [];
+        var unset = asg.filter(function (a) { return !a.session; }).length;
+        html += '<details' + (asg.length && unset === asg.length ? ' open' : '') + '><summary>担当の部（先生ごと）' + (unset ? '　未設定 ' + unset + '名' : '') + '</summary>'
+          + '<table class="asg"><tr><th>先生</th><th>担当の部</th></tr>'
+          + asg.map(function (a) {
+              return '<tr><td>' + esc(a.name) + '</td><td><select data-no="' + esc(a.no) + '" class="asg-' + esc(e.id) + '">'
+                + '<option value="">（なし）</option>'
+                + e.sessions.map(function (x) { return '<option value="' + esc(x) + '"' + (x === a.session ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('')
+                + '</select></td></tr>';
+            }).join('')
+          + '</table>'
+          + '<button type="button" class="save sub" onclick="saveSessions(\'' + esc(e.id) + '\',this)">担当の部を保存する</button>'
+          + '<p class="hint">先生の画面では、生徒の部がはじめから担当の部になります。担当を変えると、その先生の生徒（別の部を選んだ子を除く）も一緒に移ります。</p></details>';
+        return html;
+      }
+
+      function saveSessions(id, btn) {
+        var sels = document.querySelectorAll('select.asg-' + id);
+        var assign = [];
+        for (var k = 0; k < sels.length; k++) assign.push({ no: sels[k].getAttribute('data-no'), session: sels[k].value });
+        var was = btn ? btn.textContent : '';
+        if (btn) { btn.disabled = true; btn.textContent = '保存しています…'; }
+        google.script.run
+          .withSuccessHandler(function (data) { delete STU[id]; render(data); })
+          .withFailureHandler(function (err) { if (btn) { btn.disabled = false; btn.textContent = was; } alert(err.message); })
+          .saveEventSessions({ eventId: id, assign: assign }, CTX);
+      }
+
+      /* ---- w39 会費（現金）。参加で保存済みの生徒に出す ---- */
+      function feeHtml(e, r, i) {
+        if (!e.fee || r.part !== '参加' || r.fromFileOnly) return '';
+        if (r.paid) {
+          return '<div class="fee paid">会費 ' + yen(r.fee || e.fee) + ' 集金済み<small>' + esc(mdOf(r.paid)) + '</small>'
+            + '<button type="button" class="undo" onclick="sendFee(\'' + esc(e.id) + '\',' + i + ',false,this)">取り消す</button></div>';
+        }
+        if (!e.sibFee) {
+          return '<div class="fee">会費 ' + yen(e.fee)
+            + '<button type="button" onclick="sendFee(\'' + esc(e.id) + '\',' + i + ',true,this)">集めた</button></div>';
+        }
+        // w59: きょうだい会費。家庭で最初に集めた子が会費、あとから集めるきょうだいは きょうだい会費（見込みの額のボタンを先に）
+        var due = r.due || e.fee;
+        var other = due === e.fee ? e.sibFee : e.fee;
+        var label = function (amt) { return (amt === e.sibFee ? 'きょうだい ' : '') + yen(amt) + 'を集めた'; };
+        var btn = function (amt, alt) {
+          return '<button type="button" class="' + (alt ? 'alt' : '') + '" onclick="sendFee(\'' + esc(e.id) + '\',' + i + ',true,this,' + amt + ')">' + label(amt) + '</button>';
+        };
+        var sibs = r.siblings || [];
+        var note = sibs.length
+          ? '<span class="sib">きょうだい: ' + sibs.map(function (x) {
+              return esc(x.name) + '（' + esc(x.teacher) + '・' + (x.paid ? yen(x.fee) + ' 集金済み' : 'まだ') + '）';
+            }).join('、') + '</span>'
+          : '';
+        return '<div class="fee"><span>会費 ' + yen(due) + (due === e.sibFee ? '（きょうだい）' : '') + '</span>'
+          + '<span class="fbtn">' + btn(due, false) + btn(other, true) + '</span>' + note + '</div>';
+      }
+      function yen(n) { return (Number(n) || 0).toLocaleString('ja-JP') + '円'; }
+      function mdOf(ymd) { var m = String(ymd || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? Number(m[2]) + '/' + Number(m[3]) : ''; }
+      function sendFee(id, i, received, btn, amount) {
+        var r = STU[id] && STU[id][i];
+        if (!r) return;
+        var was = btn ? btn.textContent : '';
+        if (btn) { btn.disabled = true; btn.textContent = '送信中…'; }
+        google.script.run
+          .withSuccessHandler(function (data) { delete STU[id]; render(data); })
+          .withFailureHandler(function (err) {
+            if (btn) { btn.disabled = false; btn.textContent = was; }
+            alert(err.message);
+          })
+          .collectEventFee({ eventId: id, studentId: r.id || '', studentName: r.name, received: !!received, amount: amount || '' }, CTX);
+      }
+
+      /* ---- w91: 確定した一覧の学年だけを今の名簿から入れ直す（管理者。顔ぶれは変えない） ---- */
+      function refreshGrades(id, btn) {
+        var was = btn ? btn.textContent : '';
+        if (btn) { btn.disabled = true; btn.textContent = '入れ直しています…'; }
+        google.script.run
+          .withSuccessHandler(function (data) { if (data && data.note) alert(data.note); render(data); })
+          .withFailureHandler(function (err) { if (btn) { btn.disabled = false; btn.textContent = was; } alert(err.message); })
+          .refreshEventTargetGrades({ eventId: id }, CTX);
+      }
+
+      /* ---- w61: 参加率の分母を確定（管理者） ---- */
+      function fixTargets(id, btn, again) {
+        if (again && !confirm('今の名簿で対象を確定し直します。前に確定した一覧は置き換わります。よろしいですか？')) return;
+        var was = btn ? btn.textContent : '';
+        if (btn) { btn.disabled = true; btn.textContent = '確定しています…'; }
+        google.script.run
+          .withSuccessHandler(function (data) { render(data); })
+          .withFailureHandler(function (err) { if (btn) { btn.disabled = false; btn.textContent = was; } alert(err.message); })
+          .fixEventTargets({ eventId: id }, CTX);
+      }
+
+      function rerenderStudents(id) {
+        var ev = null;
+        (STATE.events || []).forEach(function (x) { if (x.id === id) ev = x; });
+        var box = document.getElementById('stu-' + id);
+        if (ev && box) box.innerHTML = STU[id].map(function (r, i) { return stuRowHtml(ev, r, i); }).join('');
+      }
+
+      function setFilter(id, f) { FILTER[id] = f; var card = document.getElementById('card-' + id); if (card) rerenderCard(id); }
+
+      function rerenderCard(id) {
+        var ev = null;
+        (STATE.events || []).forEach(function (x) { if (x.id === id) ev = x; });
+        var card = document.getElementById('card-' + id);
+        if (ev && card) card.outerHTML = cardHtml(ev);
+      }
+
+      function pickPart(id, i, v, btn) {
+        STU[id][i].part = v;
+        NOSTU[id] = false;
+        var none = document.getElementById('none-' + id);
+        if (none) none.className = 'none';
+        var seg = btn.parentNode.querySelectorAll('button');
+        for (var k = 0; k < seg.length; k++) seg[k].className = (seg[k].textContent === '不参加' ? 'no ' : '') + (seg[k] === btn ? 'on' : '');
+        var more = document.getElementById('more-' + id + '-' + i);
+        if (more) more.style.display = (v === '参加' || v === '未定') ? '' : 'none';
+        var ses = document.getElementById('ses-' + id + '-' + i);   // w63
+        if (ses) ses.style.display = (v === '参加' || v === '未定') ? '' : 'none';
+      }
+
+      function addStudent(id) {
+        STU[id].push({ id: '', name: '', grade: '', part: '', piece: '', minutes: '', session: '', fromFile: false });
+        rerenderStudents(id);
+        var inputs = document.querySelectorAll('#stu-' + id + ' .stu-name input');
+        if (inputs.length) inputs[inputs.length - 1].focus();
+      }
+
+      function toggleNone(id) {
+        NOSTU[id] = !NOSTU[id];
+        if (NOSTU[id]) STU[id].forEach(function (r) { r.part = ''; });
+        rerenderStudents(id);
+        var none = document.getElementById('none-' + id);
+        if (none) none.className = 'none ' + (NOSTU[id] ? 'on' : '');
+      }
+
+      function saveStudents(id) {
+        var rows = STU[id].filter(function (r) { return r.part && String(r.name || '').trim(); })
+          .map(function (r) { return { id: r.id, name: r.name, part: r.part, piece: r.piece, minutes: r.minutes, session: r.session || '' }; });
+        var msg = document.getElementById('smsg-' + id);
+        if (!rows.length && !NOSTU[id]) {
+          msg.innerHTML = '<div class="err">参加・未定・不参加を選ぶか、「参加する生徒はいません」を押してください</div>';
+          return;
+        }
+        var btn = document.getElementById('ssv-' + id);
+        btn.disabled = true; btn.textContent = '保存しています…';
+        google.script.run
+          .withSuccessHandler(function (data) {
+            delete STU[id];
+            render(data);
+            var m = document.getElementById('smsg-' + id);
+            if (m) m.innerHTML = '<div class="saved">保存しました（' + rows.length + '名）</div>';
+          })
+          .withFailureHandler(function (err) {
+            btn.disabled = false; btn.textContent = '生徒の登録を保存する';
+            msg.innerHTML = '<div class="err">' + esc(err.message) + '</div>';
+          })
+          .saveStudentAnswers(id, rows, !!NOSTU[id], CTX);
+      }
+
+      var PICKED = {};
+      function pick(id, v, btn) {
+        PICKED[id] = v;
+        var seg = btn.parentNode.querySelectorAll('button');
+        for (var i = 0; i < seg.length; i++) seg[i].className = seg[i] === btn ? 'on' : '';
+      }
+
+      function save(id) {
+        var ev = null;
+        (STATE.events || []).forEach(function (e) { if (e.id === id) ev = e; });
+        var answer = PICKED[id] || (ev && ev.myAnswer) || '';
+        var msg = document.getElementById('msg-' + id);
+        if (!answer) { msg.innerHTML = '<div class="err">出席・欠席・未定のどれかを選んでください</div>'; return; }
+        var btn = document.getElementById('sv-' + id);
+        btn.disabled = true; btn.textContent = '保存しています…';
+        google.script.run
+          .withSuccessHandler(function (data) {
+            render(data);
+            var m = document.getElementById('msg-' + id);
+            if (m) m.innerHTML = '<div class="saved">保存しました</div>';
+          })
+          .withFailureHandler(function (err) {
+            btn.disabled = false; btn.textContent = '保存する';
+            msg.innerHTML = '<div class="err">' + esc(err.message) + '</div>';
+          })
+          .saveEventAnswer(id, answer, document.getElementById('cm-' + id).value, CTX);
+      }
+
+      load();
+    </script>
+  </body>
 </html>

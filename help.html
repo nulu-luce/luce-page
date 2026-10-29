@@ -1,24 +1,407 @@
-<!doctype html>
+<!-- このファイルは tools/build-site.mjs が src/help.html から作る。直接直さない -->
+<!DOCTYPE html>
 <html lang="ja">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex, nofollow">
-<meta name="referrer" content="no-referrer">
-<title>luce 講師ページ 使い方</title>
-<script>location.replace("https://app.pianoschool-luce.com/help.html" + location.search + location.hash);</script>
-<style>
-  :root { color-scheme: light dark; }
-  body { margin: 0; padding: 32px 16px; font: 16px/1.7 -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; background: #fff; color: #333; }
-  @media (prefers-color-scheme: dark) { body { background: #1d1d1f; color: #eee; } a { color: #8ab4f8; } }
-  main { max-width: 32rem; margin: 0 auto; }
-</style>
-</head>
-<body>
-<main>
-  <p>ページの場所が新しくなりました。自動で開かないときは、<a id="go" href="https://app.pianoschool-luce.com/help.html">こちら</a>を押してください。</p>
-  <p>ホーム画面に追加している方は、新しいページでもう一度追加すると次から直接開きます。</p>
-</main>
-<script>document.getElementById('go').href = "https://app.pianoschool-luce.com/help.html" + location.search + location.hash;</script>
-</body>
+  <head>
+    <base target="_top" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>luce 講師ページ 使い方</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="https://nulu-luce.github.io/luce-page/img/icon-180.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="https://nulu-luce.github.io/luce-page/img/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="https://nulu-luce.github.io/luce-page/img/icon-512.png" />
+    <meta name="apple-mobile-web-app-title" content="luce" />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Maru+Gothic:wght@500;700&display=swap" />
+    <style>
+      :root {
+        --ground: #f7f7f4; --surface: #ffffff; --ink: #212726; --muted: #64716e; --rule: #e3e6e1;
+        --accent: #0e9ea6; --accent-soft: #e2f3f4; --warn: #b3436d; --warn-soft: #f6e7ee;
+        --caution: #a3620a; --caution-soft: #f8efdd; --ok: #2f8a3a; --ok-soft: #e4f2e6;
+        --pink: #f6dfe3; --pink-ink: #8a4a5a;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--ground); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif; font-size: 16px; line-height: 1.75; }
+      .wrap { max-width: 560px; margin: 0 auto; padding: 0 14px 56px; }
+      header { background: var(--pink); margin: 0 -14px; padding: 26px 18px 18px; }
+      header .eyebrow { font-size: 12.5px; color: var(--pink-ink); letter-spacing: .08em; margin: 0 0 4px; }
+      h1 { font-family: "Shippori Mincho", serif; font-size: 24px; margin: 0; color: var(--pink-ink); text-wrap: balance; }
+      header p { margin: 8px 0 0; font-size: 14px; color: var(--pink-ink); }
+      nav.toc { display: flex; flex-wrap: wrap; gap: 6px 12px; padding: 14px 2px 4px; font-size: 13.5px; }
+      nav.toc a { color: var(--accent); text-decoration: none; }
+      .card { background: var(--surface); border: 1px solid var(--rule); border-radius: 14px; padding: 14px 16px 12px; margin-top: 14px; }
+      h2 { font-family: "Zen Maru Gothic", "Hiragino Sans", sans-serif; font-size: 18px; margin: 0 0 8px; color: var(--ink); }
+      h2 small { font-size: 12.5px; color: var(--muted); font-weight: 500; margin-left: 8px; }
+      h3 { font-size: 15px; margin: 14px 0 4px; color: var(--accent); }
+      p { margin: 0 0 8px; }
+      ul, ol { margin: 0 0 8px; padding-left: 1.3em; }
+      li { margin: 2px 0; }
+      .pill { display: inline-block; font-size: 12.5px; padding: 1px 10px; border-radius: 999px; border: 1.5px solid var(--rule); background: var(--surface); margin: 0 2px; white-space: nowrap; }
+      .pill.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+      .pill.no { border-color: var(--warn); color: var(--warn); background: var(--warn-soft); }
+      .note { font-size: 13.5px; color: var(--muted); }
+      .tip { background: var(--accent-soft); border-radius: 10px; padding: 8px 12px; font-size: 14px; margin: 8px 0; }
+      .caution { background: var(--caution-soft); border-radius: 10px; padding: 8px 12px; font-size: 14px; margin: 8px 0; color: var(--caution); }
+      table { border-collapse: collapse; width: 100%; font-size: 14px; margin: 6px 0 8px; }
+      th, td { text-align: left; vertical-align: top; padding: 5px 8px; border-top: 1px solid var(--rule); }
+      thead th { border-top: none; color: var(--muted); font-weight: 500; font-size: 12.5px; }
+      .tbl { overflow-x: auto; }
+      .back { display: inline-block; margin: 14px 0 0; color: var(--accent); text-decoration: none; font-size: 14px; }
+      .foot { color: var(--muted); font-size: 12.5px; margin-top: 22px; }
+      a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <p class="eyebrow">ピアノ教室 luce</p>
+        <h1>講師ページの使い方</h1>
+        <p>毎日のレッスンの記録から、振替の申請、月末の締めまで。困ったときの連絡先はいちばん下です。</p>
+      </header>
+      <nav class="toc" aria-label="目次">
+        <a href="#open">開き方</a><a href="#daily">毎日すること</a><a href="#extra">予定にないレッスン</a><a href="#trial">体験レッスン</a><a href="#request">振替・予約の申請</a>
+        <a href="#rooms">部屋の空き</a><a href="#home">資料・お知らせ・イベント・提出物</a><a href="#month">月末の締め</a><a href="#trouble">困ったとき</a>
+      </nav>
+
+      <section class="card" id="open">
+        <h2>1. 開き方</h2>
+        <ul>
+          <li>LINE で届いた <b>自分専用のリンク</b> を開きます。Google のログインは要りません。</li>
+          <li>リンクは先生ごとに違います。<b>ほかの人に転送しないでください</b>（開いた人が先生本人として記録できてしまいます）。</li>
+          <li>スマホの「ホーム画面に追加」をすると、アプリのように開けます（iPhone は共有ボタン → ホーム画面に追加）。</li>
+        </ul>
+        <div class="tip">開いたときに表示が古いと感じたら、画面の「更新」を押すか、ページを引き下げて再読み込みしてください。</div>
+      </section>
+
+      <section class="card" id="daily">
+        <h2>2. 毎日すること<small>今日のレッスン</small></h2>
+        <p>「今日」のカードに、その日の生徒が時間順に出ます。レッスンが終わったら、生徒ごとに出欠を押してください。押した瞬間に保存されます。</p>
+        <div class="tbl"><table>
+          <thead><tr><th>押すもの</th><th>いつ</th><th>報酬</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill on">出席</span></td><td>レッスンをした</td><td>あり</td></tr>
+            <tr><td><span class="pill on">当日欠席</span></td><td>生徒の都合で当日にお休み（前日までの連絡なし）</td><td>あり（規約どおり振替なし）</td></tr>
+            <tr><td><span class="pill no">事前キャンセル</span></td><td>前日までに生徒からお休みの連絡があった</td><td>なし。振替をした日に「出席」</td></tr>
+            <tr><td><span class="pill no">休講</span></td><td>先生の都合でお休みにした</td><td>なし。振替をした日に「出席」</td></tr>
+          </tbody>
+        </table></div>
+        <ul>
+          <li>もう一度同じものを押すと消えます。押し間違えても大丈夫です。</li>
+          <li><b>その日が休みだったのに予定が出ているとき</b>は、今日のカードの「今日は休み（シフトの申請）」、昨日までの日なら「この日は休みだった（申請）」を押してください。送るとすぐに月シフト表（今日は稼働表も）が書き換わり、その日の予定が消えて「押していない生徒」にも数えません（承認待ちはありません）。過ぎた日の休みは「記録の整理」の印が付き、稼働表や部屋カレンダーは変わりません。（休みはもともと月シフト表に入れるものです。先に分かっている休みは「シフト（出勤日）の変更」から）</li>
+          <li><b>まとめて押す</b>こともできます。生徒が2人以上いる日には「まとめて出席」のボタンが出ます。押すと生徒の名前の前にチェックが出る（まだ押していない生徒には最初から入っています）ので、付けない生徒だけ外して「チェックした ◯ 人を 出席 にする」を押してください。出席のほかに 当日欠席・休講 などもまとめて付けられます（「昨日まで」の日でも同じ）。</li>
+          <li>メモは自由です（「発表会の曲を決めた」など）。日置さんも見られます。</li>
+          <li>昨日までの分は「昨日まで」の一覧から付け直せます。<b>今月の分はいつでも</b>（月の初めまで）付けられます。前の月の分は、月末の3日前から翌月5日まで（「今月の記録の確定」が出ている間）だけ出ます。月謝明細を開いて ○ を付ける必要はありません（記録があれば翌朝自動で入ります）。</li>
+          <li><b>翌朝、月報（曜日シート）の出欠に ○ が自動で入ります。</b> 月末にもう一度付け直す必要はありません。先に自分で ○ を付けてあれば、そのままです。</li>
+          <li>事前キャンセルと休講は ○ が入りません（空のまま）。振替をした日に「出席」を押せば、その日に ○ が入ります。別の曜日に受けたときは「※その他回数」に数えます。</li>
+          <li><b>今月の回数</b>のカードに、押した記録から数えた 出席・当日欠席・事前キャンセル・休講・振替・出勤した日数 が出ます（報酬の額は月報の請求書が正です）。</li>
+          <li>事前キャンセル・当日欠席が<b>3回続いた生徒</b>は「休みが続いている生徒」のカードに出ます（日置さんにも届きます）。ご家庭にひと声かけてみてください。</li>
+        </ul>
+        <div class="caution">月報を「入力完了」にした後の記録は自動では入りません。締めた後に付け直したいときは日置さんに伝えてください。</div>
+      </section>
+
+      <section class="card" id="extra">
+        <h2>3. 予定にないレッスン<small>代講・追加・体験</small></h2>
+        <p>「今日」のカードの下の「＋ 予定にないレッスンを記録」から、予定に出ていないレッスンも記録できます。</p>
+        <ul>
+          <li><b>追加</b>: 自分の生徒の、予定に無い日のレッスン。</li>
+          <li><b>代講</b>: ほかの先生の生徒のレッスン。月報にはその子の行が無いので、日置さんが「代講・特別レッスン」シートに行を足してから ○ が入ります（翌晩以降）。</li>
+          <li><b>体験</b>: 体験レッスン。</li>
+        </ul>
+        <p>生徒はプルダウンから選ぶか、一覧にない生徒は名前を入れます。時刻は空でも構いません。記録した行は「予定外」の印つきで出て、「消す」で消せます。</p>
+        <p class="note">合唱・調律（回数で報酬が立つもの）とグループレッスンは、まだこの記録の対象ではありません。今までどおり月報に回数を入れてください。</p>
+      </section>
+
+      <section class="card" id="trial">
+        <h2>4. 体験レッスン<small>予定と、終わったあとの結果</small></h2>
+        <p>ご自分が担当する体験レッスンは、日置さんが登録するとすぐに講師のチャットスペースに流れ、<b>前の日の朝8時にもう一度</b>流れます。講師ページには<b>「体験レッスン」</b>のカードとして、この先の分が全部出ます（自分の担当分だけ。登録から数分で出て、いつ開いても出ています）。</p>
+        <ul>
+          <li><b>電話・メール</b>（押すとそのままかけられます）、<b>入会経緯</b>、<b>事前情報</b>（「やさしいレッスン希望」「ピアノ歴あり」など、お申し込みのときに伺ったこと）は、担当の先生の講師ページにだけ出ます。体験の前に必ず見てください。</li>
+          <li>チャットに流れるのは 日程・時間・校舎・講師名・生徒名・学年 だけです。</li>
+          <li><b>体験が終わったら、結果を押してください。</b> ページのいちばん上に「体験の結果を教えてください」が出るので、<b>入会 ／ 検討 ／ 未入会</b> のどれかを押します。押すまでずっと上に出ます。</li>
+          <li><b>入会</b>を押すと、続けて <b>レッスン開始日・コース（一覧から選ぶ）・決まったレッスンの 曜日・開始時刻・校舎・月謝の支払い方法</b> を聞きます。分かるものだけで大丈夫です（空のままでも送れます。あとで日置さんに伝えても構いません）。入れた内容はそのまま日置さんに届き、名簿に入れるのに使います。</li>
+          <li><b>検討</b>は、ご家庭のお返事待ちのときに押してください。あとで決まったら押し直せます（押し間違えたときも日置さんに言えば直せます）。</li>
+          <li>1週間たっても押されていない体験は、講師のチャットスペースにお名前つきで流れます。</li>
+          <li>「検討」のまま2週間たった体験は「検討のままの体験」のカードに出ます。お返事があれば 入会した／未入会だった を押してください。</li>
+        </ul>
+        <p class="note">体験の日のレッスンそのものの記録（出欠）は、「予定にないレッスン」の<b>体験</b>で記録してください。</p>
+      </section>
+
+      <section class="card" id="request">
+        <h2>5. 振替・予約の申請</h2>
+        <p>生徒の振替と、予約制の生徒のレッスンは、「振替・予約の申請」カードから申請します。送るとすぐに受け付けられ（承認待ちはありません）、部屋のカレンダーに予定が入って講師ページに「承認」と出ます。部屋がふさがっているときだけ、その場で断られます。</p>
+        <ol>
+          <li>「申請する」を押す。</li>
+          <li>生徒（一覧にない生徒は名前を入力）、元の日（振替のとき。過去の日でも可。1年前まで）、希望日を入れる。</li>
+          <li>校舎 → 部屋を選び、「この日の空きを見る」で空いている時間を確かめる。</li>
+          <li>開始・長さ（30／45／60分）・理由を選んで送る。</li>
+        </ol>
+        <ul>
+          <li>当日でも申請できます（締切はありません）。</li>
+          <li><b>同じ日の別の時刻への振替もできます</b>（土 10:00 の子が同じ土の 14:00 に来る、など）。日にちも時刻も同じときだけ断られます。</li>
+          <li>自分のレッスンの時間帯の中（生徒と生徒の間）や、その前後には入れられます。ほかの先生の時間帯やレンタルの予約と重なるときは入れられません。</li>
+          <li>自分の生徒と時刻が重なるときは確認が出ます。そのまま申請することもできます。</li>
+          <li>受け付けたものは「キャンセル」できます（部屋の予定も消えます）。日置さんへの知らせは要りません。</li>
+        </ul>
+        <div class="tip">振替をした日には、その子に「出席」を押してください。元の日は「事前キャンセル」のままで大丈夫です。</div>
+        <h3>シフト（出勤日）の変更</h3>
+        <p>「シフト（出勤日）の変更」カードで「この日を休む」「この日に出勤日を足す」を今年度のどの日でも申請できます（承認待ちはありません）。送るとすぐに<b>月シフト表と稼働表</b>が書き換わり、ご自分の画面の今日・これからの予定にはすぐ出ます。<b>部屋カレンダー・レンタル・部屋の空きは luce給与の次の同期（最大3時間）で変わります。</b>休む日の生徒は別に振替の申請が要ります。</p>
+        <ul>
+          <li>ボタンは1回だけ押してください（送っている間は「送信中…」になります）。同じ申請を2回送ると「同じ申請がもうあります」と断られます。</li>
+          <li>「出勤日を読み込む」を押すと、一覧の下に<b>「○月の出勤日は合っていますか？」</b>が出ます。毎月15日からは翌月、それより前は当月の出勤日です。<b>合っていれば「合っている」</b>、違えば「違う」を押して違うところ（例: 11/5(木) は休み、11/12(木) は 15:30 から）を書いて送ってください。日置が月シフト表を直すと「自分の質問」に返事が出ます。</li>
+          <li>取り消すと月シフト表と稼働表が元に戻ります。</li>
+        </ul>
+      </section>
+
+      <section class="card" id="rooms">
+        <h2>6. 部屋の空き</h2>
+        <p>「部屋の空き」カードで、今日から2週間の各部屋の様子が見られます。校舎のチップで切り替え、部屋の名前を押すと予定の一覧が出ます。</p>
+        <ul>
+          <li>色が付いているところは、レッスン（先生の名前つき）・レンタルの予約・その他の予定です。</li>
+          <li>30分以上の隙間が「空き」として文字でも出ます。</li>
+          <li>レッスンの帯は前後1時間の余白込みで押さえてあります。自分の帯の中の隙間には振替を入れられます。</li>
+        </ul>
+      </section>
+
+      <section class="card" id="home">
+        <h2>7. 資料・お知らせ・イベント予定・提出物・質問</h2>
+        <ul>
+          <li><b>お知らせ</b>: 教室からの連絡です。新しいものは講師のチャットスペースにも流れます。</li>
+          <li><b>提出物</b>: 期限つきの提出物です。出したら「提出した」を押してください。</li>
+          <li><b>よくある質問</b>: 手続きや決まりごとの答えです。まずここを見てください。</li>
+          <li><b>質問</b>: 日置さんへの質問を送れます。回答は講師ページに出て、メールでも届きます。</li>
+          <li><b>資料</b>: シフト表・講師ハンドブック・体験レッスンマニュアルなど、よく見るものへのリンクです。押すと開きます（いつも最新のものが出るので、手元に保存した控えではなくここから開いてください）。ご自分の生徒の曜日・時刻・月謝などは「担当生徒の登録内容」で見られます（名簿そのものは、ほかのご家庭の連絡先も入っているので置いていません）。</li>
+          <li><b>イベントの会費</b>: 会費のあるイベントは、イベントの画面で「参加」の生徒に<b>「集めた」</b>のボタンが出ます。出欠の締切までに現金でお預かりして押してください。押すと翌朝、その生徒の月謝明細の「その他※現金徴収」に入ります（お預かりした現金は、先生へのお支払いから差し引かれます）。押し間違えたら「取り消す」。
+            <b>きょうだいで参加するとき</b>は、ボタンが2つ出ます（例：「5,000円を集めた」「きょうだい 2,500円を集めた」）。<b>家庭で最初に集めた子が会費、あとから集めるきょうだいは きょうだい会費</b>です。きょうだいがほかの先生の生徒でも、その子の下に「きょうだい: ○○さん（△△先生・5,000円 集金済み）」と出るので、それを見て押してください。きょうだいと分かっているのに出ないとき（名簿に連絡先が無いなど）は、ご家庭に聞いて きょうだい の額を押して大丈夫です。</li>
+          <li><b>部のあるイベント</b>（クリスマス会のように、日・午前／午後で分かれるもの）: 生徒の「部」ははじめから<b>先生の担当の部</b>になっています。都合が悪い子だけ、「参加」を選んだあと「部」を別の日・別の部に変えて保存してください（「担当と違う部で参加」と出ます）。
+            画面の「○○ に参加する生徒」を開くと、先生の担当の部に来る生徒が並びます。<b>ほかの先生の生徒でも、その部を選んだ子は載ります</b>（「他の部の先生の生徒」の印）。当日の受付に使ってください。会費はその子の担当の先生が集めます。</li>
+          <li><b>あなたの参加率</b>（生徒の参加を集めるイベント）: 「参加」で保存した生徒の数 ÷ 先生の生徒数（在籍している 年少〜小6。予約制の子は入れません）です。中学生以上・大人・ベビー・予約制の子の参加も数えるので、100% を超えることもあります。保存すると数え直します。ほかの先生の参加率は出ません。</li>
+          <li><b>イベント予定</b>: 発表会や大人会など、日程が決まっているイベントを月ごとに並べています（読むだけ）。ホールの予約は1年ほど前に決まるので、先のぶんも出ます。<b>「日程は仮」</b>はまだ動くことがあります。<b>「出欠を聞いています」</b>が付いたら「出欠を答える」からお願いします（イベントの画面に移ります）。新しく決まったイベントと、日付が変わったイベントは、講師のチャットスペースにも流れます。</li>
+          <li><b>担当生徒の登録内容</b>: 名簿に登録されている自分の生徒の 曜日・時刻・校舎・レベル・月謝・徴収方法 を確かめる所です。「登録内容を見る」で読み、違う行の「違う」を押して何が違うかを書くと日置さんに届きます。翌月分の月報はこの名簿から作られるので、毎月18日より前に一度見てください。</li>
+        </ul>
+      </section>
+
+      <section class="card" id="month">
+        <h2>8. 月末の締め<small>今月の状況</small></h2>
+        <p>ページの下のほうにある「今月の状況」は、月報のファイルから読んだものです（見るだけ。ここでは書けません）。読むのに時間がかかるので、ふだんは「今月の状況を読む」を押したときだけ読みます（月末の確定の期間は自動で出ます）。</p>
+        <ol>
+          <li>月末の3日前から翌月5日まで、ホームの上に<b>「今月の記録の確定」</b>が出ます。その月のレッスンを全部記録し終えたら「記録を確定する」を押してください。押していない生徒がいれば人数が出るので、先に「昨日まで」から付けます（この期間は月の初めまでさかのぼって出ます）。確定のあとに直しても構いません（「変更あり」の印が付くので、もう一度確定してください）。</li>
+          <li>毎月15〜23日に出る<b>「翌月の確認」</b>には、翌月から変わる生徒（レベル・休会・復帰・退会・<b>別の先生に移る</b>・<b>曜日や時刻が変わる</b>）だけ入れて、最後に「以上です」を押してください。曜日・時刻の変更は「金 16:30」のように新しい曜日と開始時刻を選びます（校舎も変わるときだけ校舎も）。翌月1日の朝に名簿が変わり、翌月分のファイルも新しい内容で作られます。今月の予定はそのままです。</li>
+          <li>現金を受け取ったら、「今月の状況」の<b>「現金であずかったもの」</b>でその生徒の「受け取った」を押します。翌朝、月謝明細の「現金徴収済」にチェックが入ります（先に明細で ✓ を付けてあればそのままです）。間違えたら「取り消す」。</li>
+          <li><b>どの月が出るか</b>: 今月の状況は「締めている月」（luce給与の対象月。毎月25日ごろに次の月へ進みます）の月報のファイルを出します。27日に翌月分のファイルができたあとも、月末〜5日まではその月のままです。別の月を見たいときは、いちばん上の「○月分」を押して切り替えてください（現金であずかったものも、その月の分になります）。</li>
+          <li><b>入会金・体験レッスン料・イベント会費・特別レッスン料</b>も、同じカードの「＋ あずかったものを足す」から入れてください。生徒と種類を選ぶだけで、金額は自動で出ます（入会金 5,000円／キャンペーン中 2,500円、体験レッスン料は2回目以降 1回 2,000円。イベント会費と特別レッスン料は受け取った額を入れます）。翌朝、月謝明細の 入会金・その他※現金徴収 の欄に入ります。<b>月謝明細を開いて金額を打つ必要はありません。</b> 他の先生の生徒に特別レッスンをしたときは「一覧にない生徒」で名前を入れてください（その生徒の行が明細に無いときは日置が足します）。</li>
+          <li><b>予約制の生徒</b>は、同じカードに「記録 ◯回 × ◯◯円 ＋ 管理費」と出るので、その額を受け取って押してください。回数はレッスン記録から数えています。0回の月は「0円で記録」を押すと、月謝も管理費も0円になります（<b>月末に押してください</b>。押したあとにその月のレッスンが入ったときは日置さんに一言ください）。</li>
+          <li>月が変わったら、前月分の月報（曜日シート・交通費・月謝明細）を確かめて「入力完了」にします。出欠の ○ は記録から入っています。記録を確定した先生の分は、曜日シート・交通費・月謝明細（現金の印が全員ぶん入ったとき）の「入力完了」が翌朝までに自動で入るようになります（日置さんが確かめてから切り替えます。それまでは自分で）。</li>
+          <li>「確認してほしいこと」に出たものは、月報のファイルで直してください（請求区分が空、出欠が付いていない、月謝の額が違う、など）。</li>
+          <li>20日ごろに請求書の PDF がメールで届き、20日（土日祝は前の営業日）に振り込まれます。</li>
+        </ol>
+        <p class="note">交通費の出勤回数は、今は交通費シートに自分で入れます。記録から数えた出勤日と違うときは「確認してほしいこと」に出ます。</p>
+      </section>
+
+      <section class="card" id="trouble">
+        <h2>9. 困ったとき</h2>
+        <ul>
+          <li><b>ページが開かない</b>: LINE の中のブラウザでそのまま開いてください。Safari や Chrome に移すと、Google のログイン状態によって開けないことがあります。</li>
+          <li><b>リンクをなくした</b>: 日置さんに連絡してください。新しいリンクを作れます（古いリンクは使えなくなります）。</li>
+          <li><b>生徒が予定に出ない</b>: 名簿の登録が要ります。日置さんに伝えてください。それまでは「予定にないレッスン」で記録できます。</li>
+          <li><b>○ が翌朝入っていない</b>: 記録が「出席」か「当日欠席」になっているか、月報が入力完了になっていないかを確かめてください。それでも入らないときは日置さんへ。</li>
+        </ul>
+        <p>連絡先: 日置（講師のチャットスペース、または LINE）</p>
+      </section>
+
+      <a class="back" href="#" onclick="history.back(); return false;">← 講師ページに戻る</a>
+      <p class="foot">luce 講師ページ 使い方（2026年9月）</p>
+    </div>
+    <script>
+/*
+ * luce 講師ページ（静的版）の橋渡し。tools/build-site.mjs が各ページの先頭に埋め込む。
+ *
+ * GAS の画面では google.script.run でサーバーの関数を呼ぶ。静的ページには google.script が無いので、
+ * 同じ形のものをここで作り、中では GAS の JSON API（40_Api.js）を fetch で呼ぶ。
+ * 別ドメインからの fetch には Google の Cookie が付かない（credentials: 'omit'）ので、
+ * ブラウザがどのアカウントにログインしていても関係なく動く。
+ *
+ * https://script.google.com/macros/s/AKfycbxDM30NCEgTMLrWZ1Z3muR9gg2JWF3_mK1AVsKL-nW5gyFKnY0x2fmrvEK6FIBxtcfQ/exec はビルド時に 00_Config.js の WEBAPP_URL に置き換わる。
+ * 画面のコード（status.html / events.html）は GAS 版と同じものをそのまま使う。
+ */
+(function (w) {
+  var API_URL = 'https://script.google.com/macros/s/AKfycbxDM30NCEgTMLrWZ1Z3muR9gg2JWF3_mK1AVsKL-nW5gyFKnY0x2fmrvEK6FIBxtcfQ/exec';
+
+  function parseQuery(search) {
+    var out = {};
+    String(search || '').replace(/^\?/, '').split('&').forEach(function (kv) {
+      if (!kv) return;
+      var i = kv.indexOf('=');
+      var k = i < 0 ? kv : kv.slice(0, i);
+      var v = i < 0 ? '' : kv.slice(i + 1);
+      try { k = decodeURIComponent(k.replace(/\+/g, ' ')); } catch (err) { /* そのまま */ }
+      try { v = decodeURIComponent(v.replace(/\+/g, ' ')); } catch (err) { /* そのまま */ }
+      if (k) out[k] = v;
+    });
+    return out;
+  }
+
+  function toQuery(params) {
+    var p = params || {};
+    return Object.keys(p).filter(function (k) { return p[k] !== undefined && p[k] !== null && p[k] !== ''; })
+      .map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(String(p[k])); })
+      .join('&');
+  }
+
+  var q = parseQuery(w.location && w.location.search);
+  // token は先生の合言葉（?t=）、s は生徒ページ（ホケホケ）の家庭の合言葉（?s=。w21）
+  w.__luce = { token: q.t || '', no: q.no || '', s: q.s || '', apiUrl: API_URL, parseQuery: parseQuery, toQuery: toQuery };
+
+  function finish(promise, ok, ng) {
+    promise
+      .then(function (res) { return res.json(); })
+      .then(function (body) {
+        if (body && body.ok) ok(body.data);
+        else ng(new Error((body && body.error) || '応答が読めませんでした'));
+      }, function (err) {
+        var why = err && err.message ? err.message : String(err);
+        ng(new Error('通信に失敗しました。電波の良いところでもう一度お試しください（' + why + '）'));
+      });
+  }
+
+  function get(params, ok, ng) {
+    finish(w.fetch(API_URL + '?' + toQuery(params), { method: 'GET', credentials: 'omit', cache: 'no-store' }), ok, ng);
+  }
+
+  function post(body, ok, ng) {
+    // Content-Type を text/plain にすると preflight（OPTIONS）が飛ばない。GAS は OPTIONS に答えられない
+    finish(w.fetch(API_URL, {
+      method: 'POST', credentials: 'omit',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body)
+    }), ok, ng);
+  }
+
+  /** google.script.run と同じ形。呼ぶたびに新しいものを返す（ハンドラが次の呼び出しに残らない） */
+  function runner() {
+    var ok = function () {};
+    var ng = function (err) { if (w.console && w.console.error) w.console.error(err); };
+    var r = {
+      withSuccessHandler: function (f) { ok = f; return r; },
+      withFailureHandler: function (f) { ng = f; return r; },
+      withUserObject: function () { return r; },
+      getStatusPage: function (p) { get({ api: 'status', t: p && p.t, no: p && p.no, fresh: p && p.fresh ? '1' : '', ym: (p && p.ym) || '' }, ok, ng); },
+      getEventPage: function (p) { get({ api: 'events', t: p && p.t }, ok, ng); },
+      saveEventAnswer: function (eventId, answer, comment, p) {
+        post({ api: 'saveEventAnswer', t: p && p.t, eventId: eventId, answer: answer, comment: comment }, ok, ng);
+      },
+      saveStudentAnswers: function (eventId, rows, noStudents, p) {
+        post({ api: 'saveStudentAnswers', t: p && p.t, eventId: eventId, rows: rows || [], noStudents: !!noStudents }, ok, ng);
+      },
+      // w7: ホーム
+      getHomePage: function (p) { get({ api: 'home', t: p && p.t, no: p && p.no }, ok, ng); },
+      getHomeAdminPage: function (p) { get({ api: 'homeAdmin', t: p && p.t, no: p && p.no }, ok, ng); },   // w85
+      markTaskDone: function (taskId, p) { post({ api: 'markTaskDone', t: p && p.t, no: p && p.no, taskId: taskId }, ok, ng); },
+      askQuestion: function (text, p) { post({ api: 'askQuestion', t: p && p.t, no: p && p.no, text: text }, ok, ng); },
+      // w10: 部屋の空き
+      getRoomsPage: function (p) { get({ api: 'rooms', t: p && p.t, no: p && p.no, campus: p && p.campus }, ok, ng); },
+      // w11: 振替・予約の申請
+      submitRequest: function (input, p) { post({ api: 'submitRequest', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      cancelRequest: function (id, reason, p) { post({ api: 'cancelRequest', t: p && p.t, no: p && p.no, id: id, reason: reason || '' }, ok, ng); },
+      decideRequest: function (id, decision, comment, force, p) { post({ api: 'decideRequest', t: p && p.t, no: p && p.no, id: id, decision: decision, comment: comment || '', force: !!force }, ok, ng); },
+      // w12: レッスン記録
+      saveRecord: function (input, p) { post({ api: 'saveRecord', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      saveRecords: function (input, p) { post({ api: 'saveRecords', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },   // w79
+      deleteRecord: function (input, p) { post({ api: 'deleteRecord', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w26: 今月の記録の確定
+      confirmRecords: function (input, p) { post({ api: 'confirmRecords', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w31: 現金の受け取り
+      saveCashReceipt: function (input, p) { post({ api: 'saveCashReceipt', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w37: 体験の結果（入会・検討・未入会）
+      saveTrialResult: function (input, p) { post({ api: 'saveTrialResult', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w39: イベントの会費
+      collectEventFee: function (input, p) { post({ api: 'collectEventFee', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w61: 参加率の分母をこの時点で確定（管理者）
+      fixEventTargets: function (input, p) { post({ api: 'fixEventTargets', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      refreshEventTargetGrades: function (input, p) { post({ api: 'refreshEventTargetGrades', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w63: 先生ごとの担当の部（管理者）
+      saveEventSessions: function (input, p) { post({ api: 'saveEventSessions', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w33: 締めチェック（管理者）
+      setChecklistItem: function (input, p) { post({ api: 'setChecklistItem', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w43: 翌月の確認
+      saveNextMonth: function (input, p) { post({ api: 'saveNextMonth', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      deleteNextMonth: function (input, p) { post({ api: 'deleteNextMonth', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      confirmNextMonth: function (input, p) { post({ api: 'confirmNextMonth', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w82: 担当講師の変更 → 新規・体験 に1行（管理者）
+      rosterTransferPreview: function (input, p) { get({ api: 'rosterTransferPreview', t: p && p.t, no: p && p.no, row: input && input.row }, ok, ng); },
+      addRosterTransfer: function (input, p) { post({ api: 'addRosterTransfer', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w27: 全先生の今月（管理者）
+      getAllTeachersPage: function (p) { get({ api: 'allTeachers', t: p && p.t, no: p && p.no }, ok, ng); },
+      // w67: 経営ページ（管理者だけ）
+      getKeieiPage: function (p) { get({ api: 'keiei', t: p && p.t, no: p && p.no, ym: p && p.ym, fresh: p && p.fresh ? 1 : '' }, ok, ng); },
+      // w29: 担当生徒の登録内容と「違う」
+      getRosterPage: function (p) { get({ api: 'roster', t: p && p.t, no: p && p.no }, ok, ng); },
+      reportRosterIssue: function (input, p) { post({ api: 'reportRosterIssue', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w40: シフト（出勤日）の変更
+      getShiftPage: function (p) { get({ api: 'shift', t: p && p.t, no: p && p.no }, ok, ng); },
+      getShiftRooms: function (ymd, campus, p) { get({ api: 'shiftRooms', t: p && p.t, no: p && p.no, ymd: ymd, campus: campus }, ok, ng); },
+      submitShiftRequest: function (input, p) { post({ api: 'submitShiftRequest', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      cancelShiftRequest: function (id, reason, p) { post({ api: 'cancelShiftRequest', t: p && p.t, no: p && p.no, id: id, reason: reason }, ok, ng); },
+      decideShiftRequest: function (id, decision, comment, p) { post({ api: 'decideShiftRequest', t: p && p.t, no: p && p.no, id: id, decision: decision, comment: comment }, ok, ng); },
+      saveShiftCheck: function (input, p) { post({ api: 'saveShiftCheck', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },   // w99
+      // w14: 管理者が質問に返す
+      answerQuestion: function (row, at, qno, text, p) { post({ api: 'answerQuestion', t: p && p.t, no: p && p.no, row: row, at: at, qno: qno, text: text }, ok, ng); },
+      // w17: ホケホケ
+      getHokePage: function (p) { get({ api: 'hoke', t: p && p.t, no: p && p.no, week: p && p.week }, ok, ng); },
+      hokeCandidates: function (rightId, p) { get({ api: 'hokeCandidates', t: p && p.t, no: p && p.no, rightId: rightId, past: p && p.past ? '1' : '' }, ok, ng); },
+      hokeSetState: function (input, p) { post({ api: 'hokeSetState', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      hokeMove: function (input, p) { post({ api: 'hokeMove', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      hokeAdd: function (input, p) { post({ api: 'hokeAdd', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      hokeCancel: function (input, p) { post({ api: 'hokeCancel', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      hokeClose: function (input, p) { post({ api: 'hokeClose', t: p && p.t, no: p && p.no, input: input || {} }, ok, ng); },
+      // w21: ホケホケの生徒ページ（家庭の合言葉 s）
+      getHokeParentPage: function (p) { get({ api: 'hokeParent', s: p && p.s }, ok, ng); },
+      hokeParentCandidates: function (rightId, p) { get({ api: 'hokeParentCandidates', s: p && p.s, rightId: rightId }, ok, ng); },
+      hokeParentAbsent: function (input, p) { post({ api: 'hokeParentAbsent', s: p && p.s, input: input || {} }, ok, ng); },
+      hokeParentUndo: function (input, p) { post({ api: 'hokeParentUndo', s: p && p.s, input: input || {} }, ok, ng); },
+      hokeParentMove: function (input, p) { post({ api: 'hokeParentMove', s: p && p.s, input: input || {} }, ok, ng); },
+      hokeParentCancel: function (input, p) { post({ api: 'hokeParentCancel', s: p && p.s, input: input || {} }, ok, ng); }
+    };
+    return r;
+  }
+
+  function replaceUrl(mode, state, params, hash) {
+    try {
+      w.history[mode](state || null, '', '?' + toQuery(params) + (hash ? '#' + hash : ''));
+    } catch (err) { /* 古いブラウザ */ }
+  }
+
+  var script = {
+    url: {
+      getLocation: function (cb) {
+        cb({ parameter: parseQuery(w.location && w.location.search), parameters: {}, hash: '' });
+      }
+    },
+    history: {
+      replace: function (state, params, hash) { replaceUrl('replaceState', state, params, hash); },
+      push: function (state, params, hash) { replaceUrl('pushState', state, params, hash); },
+      setChangeHandler: function () {}
+    }
+  };
+  Object.defineProperty(script, 'run', { get: runner });
+  w.google = { script: script };
+
+  /** ページの中のリンク（「イベント →」など）に合言葉を引き継ぐ */
+  function keepToken() {
+    if (!w.document || !w.document.querySelectorAll) return;
+    var as = w.document.querySelectorAll('a[data-keep-token]');
+    for (var i = 0; i < as.length; i++) {
+      var href = as[i].getAttribute('href') || '';
+      as[i].setAttribute('href', href.replace(/[?#].*$/, '') + '?' + toQuery({ t: w.__luce.token }));
+    }
+  }
+  if (w.document && w.document.addEventListener) w.document.addEventListener('DOMContentLoaded', keepToken);
+  w.__luce.keepToken = keepToken;
+})(window);
+
+    </script>
+    <script>
+      // このページは読むだけ。データは読みません
+    </script>
+  </body>
 </html>
